@@ -12,6 +12,7 @@ import {
 import path from "path";
 import { fileURLToPath } from "url";
 import { BackendSupervisor } from "./backend-supervisor.js";
+import WebSocket from "ws";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -232,9 +233,9 @@ function registerIpcHandlers(): void {
     try {
       const wsUrl = info.url.replace(/^http/, "ws") + `/ws?token=${info.token}`;
       ws = new WebSocket(wsUrl);
-      ws.onmessage = (event: MessageEvent) => {
+      ws.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data as string) as {
+          const data = JSON.parse(event.data.toString()) as {
             type?: string;
             session_id?: string;
             status?: string;
