@@ -51,8 +51,27 @@ export class BackendSupervisor {
     }
 
     return new Promise<BackendInfo>((resolve, reject) => {
-      const projectRoot = path.resolve(__dirname, "../../..");
-      const pythonPath = path.join(projectRoot, ".venv", "bin", "python");
+      // Detect whether we are running from a packaged app (ASAR) or dev
+      const isPackaged = process.env.NODE_ENV === "production" || __dirname.includes("app.asar");
+      let projectRoot: string;
+      let pythonPath: string;
+      let pythonCwd: string;
+      let pythonPathEnv: string;
+
+      if (isPackaged) {
+        // In packaged app, extraResources are placed next to the executable
+        projectRoot = path.join(process.resourcesPath);
+        pythonPath = "python3";
+        pythonCwd = projectRoot;
+        pythonPathEnv = path.join(projectRoot, "backend");
+      } else {
+        // In dev, use the local venv
+        projectRoot = path.resolve(__dirname, "../../..");
+        pythonPath = path.join(projectRoot, ".venv", "bin", "python");
+        pythonCwd = projectRoot;
+        pythonPathEnv = path.join(projectRoot, "src");
+      }
+
       const child = spawn(
         pythonPath,
         [
@@ -66,11 +85,11 @@ export class BackendSupervisor {
           "--no-access-log",
         ],
         {
-          cwd: projectRoot,
+          cwd: pythonCwd,
           stdio: ["ignore", "pipe", "pipe"],
           env: {
             ...process.env,
-            PYTHONPATH: path.join(projectRoot, "src"),
+            PYTHONPATH: pythonPathEnv,
           },
         }
       );

@@ -213,17 +213,17 @@ function registerIpcHandlers(): void {
       _micLevelInterval = null;
     }
 
-    // Hide overlay BEFORE calling backend so the text injector sees the
-    // user's originally focused window, not the overlay.
+    // Show transcribing state immediately so the overlay never "disappears"
+    // between recording and the backend's first status broadcast.
+    // overlayWindow is focusable: false, so it does not steal focus from
+    // the target window for xdotool injection.
     if (overlayWindow && !overlayWindow.isDestroyed()) {
-      overlayWindow.hide();
+      overlayWindow.webContents.send("status-update", { phase: "transcribing" });
+      overlayWindow.showInactive();
     }
 
-    // Give the window manager time to return focus to the user's target
-    // window before the backend starts the injection pipeline.
-    // 300ms is needed because: overlay.hide() → WM refocus → target
-    // window receives FocusIn → ready for xdotool keystrokes.
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    // Brief delay to let the window manager settle before injection starts.
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     // Connect to backend WebSocket to receive intermediate phase updates
     // during the blocking stop-dictation call.  The backend broadcasts
@@ -301,6 +301,7 @@ function registerIpcHandlers(): void {
       }
       if (overlayWindow && !overlayWindow.isDestroyed()) {
         overlayWindow.webContents.send("status-update", statusUpdate);
+        overlayWindow.showInactive();
       }
       setTimeout(() => {
         if (overlayWindow && !overlayWindow.isDestroyed()) {

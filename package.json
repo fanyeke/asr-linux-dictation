@@ -9,7 +9,9 @@
     "build:renderer": "vite build --config vite.renderer.config.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "pack": "npm run build && electron-builder --linux",
+    "pack:dir": "npm run build && electron-builder --linux --dir"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
@@ -34,6 +36,7 @@
     "autoprefixer": "^10.5.0",
     "clsx": "^2.1.1",
     "electron": "^30.0.0",
+    "electron-builder": "^26.8.1",
     "jsdom": "^29.1.1",
     "postcss": "^8.5.15",
     "tailwind-merge": "^3.6.0",
@@ -41,5 +44,45 @@
     "typescript": "^5.4.0",
     "vitest": "^1.6.0"
   },
-  "main": "dist/electron/main/main.js"
+  "main": "dist/electron/main/main.js",
+  "build": {
+    "appId": "com.asrlinux.app",
+    "productName": "ASR Linux",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "assets/**/*",
+      "node_modules/ws/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "src/backend",
+        "to": "backend"
+      },
+      {
+        "from": "pyproject.toml",
+        "to": "pyproject.toml"
+      },
+      {
+        "from": "uv.lock",
+        "to": "uv.lock"
+      }
+    ],
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        },
+        {
+          "target": "tar.gz",
+          "arch": ["x64"]
+        }
+      ],
+      "category": "AudioVideo",
+      "icon": "assets/icon.png"
+    }
+  }
 }
