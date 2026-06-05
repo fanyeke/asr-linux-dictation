@@ -74,8 +74,8 @@ export function HotkeySection({
           const cfg = await res.json();
           if (cfg.hotkey) setHotkey(cfg.hotkey);
         }
-      } catch {
-        // ignore
+      } catch (err) {
+        console.error("Failed to load hotkey:", err);
       }
     }
     load();
@@ -92,6 +92,7 @@ export function HotkeySection({
         onToast(t("hotkey_failed"), 3000);
       }
     } catch (err) {
+      console.error("Failed to set hotkey:", err);
       onToast(
         `Failed to set hotkey: ${err instanceof Error ? err.message : "unknown error"}`,
         3000,

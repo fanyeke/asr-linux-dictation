@@ -38,12 +38,16 @@ async function readErrorDetail(response: Response): Promise<string> {
     try {
       const body = (await response.json()) as { detail?: unknown };
       if (typeof body.detail === "string" && body.detail) return body.detail;
-    } catch {
+    } catch (err) {
+      console.error("Failed to read error detail:", err);
       // fall through
     }
   }
   return response.text().catch(() => "");
 }
+
+/** Placeholder shown when an API key is configured but not exposed to the client. */
+const MASKED_PLACEHOLDER = "••••••••";
 
 function buildConfigPayload(state: {
   asrApiKey: string;
@@ -54,15 +58,22 @@ function buildConfigPayload(state: {
   llmBaseUrl: string;
   llmModel: string;
 }): Record<string, unknown> {
-  return {
-    asr_api_key: state.asrApiKey,
+  const payload: Record<string, unknown> = {
     asr_base_url: state.asrBaseUrl,
     asr_model: state.asrModel,
-    llm_api_key: state.llmApiKey,
     llm_enabled: state.llmEnabled,
     llm_base_url: state.llmBaseUrl,
     llm_model: state.llmModel,
   };
+  // Only include API keys when the user has entered a real (non-placeholder) value.
+  // Empty keys are omitted so the server preserves the existing key.
+  if (state.asrApiKey && state.asrApiKey !== MASKED_PLACEHOLDER) {
+    payload.asr_api_key = state.asrApiKey;
+  }
+  if (state.llmApiKey && state.llmApiKey !== MASKED_PLACEHOLDER) {
+    payload.llm_api_key = state.llmApiKey;
+  }
+  return payload;
 }
 
 // ---------------------------------------------------------------------------
@@ -109,20 +120,19 @@ export function ApiConfigSection({
         });
         if (cancelled || !res.ok) return;
         const cfg = await res.json();
-        if (cfg.asr_api_key || cfg.api_key) {
-          setAsrApiKey(cfg.asr_api_key || cfg.api_key);
-        }
+        // API keys are never returned as raw values — use boolean flags
+        setAsrApiKey(cfg.asr_api_key_set ? MASKED_PLACEHOLDER : "");
+        setLlmApiKey(cfg.llm_api_key_set ? MASKED_PLACEHOLDER : "");
         if (cfg.asr_base_url) setAsrBaseUrl(cfg.asr_base_url);
         if (cfg.asr_model) setAsrModel(cfg.asr_model);
-        if (cfg.llm_api_key) setLlmApiKey(cfg.llm_api_key);
         if (cfg.llm_enabled !== undefined && cfg.llm_enabled !== null) {
           setLlmEnabled(cfg.llm_enabled);
         }
         if (cfg.llm_base_url) setLlmBaseUrl(cfg.llm_base_url);
         if (cfg.llm_model) setLlmModel(cfg.llm_model);
         loadedRef.current = true;
-      } catch {
-        // ignore
+      } catch (err) {
+        console.error("Failed to load config:", err);
       }
     }
     load();
@@ -162,6 +172,7 @@ export function ApiConfigSection({
           return false;
         }
       } catch (err) {
+        console.error("Failed to save config:", err);
         if (!silent) {
           onToast(
             `${t("config_save_failed")}: ${err instanceof Error ? err.message : "network error"}`,
@@ -195,7 +206,8 @@ export function ApiConfigSection({
         const body = await readErrorDetail(res);
         onToast(`${t("asr_test_failed")}: ${res.status} ${body}`, 5000);
       }
-    } catch {
+    } catch (err) {
+      console.error("ASR test failed:", err);
       setConnectionStatus("failed");
     }
   }, [backendConfig, saveConfigToBackend, onToast, t]);
@@ -221,7 +233,8 @@ export function ApiConfigSection({
         const body = await readErrorDetail(res);
         onToast(`${t("llm_test_failed")}: ${res.status} ${body}`, 5000);
       }
-    } catch {
+    } catch (err) {
+      console.error("LLM test failed:", err);
       setLlmConnectionStatus("failed");
     }
   }, [backendConfig, saveConfigToBackend, onToast, t]);
@@ -241,8 +254,8 @@ export function ApiConfigSection({
           },
           body: JSON.stringify(payload),
         });
-      } catch {
-        // silent; user can retry with Save button
+      } catch (err) {
+        console.error("Failed to toggle LLM:", err);
       }
     },
     [backendConfig, configState],

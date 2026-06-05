@@ -7,6 +7,7 @@ import {
   ipcMain,
   nativeImage,
   screen,
+  shell,
 } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -194,8 +195,8 @@ function registerIpcHandlers(): void {
             overlayWindow.webContents.send("microphone-level", level);
           }
         }
-      } catch {
-        // ignore polling errors
+      } catch (err) {
+        console.error("Mic level polling failed:", err);
       }
     }, 100);
   });
@@ -265,11 +266,12 @@ function registerIpcHandlers(): void {
               }
             }
           }
-        } catch {
-          // ignore malformed WS messages
+        } catch (err) {
+          console.error("Malformed WS message:", err);
         }
       };
-    } catch {
+    } catch (err) {
+      console.error("WebSocket connection failed:", err);
       // WebSocket connection failure — fall through to non-WS path
     }
 
@@ -285,8 +287,8 @@ function registerIpcHandlers(): void {
     if (ws) {
       try {
         ws.close();
-      } catch {
-        // ignore
+      } catch (err) {
+        console.error("Failed to close WebSocket:", err);
       }
     }
 
@@ -358,6 +360,14 @@ function registerIpcHandlers(): void {
     if (overlayWindow && !overlayWindow.isDestroyed()) {
       overlayWindow.hide();
     }
+  });
+
+  // Reveal a file in the system file manager (e.g. failed audio)
+  ipcMain.handle("reveal-file", async (_event, filePath: string) => {
+    if (typeof filePath !== "string" || !filePath) {
+      throw new Error("Invalid file path");
+    }
+    shell.showItemInFolder(filePath);
   });
 }
 

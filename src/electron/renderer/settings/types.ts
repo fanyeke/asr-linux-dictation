@@ -26,6 +26,7 @@ export interface HistorySession {
   timing_ms: number | null;
   prompt_id: number | null;
   error_type: string | null;
+  failed_audio_path: string | null;
   created_at: string | null;
 }
 

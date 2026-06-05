@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { ChildProcess, spawn } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -90,8 +91,8 @@ export class BackendSupervisor {
           resolved = true;
           const port = parseInt(match[1], 10);
 
-          // Generate a random token for API authentication
-          const token = Math.random().toString(36).substring(2, 15);
+          // Generate a cryptographically secure random token for API authentication
+          const token = crypto.randomUUID();
 
           this._process = child;
           this._info = {

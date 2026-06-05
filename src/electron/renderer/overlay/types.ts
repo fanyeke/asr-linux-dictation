@@ -31,6 +31,7 @@ export interface VoiceAPI {
   onToggleDictation: (cb: () => void) => () => void;
   getHotkey: () => Promise<string | null>;
   setHotkey: (hotkey: string) => Promise<string | null>;
+  revealFile: (filePath: string) => Promise<void>;
 }
 
 declare global {

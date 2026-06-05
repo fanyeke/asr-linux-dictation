@@ -50,4 +50,7 @@ export interface VoiceAPI {
    * Returns the actually registered key (may differ on failure).
    */
   setHotkey: (hotkey: string) => Promise<string | null>;
+
+  /** Reveals the given file in the system file manager (selects it). */
+  revealFile: (filePath: string) => Promise<void>;
 }

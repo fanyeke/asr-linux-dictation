@@ -108,6 +108,7 @@ function createMockAPI(): VoiceAPI {
         onLevelCb = null;
       };
     }),
+    revealFile: vi.fn(),
   };
 }
 
@@ -437,6 +438,7 @@ describe("OverlayWindow", () => {
           registeredLevelCb = null;
         };
       }),
+      revealFile: vi.fn(),
     };
 
     window.voiceAPI = mockAPI;

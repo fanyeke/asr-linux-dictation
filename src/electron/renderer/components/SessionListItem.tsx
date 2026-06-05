@@ -5,7 +5,7 @@ import type { HistorySession } from "../settings/types.js";
 import { Card } from "./ui/Card.js";
 import { Badge } from "./ui/Badge.js";
 import { Button } from "./ui/Button.js";
-import { ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
+import { ChevronDown, ChevronUp, RotateCcw, FileAudio2 } from "lucide-react";
 
 interface SessionListItemProps {
   session: HistorySession;
@@ -129,27 +129,44 @@ export function SessionListItem({
                 </div>
               )}
 
-              {/* Session ID + retry button */}
+              {/* Session ID + action buttons */}
               <div className="flex items-center justify-between pt-1">
                 <code className="text-[11px] text-gray-400 font-mono">
                   {session.session_id}
                 </code>
 
-                {isFailed && (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
-                    disabled={!onRetry}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRetry?.(session.session_id);
-                    }}
-                    data-testid={`retry-btn-${session.id}`}
-                  >
-                    {t("retry")}
-                  </Button>
-                )}
+                <div className="flex items-center gap-2">
+                  {isFailed && session.failed_audio_path && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      leftIcon={<FileAudio2 className="w-3.5 h-3.5" />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.voiceAPI?.revealFile(session.failed_audio_path!);
+                      }}
+                      data-testid={`reveal-audio-btn-${session.id}`}
+                    >
+                      {t("open_audio")}
+                    </Button>
+                  )}
+
+                  {isFailed && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
+                      disabled={!onRetry}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRetry?.(session.session_id);
+                      }}
+                      data-testid={`retry-btn-${session.id}`}
+                    >
+                      {t("retry")}
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </motion.div>

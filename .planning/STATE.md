@@ -2,18 +2,23 @@
 
 ## Current Phase
 
-**Phase 1 — Bug Fix Sprint** ✅ completed
+**Phase 3 — Polish & Hardening** ✅ completed
+
+## Completed Phases
+
+- **Phase 1 — Bug Fix Sprint** ✅ (overlay sidebar, visibility, corner bleed, dictionary)
+- **Phase 2 — Frontend Refactor** ✅ (SettingsPage split, dead code removal, inserting phase cleanup)
 
 ## Last Action
 
-- Completed Phase 1 bug fixes (R1-R4)
-- Committed: `1a36444`
-- Tests: 273 frontend + 223 backend passed
+- Completed Phase 3: security hardening, error surfacing, failed audio exposure, prompt CRUD
+- Committed: `b3fdefe`
+- Tests: 255 frontend + 223 backend passed
 
 ## Next Step
 
-- Phase 2: Frontend refactor (extract SettingsPage, remove dead code)
-- Or user-directed next task
+- Phase 4: User-directed or new milestone
+- Current milestone complete
 
 ## Decisions
 

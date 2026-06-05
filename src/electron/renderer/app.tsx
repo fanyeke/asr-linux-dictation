@@ -85,8 +85,8 @@ function App(): JSX.Element {
               i18n.setLanguage(cfgData.ui_language as Language);
             }
           }
-        } catch {
-          // ignore
+        } catch (err) {
+          console.error("Failed to load config:", err);
         }
 
         // Load history
@@ -100,10 +100,11 @@ function App(): JSX.Element {
           if (res.ok && !cancelled) {
             setHistory(await res.json());
           }
-        } catch {
-          // ignore
+        } catch (err) {
+          console.error("Failed to load history:", err);
         }
       } catch (err) {
+        console.error("Failed to initialize backend:", err);
         if (!cancelled) {
           setError(
             err instanceof Error ? err.message : i18n.t("error_unknown"),
@@ -188,8 +189,8 @@ function App(): JSX.Element {
       if (res.ok) {
         setHistory(await res.json());
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error("Failed to fetch history:", err);
     }
   }, [backendConfig]);
 
@@ -204,6 +205,7 @@ function App(): JSX.Element {
       setIsProcessing(false);
       setError(null);
     } catch (err) {
+      console.error("Failed to start recording:", err);
       isRecordingRef.current = false;
       isProcessingRef.current = false;
       setIsRecording(false);
@@ -228,6 +230,7 @@ function App(): JSX.Element {
     try {
       result = await getVoiceAPI().stopDictation();
     } catch (err) {
+      console.error("Failed to stop dictation:", err);
       errorMessage = err instanceof Error ? err.message : String(err);
     }
     isProcessingRef.current = false;

@@ -24,7 +24,8 @@ async function readErrorDetail(response: Response): Promise<string> {
     try {
       const body = (await response.json()) as { detail?: unknown };
       if (typeof body.detail === "string" && body.detail) return body.detail;
-    } catch {
+    } catch (err) {
+      console.error("Failed to read error detail:", err);
       // fall through
     }
   }
@@ -88,6 +89,7 @@ export function DiagnosticsSection({
       URL.revokeObjectURL(url);
       onToast(t("diagnostics_exported"), 3000);
     } catch (err) {
+      console.error("Failed to export diagnostics:", err);
       onToast(
         `${t("diagnostics_failed")}: ${err instanceof Error ? err.message : "network error"}`,
         5000,

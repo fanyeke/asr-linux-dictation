@@ -224,14 +224,16 @@ app = FastAPI(title="ASR Linux Backend", version="0.1.0", lifespan=lifespan)
 async def get_config(
     _: Annotated[None, Depends(verify_token)],
 ) -> dict:
-    """Get current runtime configuration."""
+    """Get current runtime configuration.
+
+    API key values are never returned to the client. Only boolean flags
+    indicate whether a key is available.
+    """
     global _user_config
     cfg = _user_config or UserConfig()
     return {
         "asr_api_key_set": _resolve_asr_api_key() is not None,
         "llm_api_key_set": _resolve_llm_api_key() is not None,
-        "asr_api_key": cfg.asr_api_key,
-        "llm_api_key": cfg.llm_api_key,
         "language": Settings().asr_language,
         "asr_base_url": cfg.asr_base_url,
         "asr_model": cfg.asr_model,

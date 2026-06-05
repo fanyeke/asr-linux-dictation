@@ -59,3 +59,19 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def has_asr_key() -> bool:
+    """Return True if an ASR API key is available from settings or the environment."""
+    return (
+        settings.mimo_api_key is not None
+        or bool(os.environ.get("ASR_LINUX_MIMO_API_KEY"))
+    )
+
+
+def has_llm_key() -> bool:
+    """Return True if an LLM API key is available from the environment."""
+    return bool(
+        os.environ.get("ASR_LINUX_LLM_API_KEY")
+        or os.environ.get("OPENAI_API_KEY")
+    )

@@ -64,8 +64,8 @@ export function HistoryPage({
         if (res.ok) {
           await onRefresh();
         }
-      } catch {
-        // ignore retry errors
+      } catch (err) {
+        console.error("Failed to retry session:", err);
       }
     },
     [backendConfig, onRefresh],

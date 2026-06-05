@@ -16,7 +16,8 @@ async function readErrorDetail(response: Response): Promise<string> {
     try {
       const body = (await response.json()) as { detail?: unknown };
       if (typeof body.detail === "string" && body.detail) return body.detail;
-    } catch {
+    } catch (err) {
+      console.error("Failed to read error detail:", err);
       // fall through
     }
   }
@@ -65,8 +66,8 @@ export function DictionaryManager({
           setDictionary(await res.json());
           loadedRef.current = true;
         }
-      } catch {
-        // ignore
+      } catch (err) {
+        console.error("Failed to load dictionary:", err);
       }
     }
     load();
@@ -144,6 +145,7 @@ export function DictionaryManager({
         onToast(`Failed: ${res.status} ${body}`, 5000);
       }
     } catch (err) {
+      console.error("Failed to save dictionary entry:", err);
       onToast(
         `Failed: ${err instanceof Error ? err.message : "network error"}`,
         5000,
@@ -171,6 +173,7 @@ export function DictionaryManager({
           onToast(`Delete failed: ${res.status} ${body}`, 5000);
         }
       } catch (err) {
+        console.error("Failed to delete dictionary entry:", err);
         onToast(
           `Delete failed: ${err instanceof Error ? err.message : "network error"}`,
           5000,
