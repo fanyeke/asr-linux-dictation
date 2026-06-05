@@ -23,6 +23,16 @@ export interface BackendInfo {
  */
 const UVICORN_PORT_PATTERN = /Uvicorn running on http:\/\/127\.0\.0\.1:(\d+)/;
 
+const DEPS = [
+  "fastapi>=0.110.0",
+  "uvicorn[standard]>=0.29.0",
+  "httpx>=0.27.0",
+  "pydantic>=2.6.0",
+  "pydantic-settings>=2.2.0",
+  "structlog>=24.1.0",
+  "pypinyin>=0.53.0",
+];
+
 /**
  * Manages the lifecycle of the Python backend process.
  *
@@ -34,6 +44,40 @@ export class BackendSupervisor {
   private _process: ChildProcess | null = null;
 
   private _info: BackendInfo | null = null;
+
+  /**
+   * Attempts to install Python dependencies into a local deps folder.
+   */
+  private async _installDeps(projectRoot: string): Promise<string> {
+    const depsDir = path.join(projectRoot, "python-deps");
+    return new Promise((resolve, reject) => {
+      const child = spawn(
+        "pip3",
+        ["install", "--quiet", "--target", depsDir, ...DEPS],
+        { stdio: ["ignore", "pipe", "pipe"] }
+      );
+
+      let output = "";
+      child.stdout?.on("data", (d: Buffer) => {
+        output += d.toString();
+      });
+      child.stderr?.on("data", (d: Buffer) => {
+        output += d.toString();
+      });
+
+      child.on("exit", (code) => {
+        if (code === 0) {
+          resolve(depsDir);
+        } else {
+          reject(new Error(`pip install failed (code ${code}):\n${output}`));
+        }
+      });
+
+      child.on("error", (err) => {
+        reject(new Error(`Failed to run pip3: ${err.message}`));
+      });
+    });
+  }
 
   /**
    * Starts the backend process and waits for it to become ready.
@@ -50,9 +94,10 @@ export class BackendSupervisor {
       throw new Error("Backend process is already running");
     }
 
-    return new Promise<BackendInfo>((resolve, reject) => {
+    return new Promise<BackendInfo>(async (resolve, reject) => {
       // Detect whether we are running from a packaged app (ASAR) or dev
-      const isPackaged = process.env.NODE_ENV === "production" || __dirname.includes("app.asar");
+      const isPackaged =
+        process.env.NODE_ENV === "production" || __dirname.includes("app.asar");
       let projectRoot: string;
       let pythonPath: string;
       let pythonCwd: string;
@@ -63,7 +108,8 @@ export class BackendSupervisor {
         projectRoot = path.join(process.resourcesPath);
         pythonPath = "python3";
         pythonCwd = projectRoot;
-        pythonPathEnv = path.join(projectRoot, "backend");
+        const depsDir = path.join(projectRoot, "python-deps");
+        pythonPathEnv = [path.join(projectRoot, "backend"), depsDir].join(path.delimiter);
       } else {
         // In dev, use the local venv
         projectRoot = path.resolve(__dirname, "../../..");
@@ -95,6 +141,7 @@ export class BackendSupervisor {
       );
 
       let resolved = false;
+      const stderrBuffer: string[] = [];
 
       /**
        * Handles incoming data from the child process stdout or stderr.
@@ -131,7 +178,9 @@ export class BackendSupervisor {
         if (!resolved) {
           resolved = true;
           reject(
-            new Error(`Backend failed to start: ${err.message}`)
+            new Error(
+              `Backend failed to start: ${err.message}\n${stderrBuffer.join("")}`
+            )
           );
         }
       };
@@ -143,9 +192,11 @@ export class BackendSupervisor {
       const onExit = (code: number | null): void => {
         if (!resolved) {
           resolved = true;
+          const stderrText = stderrBuffer.join("").trim();
           reject(
             new Error(
-              `Backend process exited with code ${code} before starting`
+              `Backend process exited with code ${code} before starting.\n` +
+                (stderrText ? `Stderr:\n${stderrText}` : "No stderr output.")
             )
           );
         }
@@ -163,9 +214,11 @@ export class BackendSupervisor {
       if (child.stderr) {
         child.stderr.on("data", onData);
         child.stderr.on("data", (data: Buffer) => {
+          const text = data.toString();
+          stderrBuffer.push(text);
           if (resolved) {
-            const text = data.toString().trim();
-            if (text) console.error(`[backend] ${text}`);
+            const trimmed = text.trim();
+            if (trimmed) console.error(`[backend] ${trimmed}`);
           }
         });
       }

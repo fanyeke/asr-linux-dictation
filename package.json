@@ -10,8 +10,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit",
-    "pack": "npm run build && electron-builder --linux",
-    "pack:dir": "npm run build && electron-builder --linux --dir"
+    "prepack": "pip3 install --quiet --target python-deps fastapi uvicorn httpx pydantic pydantic-settings structlog pypinyin || true",
+    "pack": "npm run build && npm run prepack && electron-builder --linux",
+    "pack:dir": "npm run build && npm run prepack && electron-builder --linux --dir"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
@@ -60,6 +61,10 @@
       {
         "from": "src/backend",
         "to": "backend"
+      },
+      {
+        "from": "python-deps",
+        "to": "python-deps"
       },
       {
         "from": "pyproject.toml",
