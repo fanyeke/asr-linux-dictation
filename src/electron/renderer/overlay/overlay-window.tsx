@@ -10,7 +10,6 @@ const PHASE_META: Record<string, { color: string; label: string; dotColor: strin
   recording: { color: "bg-red-500", label: "overlay_recording", dotColor: "bg-red-500" },
   transcribing: { color: "bg-brand-500", label: "overlay_transcribing", dotColor: "bg-brand-500" },
   polishing: { color: "bg-purple-500", label: "overlay_polishing", dotColor: "bg-purple-500" },
-  inserting: { color: "bg-purple-500", label: "overlay_inserting", dotColor: "bg-purple-500" },
   completed: { color: "bg-green-500", label: "overlay_completed", dotColor: "bg-green-500" },
   failed: { color: "bg-red-500", label: "overlay_failed", dotColor: "bg-red-500" },
 };
@@ -32,7 +31,6 @@ function getStepIndex(phase: string): number {
     case "transcribing":
       return 1;
     case "polishing":
-    case "inserting":
       return 2;
     case "completed":
       return 4; // past all steps → every dot is "completed"
@@ -73,7 +71,7 @@ export function OverlayWindow({
   const [elapsed, setElapsed] = useState(0);
   const startTimeRef = useRef<number>(0);
 
-  const phase = status.phase === "inserting" ? "polishing" : status.phase;
+  const phase = status.phase;
   const meta = PHASE_META[phase] ?? PHASE_META.idle;
   const isRecording = phase === "recording";
   const stepIndex = getStepIndex(phase);

@@ -225,7 +225,7 @@ function registerIpcHandlers(): void {
 
     // Connect to backend WebSocket to receive intermediate phase updates
     // during the blocking stop-dictation call.  The backend broadcasts
-    // status changes (transcribing, polishing, inserting, completed, failed)
+    // status changes (transcribing, polishing, completed, failed)
     // over WebSocket as the pipeline progresses.
     let ws: WebSocket | null = null;
     try {

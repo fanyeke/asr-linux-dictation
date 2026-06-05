@@ -3,7 +3,6 @@ export type DictationStatus =
   | { phase: "recording" }
   | { phase: "transcribing" }
   | { phase: "polishing" }
-  | { phase: "inserting" }
   | { phase: "completed"; raw_text?: string; polished_text?: string }
   | { phase: "failed"; error: string; error_type?: string };
 

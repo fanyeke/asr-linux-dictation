@@ -14,7 +14,6 @@ vi.mock("src/electron/renderer/lib/i18n.js", () => ({
         overlay_recording: "Recording...",
         overlay_transcribing: "Transcribing...",
         overlay_polishing: "Polishing...",
-        overlay_inserting: "Inserting...",
         overlay_completed: "Done",
         overlay_failed: "Failed",
       };
@@ -35,7 +34,6 @@ const DOT_COLORS: Record<string, string> = {
   recording: "bg-red-500",
   transcribing: "bg-brand-500",
   polishing: "bg-purple-500",
-  inserting: "bg-purple-500",
   failed: "bg-red-500",
 };
 
@@ -167,12 +165,6 @@ describe("OverlayWindow", () => {
     expect(hasLevelBar()).toBe(true);
   });
 
-  it("shows level bar during inserting", () => {
-    render(<OverlayWindow initialStatus={{ phase: "inserting" }} />);
-
-    expect(hasLevelBar()).toBe(true);
-  });
-
   it("shows level bar during completed", () => {
     render(<OverlayWindow initialStatus={{ phase: "completed" }} />);
 
@@ -278,15 +270,6 @@ describe("OverlayWindow", () => {
 
   it("shows correct step states for polishing", () => {
     render(<OverlayWindow initialStatus={{ phase: "polishing" }} />);
-
-    expect(getStepState("recording")).toBe("completed");
-    expect(getStepState("transcribing")).toBe("completed");
-    expect(getStepState("polishing")).toBe("current");
-    expect(getStepState("completed")).toBe("pending");
-  });
-
-  it("shows correct step states for inserting (maps to LLM step)", () => {
-    render(<OverlayWindow initialStatus={{ phase: "inserting" }} />);
 
     expect(getStepState("recording")).toBe("completed");
     expect(getStepState("transcribing")).toBe("completed");
@@ -405,14 +388,6 @@ describe("OverlayWindow", () => {
     });
     await waitFor(() => expect(getLabel()).toBe("Polishing..."));
     expectDotColorForPhase("polishing");
-    expect(hasLevelBar()).toBe(true);
-
-    // inserting — maps to LLM
-    act(() => {
-      onStatusCb!({ phase: "inserting" });
-    });
-    await waitFor(() => expect(getLabel()).toBe("Polishing..."));
-    expectDotColorForPhase("inserting");
     expect(hasLevelBar()).toBe(true);
 
     // failed

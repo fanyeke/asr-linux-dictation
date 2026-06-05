@@ -139,10 +139,9 @@ function App(): JSX.Element {
         setDictationError(null);
       } else if (
         status.phase === "transcribing" ||
-        status.phase === "polishing" ||
-        status.phase === "inserting"
+        status.phase === "polishing"
       ) {
-        setPhase(status.phase === "inserting" ? "polishing" : status.phase);
+        setPhase(status.phase);
         setIsRecording(false);
         setIsProcessing(true);
         isRecordingRef.current = false;
