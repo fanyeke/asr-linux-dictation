@@ -380,7 +380,9 @@ function registerIpcHandlers(): void {
  * when the window is hidden to the system tray.
  */
 function createTray(): void {
-  const trayIconPath = path.join(__dirname, "../../assets/tray-icon.png");
+  const trayIconPath = app.isPackaged
+    ? path.join(process.resourcesPath, "app", "assets", "tray-icon.png")
+    : path.join(__dirname, "../../assets", "tray-icon.png");
   const trayIcon = nativeImage.createFromPath(trayIconPath);
   tray = new Tray(trayIcon);
 

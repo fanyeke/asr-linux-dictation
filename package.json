@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "npm run build && electron .",
-    "build": "tsc && npm run build:renderer",
+    "build": "tsc && npm run build:renderer && cp -r assets dist/",
     "build:renderer": "vite build --config vite.renderer.config.ts",
     "test": "vitest run",
     "test:watch": "vitest",
