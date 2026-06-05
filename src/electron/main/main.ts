@@ -72,7 +72,7 @@ function createOverlayWindow(): void {
   const overlayWidth = 400;
   const overlayHeight = 80;
   const x = Math.round((screenWidth - overlayWidth) / 2);
-  const y = screenHeight - overlayHeight;
+  const y = screenHeight - overlayHeight - 60;
 
   overlayWindow = new BrowserWindow({
     width: overlayWidth,

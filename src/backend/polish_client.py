@@ -151,18 +151,31 @@ class PolishClient:
             "修正：然后润色似乎还是不能用，它没有真正做润色。\n"
         )
 
-        user_content = (
-            f"{polish_instruction}\n\n{few_shot}\n"
-            f"原文：{preprocessed}\n修正："
-        )
-
-        messages: list[dict[str, str]] = []
+        # Build user prompt with dictionary terms inline
+        user_content_parts: list[str] = [
+            polish_instruction,
+            "",
+            few_shot,
+        ]
 
         if dictionary_entries:
             entries_text = _format_dictionary(dictionary_entries)
-            messages.append({"role": "system", "content": entries_text})
+            user_content_parts.extend([
+                "",
+                entries_text,
+            ])
 
-        messages.append({"role": "user", "content": user_content})
+        user_content_parts.extend([
+            "",
+            f"原文：{preprocessed}",
+            "修正：",
+        ])
+
+        user_content = "\n".join(user_content_parts)
+
+        messages: list[dict[str, str]] = [
+            {"role": "user", "content": user_content}
+        ]
 
         body: dict[str, Any] = {
             "model": self._model,
@@ -235,15 +248,15 @@ class PolishClient:
 
 
 def _format_dictionary(entries: list[dict]) -> str:
-    """Format dictionary entries into a system prompt context string.
+    """Format dictionary entries into a prompt context string.
 
-    When ``pronunciation`` is provided, the LLM is instructed to also
-    replace near-homophones (音近词) in the transcript with the canonical
-    term.
+    Instructs the LLM to replace canonical/pronunciation variants with
+    the canonical term.
     """
     lines: list[str] = [
-        "术语表：",
-        "请将原文中出现的以下术语（包括发音相近的词）替换为规范写法：",
+        "【术语替换】以下是你必须执行的术语替换规则：",
+        "请将原文中出现的以下术语（包括发音相近或拼写相近的变体）",
+        "**强制替换**为规范写法。即使原文只有轻微差异，也必须替换：",
     ]
     for entry in entries:
         term = entry.get("term", "")
@@ -251,9 +264,11 @@ def _format_dictionary(entries: list[dict]) -> str:
         pronunciation = entry.get("pronunciation", "")
         if pronunciation:
             lines.append(
-                f"- {term}（发音：{pronunciation}）"
+                f"  → 规范写法：{term}"
+                f"（注意：原文可能出现 '{pronunciation}' 这种发音/拼写相近的形式）"
                 f"{(': ' + definition) if definition else ''}"
             )
         else:
-            lines.append(f"- {term}{(': ' + definition) if definition else ''}")
+            lines.append(f"  → 规范写法：{term}{(': ' + definition) if definition else ''}")
+    lines.append("  必须执行上述替换，不能只清理语气词。")
     return "\n".join(lines)

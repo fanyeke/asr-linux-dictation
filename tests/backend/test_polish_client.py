@@ -137,18 +137,16 @@ async def test_polish_includes_dictionary_entries(client: PolishClient) -> None:
         )
 
         body = json.loads(route.calls[0].request.content)
-        assert len(body["messages"]) == 2
-        # First message is the dictionary context
-        assert body["messages"][0]["role"] == "system"
+        assert len(body["messages"]) == 1
+        # User message contains both dictionary context and the polish prompt
+        assert body["messages"][0]["role"] == "user"
         assert "ASR" in body["messages"][0]["content"]
         assert "自动语音识别" in body["messages"][0]["content"]
         assert "NLP" in body["messages"][0]["content"]
         assert "自然语言处理" in body["messages"][0]["content"]
-        # Second message is the user prompt with few-shot examples
-        assert body["messages"][1]["role"] == "user"
-        assert "原文：ASR 和 NLP" in body["messages"][1]["content"]
-        assert "修正：" in body["messages"][1]["content"]
-        assert "示例" in body["messages"][1]["content"]
+        assert "原文：ASR 和 NLP" in body["messages"][0]["content"]
+        assert "修正：" in body["messages"][0]["content"]
+        assert "示例" in body["messages"][0]["content"]
 
 
 @pytest.mark.asyncio

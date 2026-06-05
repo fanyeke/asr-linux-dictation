@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import type { DictationStatus } from "./types.js";
 import { useTranslation } from "../lib/i18n.js";
 
@@ -74,7 +73,7 @@ export function OverlayWindow({
   const [elapsed, setElapsed] = useState(0);
   const startTimeRef = useRef<number>(0);
 
-  const phase = status.phase;
+  const phase = status.phase === "inserting" ? "polishing" : status.phase;
   const meta = PHASE_META[phase] ?? PHASE_META.idle;
   const isRecording = phase === "recording";
   const stepIndex = getStepIndex(phase);
@@ -128,32 +127,20 @@ export function OverlayWindow({
       {/* ── Status row: dot + label + timer ── */}
       <div className="flex items-center gap-2">
         <div className="relative flex items-center justify-center w-3 h-3">
-          <motion.div
+          <div
             data-testid="status-dot"
-            key={phase}
-            initial={{ scale: 0.6, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.6, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className={`w-3 h-3 rounded-full ${meta.dotColor} ${
+            className={`w-3 h-3 rounded-full ${meta.dotColor} transition-all duration-200 ${
               isRecording ? "animate-pulse" : ""
             }`}
           />
         </div>
 
-        <AnimatePresence mode="wait">
-          <motion.span
-            key={phase}
-            data-testid="status-label"
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 4 }}
-            transition={{ duration: 0.2 }}
-            className="text-sm font-medium"
-          >
-            {isRecording ? t("overlay_recording") : t(meta.label)}
-          </motion.span>
-        </AnimatePresence>
+        <span
+          data-testid="status-label"
+          className="text-sm font-medium transition-all duration-200"
+        >
+          {isRecording ? t("overlay_recording") : t(meta.label)}
+        </span>
 
         {isRecording && (
           <span
@@ -169,14 +156,9 @@ export function OverlayWindow({
       {showBar && (
         <div data-testid="level-bar" className="overflow-hidden">
           <div className="w-full h-1 bg-white/10 rounded-full mt-2 overflow-hidden">
-            <motion.div
+            <div
               data-testid="level-bar-fill"
-              key={`bar-fill-${phase}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className={`h-full rounded-full ${
+              className={`h-full rounded-full transition-all duration-200 ${
                 isRecording
                   ? meta.color
                   : TERMINAL_PHASES.has(phase)
@@ -212,7 +194,7 @@ export function OverlayWindow({
                         ? "current"
                         : "pending"
                   }
-                  className={`w-2 h-2 rounded-full ${
+                  className={`w-2 h-2 rounded-full transition-all duration-200 ${
                     isCompleted
                       ? stepMeta.dotColor
                       : isCurrent
@@ -225,7 +207,7 @@ export function OverlayWindow({
                 {i < STEPS.length - 1 && (
                   <div
                     data-testid={`step-line-${step.key}`}
-                    className={`w-4 h-0.5 mx-0.5 rounded-full ${
+                    className={`w-4 h-0.5 mx-0.5 rounded-full transition-all duration-200 ${
                       isCompleted || (isCurrent && i < stepIndex)
                         ? stepMeta.color
                         : "bg-gray-600"
