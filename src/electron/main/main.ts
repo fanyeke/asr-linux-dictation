@@ -381,7 +381,7 @@ function registerIpcHandlers(): void {
  */
 function createTray(): void {
   const trayIconPath = app.isPackaged
-    ? path.join(process.resourcesPath, "app", "assets", "tray-icon.png")
+    ? path.join(process.resourcesPath, "assets", "tray-icon.png")
     : path.join(__dirname, "../../assets", "tray-icon.png");
   const trayIcon = nativeImage.createFromPath(trayIconPath);
   tray = new Tray(trayIcon);

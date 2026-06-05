@@ -73,6 +73,10 @@
       {
         "from": "uv.lock",
         "to": "uv.lock"
+      },
+      {
+        "from": "assets",
+        "to": "assets"
       }
     ],
     "linux": {
