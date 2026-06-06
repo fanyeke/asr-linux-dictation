@@ -1,23 +1,23 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: Experience Enhancements
+milestone: v1.1
+milestone_name: History & Dashboard Redesign
 status: planning
-last_updated: "2026-06-06T04:17:02.388Z"
+last_updated: "2026-06-06T06:04:40.991Z"
 last_activity: 2026-06-06
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 4
-  completed_plans: 4
-  percent: 100
+  total_phases: 2
+  completed_phases: 0
+  total_plans: 1
+  completed_plans: 0
+  percent: 0
 ---
 
 # State
 
 ## Current Phase
 
-**Phase 9 — Scene Profiles** ✅ completed
+**Phase 10 — History Redesign** 🔄 in progress
 
 ## Completed Phases
 
@@ -30,14 +30,13 @@ progress:
 
 ## Last Action
 
-- Completed Phase 9: 5 preset scene profiles with CRUD, pipeline integration, tray quick-switch
-- Committed: `c0ae4d5`
+- Milestone v1.0 complete
 - Tests: 251 frontend + 262 backend passed (513 total)
 
 ## Next Step
 
-- Milestone v1.0 Experience Enhancements complete — all 4 phases delivered
-- Next: v1.1 or new milestone
+- Phase 10: History Redesign — collapsed preview, always-visible copy, diff view, failed highlight, search/filter
+- Phase 11: Dashboard + Stats — timing breakdown, stats API, trend charts, heatmap
 
 ## Decisions
 
@@ -46,7 +45,7 @@ progress:
 
 ## Current Position
 
-Phase: All complete
-Plan: —
-Status: Milestone v1.0 completed
-Last activity: 2026-06-06 — All 4 phases delivered
+Phase: 10 — History Redesign
+Plan: 10-PLAN.md — 4 waves
+Status: Executing
+Last activity: 2026-06-06 — Plan ready
