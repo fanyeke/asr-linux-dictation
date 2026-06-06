@@ -5,6 +5,7 @@ import { HotkeySection } from "./settings/HotkeySection.js";
 import { PromptManager } from "./settings/PromptManager.js";
 import { DictionaryManager } from "./settings/DictionaryManager.js";
 import { DiagnosticsSection } from "./settings/DiagnosticsSection.js";
+import { ProfileManager } from "./settings/ProfileManager.js";
 import { VadSection } from "./settings/VadSection.js";
 
 // ---------------------------------------------------------------------------
@@ -90,6 +91,12 @@ export function SettingsPage({
       />
 
       <DictionaryManager
+        backendConfig={backendConfig}
+        onToast={onToast}
+        t={t}
+      />
+
+      <ProfileManager
         backendConfig={backendConfig}
         onToast={onToast}
         t={t}

@@ -30,6 +30,9 @@ let _micLevelInterval: ReturnType<typeof setInterval> | null = null;
 /** Current ASR language for the tray menu. */
 let _trayAsrLanguage = "auto";
 
+/** Cached profile list for the tray submenu. */
+let _trayProfiles: Array<{ id: number; name: string; is_active: boolean }> = [];
+
 /**
  * Creates the main settings window (900x600).
  */
@@ -395,6 +398,24 @@ function registerIpcHandlers(): void {
  * The tray allows the user to show the main window or quit the app
  * when the window is hidden to the system tray.
  */
+function buildProfileSubmenu(): Electron.MenuItemConstructorOptions[] {
+  if (_trayProfiles.length === 0) {
+    return [{ label: "(no profiles)", enabled: false }];
+  }
+  return _trayProfiles.map((p) => ({
+    label: `${p.is_active ? "✓ " : ""}${p.name}`,
+    click: () => {
+      const info = supervisor.info;
+      if (info) {
+        fetch(`${info.url}/profiles/${p.id}/activate`, {
+          method: "POST",
+          headers: { "x-token": info.token },
+        }).catch((err) => console.error("Failed to activate profile:", err));
+      }
+    },
+  }));
+}
+
 function buildLanguageSubmenu(): Electron.MenuItemConstructorOptions[] {
   const languages = [
     { label: "Auto Detect", value: "auto" },
@@ -436,6 +457,10 @@ function buildTrayMenu(): Electron.Menu {
     {
       label: "ASR Language",
       submenu: buildLanguageSubmenu(),
+    },
+    {
+      label: "Scene Profile",
+      submenu: buildProfileSubmenu(),
     },
     { type: "separator" },
     {
@@ -556,9 +581,20 @@ app.whenReady().then(async () => {
     } catch (err) {
       console.error("Failed to load config:", err);
     }
+    // Load profiles for tray menu
+    try {
+      const profileRes = await fetch(`${info.url}/profiles`, {
+        headers: { "x-token": info.token },
+      });
+      if (profileRes.ok) {
+        _trayProfiles = (await profileRes.json()) as Array<{ id: number; name: string; is_active: boolean }>;
+      }
+    } catch (err) {
+      console.error("Failed to load profiles:", err);
+    }
   }
   registerHotkey(preferredHotkey);
-  // Rebuild tray with loaded language
+  // Rebuild tray with loaded config
   if (tray) {
     tray.setContextMenu(buildTrayMenu());
   }
