@@ -8,7 +8,7 @@ last_activity: 2026-06-06
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 1
+  total_plans: 2
   completed_plans: 1
   total_plans: 0
   completed_plans: 0
@@ -19,7 +19,7 @@ progress:
 
 ## Current Phase
 
-**Phase 6 — Core Config & UX** ✅ completed
+**Phase 7 — History & Overlay** 🔄 in progress
 
 ## Completed Phases
 
@@ -44,7 +44,7 @@ progress:
 
 ## Current Position
 
-Phase: 7 — History & Overlay (next)
-Plan: —
-Status: Pending
-Last activity: 2026-06-06 — Phase 6 completed
+Phase: 7 — History & Overlay
+Plan: 07-PLAN.md — 4 waves, 27 tasks
+Status: Plan ready — awaiting approval
+Last activity: 2026-06-06 — Phase 7 plan created
