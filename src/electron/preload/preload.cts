@@ -56,6 +56,16 @@ const api = {
     };
   },
 
+  onPartialTranscript: (callback: (text: string) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, text: string) => {
+      callback(text);
+    };
+    ipcRenderer.on("partial-transcript", handler);
+    return () => {
+      ipcRenderer.removeListener("partial-transcript", handler);
+    };
+  },
+
   onToggleDictation: (callback: () => void) => {
     const handler = (_event: Electron.IpcRendererEvent) => {
       callback();

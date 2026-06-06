@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
-import { useTranslation } from "../lib/i18n.js";
 
 // ---------------------------------------------------------------------------
 // Phase progress ranges (simulated)
@@ -13,27 +12,27 @@ interface PhaseRange {
 }
 
 const PHASE_RANGES: Record<string, PhaseRange> = {
-  recording:    { start: 0,   end: 35,  color: "bg-red-500",    labelKey: "overlay_recording" },
-  transcribing: { start: 35,  end: 65,  color: "bg-brand-500",  labelKey: "overlay_transcribing" },
-  polishing:    { start: 65,  end: 90,  color: "bg-purple-500", labelKey: "overlay_polishing" },
-  completed:    { start: 90,  end: 100, color: "bg-green-500",  labelKey: "overlay_completed" },
+  recording:    { start: 0,   end: 30,  color: "bg-red-400/50", labelKey: "overlay_recording" },
+  transcribing: { start: 30,  end: 60,  color: "bg-brand-500/70",  labelKey: "overlay_transcribing" },
+  polishing:    { start: 60,  end: 88,  color: "bg-purple-500/70", labelKey: "overlay_polishing" },
+  completed:    { start: 88,  end: 100, color: "bg-green-500",  labelKey: "overlay_completed" },
   failed:       { start: 0,   end: 0,   color: "bg-red-500",    labelKey: "overlay_failed" },
 };
 
 const TERMINAL_PHASES = new Set(["completed", "failed"]);
 
 // ---------------------------------------------------------------------------
-// Simulated advance within a phase: takes ~3s to go from start to end
+// Simulated advance within a phase: slower for smoother feel
 // ---------------------------------------------------------------------------
-const PHASE_ADVANCE_DURATION_MS = 2500;
+const PHASE_ADVANCE_DURATION_MS = 4000;
 
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
 interface ProgressBarProps {
   phase: string;
-  micLevel: number;
-  silenceRemainingMs: number | null;
+  partialText: string;
+  micLevel?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -41,10 +40,9 @@ interface ProgressBarProps {
 // ---------------------------------------------------------------------------
 export function ProgressBar({
   phase,
-  micLevel,
-  silenceRemainingMs,
+  partialText: _partialText,
+  micLevel = 0,
 }: ProgressBarProps): JSX.Element {
-  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [showContent, setShowContent] = useState(true);
   const currentRange = PHASE_RANGES[phase] ?? null;
@@ -89,8 +87,6 @@ export function ProgressBar({
 
     // For active phases: smoothly advance from start → end
     const targetEnd = currentRange.end;
-    // If transitioning from previous phase, start from prev end
-    // Otherwise start from phase start and simulate advance
     const startFrom = progress.get();
 
     // Animate to end over the phase duration
@@ -117,6 +113,7 @@ export function ProgressBar({
         showContent ? "opacity-100" : "opacity-0"
       }`}
     >
+      {/* ── Progress bar track (thin) ── */}
       <div className="w-full h-1.5 bg-white/10 rounded-full mt-1.5 overflow-hidden relative">
         {/* Main animated bar */}
         <motion.div
@@ -127,7 +124,7 @@ export function ProgressBar({
 
         {/* Mic level wave overlay (recording only) */}
         {isRecording && micLevel > 0 && (
-          <motion.div
+          <div
             data-testid="mic-wave-overlay"
             className="absolute top-0 h-full bg-white/30 rounded-full"
             style={{
@@ -136,32 +133,9 @@ export function ProgressBar({
             }}
           />
         )}
-
-        {/* VAD countdown tail */}
-        {silenceRemainingMs !== null && silenceRemainingMs > 0 && isRecording && (
-          <div
-            data-testid="vad-countdown"
-            className="absolute top-0 h-full bg-white/20 rounded-full"
-            style={{
-              left: `${progress.get()}%`,
-              width: `${Math.min((silenceRemainingMs / 2000) * 20, 20)}%`,
-              maxWidth: "20%",
-            }}
-          />
-        )}
       </div>
 
-      {/* Phase label */}
-      <div className="flex items-center justify-between mt-1">
-        <span
-          data-testid="progress-label"
-          className={`text-[11px] font-medium ${
-            isRecording ? "text-red-400" : isFailed ? "text-red-400" : "text-gray-300"
-          }`}
-        >
-          {t(currentRange.labelKey)}
-        </span>
-      </div>
+
     </div>
   );
 }

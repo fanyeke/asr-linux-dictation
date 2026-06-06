@@ -181,6 +181,54 @@ async def test_transcribe_raises_malformed_error_on_non_dict_json():
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# warmup() -- connection pre-warming
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_warmup_sends_get_to_base_url():
+    """Warmup sends a GET request to the base URL to establish connections."""
+    async with respx.mock:
+        route = respx.get(TEST_BASE_URL).respond(200, json={"status": "ok"})
+        client = ASRClient(api_key=TEST_API_KEY)
+        # Should not raise
+        await client.warmup()
+        assert route.called, "warmup should send a GET to the base URL"
+
+
+@pytest.mark.asyncio
+async def test_warmup_network_error_does_not_raise():
+    """Warmup failures are silently logged, never raised."""
+    async with respx.mock:
+        respx.get(TEST_BASE_URL).mock(
+            side_effect=httpx.ConnectError("Connection refused"),
+        )
+        client = ASRClient(api_key=TEST_API_KEY)
+        # Must not raise
+        await client.warmup()
+
+
+@pytest.mark.asyncio
+async def test_warmup_http_error_does_not_raise():
+    """Even HTTP error responses from warmup are silently handled."""
+    async with respx.mock:
+        respx.get(TEST_BASE_URL).respond(500)
+        client = ASRClient(api_key=TEST_API_KEY)
+        await client.warmup()  # Must not raise
+
+
+@pytest.mark.asyncio
+async def test_warmup_timeout_does_not_raise():
+    """Warmup timeout is silently handled."""
+    async with respx.mock:
+        respx.get(TEST_BASE_URL).mock(
+            side_effect=httpx.TimeoutException("timed out"),
+        )
+        client = ASRClient(api_key=TEST_API_KEY)
+        await client.warmup()  # Must not raise
+
+
 @pytest.mark.asyncio
 async def test_transcribe_raises_server_error_on_500():
     async with respx.mock:

@@ -287,7 +287,7 @@ class TestClipboardManager:
     async def test_inject_with_fallback_success(
         self, manager: ClipboardManager, monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        """When *inject_func* succeeds, clipboard is saved and restored."""
+        """When *inject_func* succeeds, text stays in clipboard (no restore)."""
         ops: dict[str, list[Any]] = {"save": [], "restore": [], "set": []}
         inject_called: list[str] = []
 
@@ -314,9 +314,46 @@ class TestClipboardManager:
         assert result["method"] == "paste"
         assert result["clipboard_saved"] is True
         assert ops["save"] == [True]
-        assert ops["restore"] == [True]
+        assert ops["restore"] == []  # clipboard is NOT restored
         assert ops["set"] == []  # set_clipboard not called on success
         assert inject_called == ["hello"]
+
+    # ------------------------------------------------------------------
+    # inject_with_fallback — runtime error (paste failure)
+    # ------------------------------------------------------------------
+
+    @pytest.mark.asyncio
+    async def test_inject_with_fallback_runtime_error(
+        self, manager: ClipboardManager, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """On RuntimeError, clipboard is NOT restored — text stays as fallback."""
+        ops: dict[str, list[Any]] = {"save": [], "restore": [], "set": []}
+
+        async def mock_save() -> str | None:
+            ops["save"].append(True)
+            return "original"
+
+        async def mock_restore() -> None:
+            ops["restore"].append(True)
+
+        async def mock_set(text: str) -> None:
+            ops["set"].append(text)
+
+        monkeypatch.setattr(manager, "save", mock_save)
+        monkeypatch.setattr(manager, "restore", mock_restore)
+        monkeypatch.setattr(manager, "set_clipboard", mock_set)
+
+        async def inject_func(text: str) -> None:
+            raise RuntimeError("Paste command failed")
+
+        result = await manager.inject_with_fallback("hello", inject_func)
+
+        assert result["success"] is False
+        assert result["method"] == "clipboard_fallback"
+        assert result["clipboard_saved"] is True
+        assert ops["save"] == [True]
+        assert ops["restore"] == []  # NOT restored
+        assert ops["set"] == []  # set_clipboard NOT called (text already set by inject_func)
 
     # ------------------------------------------------------------------
     # inject_with_fallback — focus lost

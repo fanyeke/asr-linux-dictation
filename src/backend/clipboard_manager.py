@@ -256,12 +256,16 @@ class ClipboardManager:
         text: str,
         inject_func: Callable[[str], Awaitable[None]],
     ) -> dict[str, bool | str]:
-        """Save clipboard, call *inject_func*, then restore on success.
+        """Save clipboard, call *inject_func*, keep text on clipboard.
+
+        The original clipboard is saved before injection so we know
+        its value, but it is **not** restored after injection — the
+        injected text stays on the clipboard so the user can paste
+        it again manually if needed.
 
         If *inject_func* raises :class:`FocusLostError`, the text is
         copied directly to the clipboard as a visible fallback for the
-        user to paste manually. No restore is performed in this case
-        (the fallback text stays in the clipboard).
+        user to paste manually.
 
         Args:
             text: The text to inject.
@@ -293,8 +297,18 @@ class ClipboardManager:
                 "method": "clipboard_fallback",
                 "clipboard_saved": clipboard_saved,
             }
+        except RuntimeError:
+            logger.info(
+                "Paste failed — text left in clipboard as fallback",
+            )
+            return {
+                "success": False,
+                "method": "clipboard_fallback",
+                "clipboard_saved": clipboard_saved,
+            }
 
-        await self.restore()
+        # Don't restore clipboard — leave injected text available for
+        # manual re-paste.
         return {
             "success": True,
             "method": "paste",

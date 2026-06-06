@@ -46,6 +46,12 @@ class TestDictationRoutes:
             "backend.main.get_orchestrator", lambda: self.mock_orchestrator,
         )
 
+        # Add warmup mocks to the orchestrator clients
+        self.mock_orchestrator.asr_client = AsyncMock()
+        self.mock_orchestrator.asr_client.warmup = AsyncMock()
+        self.mock_orchestrator.polish_client = AsyncMock()
+        self.mock_orchestrator.polish_client.warmup = AsyncMock()
+
     @pytest.mark.asyncio
     async def test_start_dictation(self, client: AsyncClient) -> None:
         """POST /dictation/start returns session_id and status."""
@@ -55,6 +61,16 @@ class TestDictationRoutes:
         assert data["status"] == "started"
         assert data["session_id"] == "test-session-id"
         self.mock_recorder.start.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_start_dictation_calls_warmup(self, client: AsyncClient) -> None:
+        """POST /dictation/start triggers ASR and LLM connection warmup."""
+        response = await client.post("/dictation/start")
+        assert response.status_code == 200
+        # Yield to allow background asyncio.create_task to execute
+        await asyncio.sleep(0)
+        self.mock_orchestrator.asr_client.warmup.assert_awaited_once()
+        self.mock_orchestrator.polish_client.warmup.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_stop_dictation(self, client: AsyncClient) -> None:

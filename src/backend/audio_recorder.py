@@ -1,7 +1,9 @@
-"""Audio recording module using arecord (ALSA).
+"""Audio recording module using arecord (ALSA) with pipe mode for streaming.
 
 Provides the AudioRecorder class for capturing microphone audio
-via the arecord command-line tool on Linux.
+via arecord. Supports both file-based and pipe-based recording,
+where pipe mode captures PCM data to an in-memory RingBuffer for
+streaming ASR during recording.
 """
 
 import asyncio
@@ -11,23 +13,26 @@ import uuid
 from pathlib import Path
 
 from backend.config import Settings
+from backend.ring_buffer import RingBuffer
 
 logger = logging.getLogger(__name__)
 
 MAX_RECORDING_SECONDS: int = 300  # 5 minutes
 
+# WAV format constants
+_WAV_BITS_PER_SAMPLE = 16
+
 
 class AudioRecorder:
-    """Record microphone audio using arecord (ALSA).
+    """Record microphone audio using arecord (ALSA) with pipe mode.
+
+    Pipe mode launches arecord with stdout as the output target and
+    captures PCM data into an in-memory :class:`RingBuffer` for
+    streaming ASR. On stop, the accumulated PCM data is written to a
+    standard WAV file at the configured output path.
 
     Attributes:
         settings: Application settings controlling audio parameters.
-
-    Usage:
-        recorder = AudioRecorder()
-        session_id = await recorder.start()
-        # ... record audio ...
-        output_path = await recorder.stop()
     """
 
     def __init__(self, settings: Settings | None = None, vad_enabled: bool = True) -> None:
@@ -46,15 +51,18 @@ class AudioRecorder:
         self._level_task: asyncio.Task | None = None
         self._silence_task: asyncio.Task | None = None
         self._max_duration_task: asyncio.Task | None = None
+        self._pipe_reader_task: asyncio.Task | None = None
         self._current_level: float = 0.0
         self._lock = asyncio.Lock()
+        self._ring_buffer: RingBuffer | None = None
 
     async def start(self) -> str:
-        """Start recording audio.
+        """Start recording audio using pipe mode.
 
-        Launches an arecord subprocess to capture microphone audio
-        to a WAV file. The output is written to a recordings subdirectory
-        under the configured data directory.
+        Launches arecord with stdout as the target, captures PCM data
+        to a :class:`RingBuffer` in memory for streaming ASR. On stop
+        the accumulated PCM is written to a WAV file at the configured
+        output path.
 
         Returns:
             A unique session ID string for this recording session.
@@ -72,19 +80,22 @@ class AudioRecorder:
             recordings_dir.mkdir(parents=True, exist_ok=True)
             self._output_path = recordings_dir / f"{self._session_id}.wav"
 
-            cmd = self._build_command()
+            cmd = self._build_pipe_command()
+            self._ring_buffer = RingBuffer(sample_rate=self.settings.audio_sample_rate)
 
             try:
                 self._process = await asyncio.create_subprocess_exec(
                     *cmd,
-                    stdout=asyncio.subprocess.DEVNULL,
+                    stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                 )
             except (FileNotFoundError, OSError):
                 self._session_id = None
                 self._output_path = None
+                self._ring_buffer = None
                 raise
 
+            self._pipe_reader_task = asyncio.create_task(self._read_stdout())
             self._level_task = asyncio.create_task(self._monitor_levels())
             if self._vad_enabled and self.settings.silence_duration_ms > 0:
                 self._silence_task = asyncio.create_task(self._detect_silence())
@@ -97,11 +108,12 @@ class AudioRecorder:
     async def stop(self) -> Path | None:
         """Stop recording audio.
 
-        Terminates the arecord process and returns the path to
-        the recorded WAV file.
+        Terminates the arecord process, cancels background tasks,
+        and writes the accumulated PCM data to a WAV file at the
+        configured output path.
 
         Returns:
-            Path to the recorded audio file, or ``None`` if not currently
+            Path to the recorded WAV file, or ``None`` if not currently
             recording (idempotent).
         """
         async with self._lock:
@@ -116,6 +128,9 @@ class AudioRecorder:
             if self._level_task is not None:
                 self._level_task.cancel()
                 self._level_task = None
+            if self._pipe_reader_task is not None:
+                self._pipe_reader_task.cancel()
+                self._pipe_reader_task = None
             if self._silence_task is not None:
                 self._silence_task.cancel()
                 self._silence_task = None
@@ -131,8 +146,21 @@ class AudioRecorder:
                 process.kill()
                 await process.wait()
 
+            # Write accumulated PCM data to WAV file
+            ring = self._ring_buffer
+            if ring is not None and ring.total_bytes > 0:
+                pcm_data = ring._read_bytes(0, ring.total_bytes)
+                self._write_wav(output_path, pcm_data)
+            elif output_path.exists():
+                # Fallback: file may have been written by arecord directly
+                pass
+            else:
+                # No data — create an empty recording
+                self._write_wav(output_path, b"")
+
             self._process = None
             self._output_path = None
+            self._ring_buffer = None
 
             return output_path
 
@@ -144,6 +172,11 @@ class AudioRecorder:
         has not exited.
         """
         return self._process is not None and self._process.returncode is None
+
+    @property
+    def ring_buffer(self) -> RingBuffer | None:
+        """Get the current ring buffer for streaming ASR access."""
+        return self._ring_buffer
 
     async def get_level(self) -> float:
         """Get current audio level.
@@ -157,14 +190,15 @@ class AudioRecorder:
         """
         return self._current_level
 
-    def _build_command(self) -> list[str]:
-        """Build the arecord command line.
+    def _build_pipe_command(self) -> list[str]:
+        """Build the arecord command line for pipe mode (stdout).
 
         Returns:
             List of command arguments for arecord.
         """
         cmd = [
             "arecord",
+            "-t", "raw",  # raw PCM output (no WAV header in stream)
             "-f",
             self.settings.audio_format,
             "-r",
@@ -172,11 +206,77 @@ class AudioRecorder:
             "-c",
             str(self.settings.audio_channels),
             "--vumeter=stereo",
+            "-",  # output to stdout
         ]
         if self.settings.audio_device:
             cmd.extend(["-D", self.settings.audio_device])
-        cmd.append(str(self._output_path))
         return cmd
+
+    # ------------------------------------------------------------------
+    # Pipe reader — captures PCM from arecord stdout
+    # ------------------------------------------------------------------
+
+    async def _read_stdout(self) -> None:
+        """Background task reading PCM data from arecord stdout.
+
+        Continuously reads 8 KB chunks from arecord's stdout and
+        writes them into the ring buffer.
+        """
+        process = self._process
+        if process is None or process.stdout is None:
+            return
+        try:
+            while True:
+                chunk = await process.stdout.read(8192)
+                if not chunk:
+                    break
+                if self._ring_buffer is not None:
+                    self._ring_buffer.write(chunk)
+        except asyncio.CancelledError:
+            pass
+        except Exception:
+            logger.exception("Error reading audio pipe")
+
+    # ------------------------------------------------------------------
+    # WAV writer — saves PCM data as a proper WAV file
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _write_wav(path: Path, pcm_data: bytes) -> None:
+        """Write PCM data as a RIFF/WAV file with a proper header.
+
+        Args:
+            path: Output file path.
+            pcm_data: Raw PCM data bytes.
+        """
+        import struct
+
+        sample_rate = 16000
+        channels = 1
+        bits_per_sample = 16
+        byte_rate = sample_rate * channels * bits_per_sample // 8
+        block_align = channels * bits_per_sample // 8
+        data_size = len(pcm_data)
+
+        with open(path, "wb") as f:
+            f.write(b"RIFF")
+            f.write(struct.pack("<I", 36 + data_size))
+            f.write(b"WAVE")
+            f.write(b"fmt ")
+            f.write(struct.pack("<I", 16))  # chunk size
+            f.write(struct.pack("<H", 1))  # PCM format
+            f.write(struct.pack("<H", channels))
+            f.write(struct.pack("<I", sample_rate))
+            f.write(struct.pack("<I", byte_rate))
+            f.write(struct.pack("<H", block_align))
+            f.write(struct.pack("<H", bits_per_sample))
+            f.write(b"data")
+            f.write(struct.pack("<I", data_size))
+            f.write(pcm_data)
+
+    # ------------------------------------------------------------------
+    # Level parsing (unchanged from file mode)
+    # ------------------------------------------------------------------
 
     def _parse_level_line(self, decoded: str) -> None:
         """Parse a single line of arecord VU meter output."""

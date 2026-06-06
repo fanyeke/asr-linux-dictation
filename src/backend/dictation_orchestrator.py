@@ -171,14 +171,27 @@ class DictationOrchestrator:
                             matches=len(match_counts))
 
         # ---- Inject --------------------------------------------------------
+        injection_method = "paste"
         if self.injector:
             try:
                 inject_start = time.monotonic()
-                result = self.injector(polished)
-                if asyncio.iscoroutine(result):
-                    await result
+                result_or_coro = self.injector(polished)
+                if asyncio.iscoroutine(result_or_coro):
+                    inject_result = await result_or_coro
+                else:
+                    inject_result = result_or_coro
                 inject_ms = int((time.monotonic() - inject_start) * 1000)
-                logger.info("inject_completed", session_id=session_id, duration_ms=inject_ms)
+
+                # Capture injection method for clipboard-fallback notification
+                if hasattr(inject_result, "success") and hasattr(inject_result, "method"):
+                    injection_method = inject_result.method  # type: ignore[union-attr]
+
+                logger.info(
+                    "inject_completed",
+                    session_id=session_id,
+                    duration_ms=inject_ms,
+                    method=injection_method,
+                )
             except Exception as e:
                 logger.error("inject_failed", session_id=session_id, error=str(e))
                 await self._broadcast(session_id, "failed", error_type=f"inject:{type(e).__name__}")
@@ -193,7 +206,12 @@ class DictationOrchestrator:
         session = await update_session(session_id, status="completed")
         total_ms = int((time.monotonic() - pipeline_start) * 1000)
         logger.info("pipeline_completed", session_id=session_id, duration_ms=total_ms)
-        await self._broadcast(session_id, "completed", raw_text=raw_text, polished_text=polished)
+        await self._broadcast(
+            session_id, "completed",
+            raw_text=raw_text,
+            polished_text=polished,
+            injection_method=injection_method,
+        )
         return session
 
     async def retry_from_text(self, raw_text: str) -> dict:

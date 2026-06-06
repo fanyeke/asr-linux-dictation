@@ -11,6 +11,9 @@ import httpx
 from backend.polish_sanitizer import sanitize_polish_output
 from backend.retry_policy import RetryExhaustedError, RetryPolicy
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 # ---------------------------------------------------------------------------
 # Layer 1: Regex pre-processing — strip obvious filler words before the LLM.
@@ -89,6 +92,17 @@ class PolishClient:
         self._model = model
         self._client = httpx.AsyncClient(timeout=httpx.Timeout(30.0))
         self._retry_policy = retry_policy or RetryPolicy()
+
+    async def warmup(self) -> None:
+        """Pre-warm the HTTP connection pool to the LLM API server.
+
+        Sends a lightweight GET request to establish TCP + TLS connections.
+        This is fire-and-forget — failures are logged but never raised.
+        """
+        try:
+            await self._client.get(self._base_url, timeout=5.0)
+        except Exception:
+            logger.debug("LLM connection warmup failed (non-blocking)")
 
     async def polish(
         self,

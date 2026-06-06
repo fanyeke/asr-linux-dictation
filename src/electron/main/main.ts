@@ -3,6 +3,7 @@ import {
   BrowserWindow,
   clipboard,
   Menu,
+  Notification,
   Tray,
   globalShortcut,
   ipcMain,
@@ -26,6 +27,9 @@ let isQuitting = false;
 
 /** Interval handle for polling microphone levels from the backend. */
 let _micLevelInterval: ReturnType<typeof setInterval> | null = null;
+
+/** WebSocket connection for receiving partial transcript events during recording. */
+let _partialWs: WebSocket | null = null;
 
 /** Current ASR language for the tray menu. */
 let _trayAsrLanguage = "auto";
@@ -79,7 +83,7 @@ function createOverlayWindow(): void {
     primaryDisplay.workAreaSize;
 
   const overlayWidth = 400;
-  const overlayHeight = 90;
+  const overlayHeight = 120;
   const x = Math.round((screenWidth - overlayWidth) / 2);
   const y = screenHeight - overlayHeight - 60;
 
@@ -210,6 +214,39 @@ function registerIpcHandlers(): void {
       const pollMs = (performance.now() - pollStart).toFixed(1);
       console.debug(`[level_poll] response_time_ms=${pollMs} interval_ms=60`);
     }, 60);
+
+    // Open WebSocket connection for partial transcript events during recording
+    if (_partialWs) {
+      _partialWs.close();
+      _partialWs = null;
+    }
+    try {
+      const partialWsUrl =
+        info.url.replace(/^http/, "ws") + `/ws?token=${info.token}`;
+      _partialWs = new WebSocket(partialWsUrl);
+      _partialWs.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data.toString()) as {
+            type?: string;
+            text?: string;
+          };
+          if (data.type === "partial_transcript" && data.text) {
+            const partialText = data.text;
+            if (overlayWindow && !overlayWindow.isDestroyed()) {
+              overlayWindow.webContents.send("partial-transcript", partialText);
+              overlayWindow.showInactive();
+            }
+          }
+        } catch (err) {
+          console.error("Malformed partial WS message:", err);
+        }
+      };
+      _partialWs.onerror = () => {
+        // WS errors during recording are non-fatal
+      };
+    } catch (err) {
+      console.error("Failed to open partial transcript WS:", err);
+    }
   });
 
   // Proxy stop-dictation request to the backend
@@ -221,6 +258,12 @@ function registerIpcHandlers(): void {
     if (_micLevelInterval) {
       clearInterval(_micLevelInterval);
       _micLevelInterval = null;
+    }
+
+    // Close the partial transcript WebSocket
+    if (_partialWs) {
+      _partialWs.close();
+      _partialWs = null;
     }
 
     // Show transcribing state immediately so the overlay never "disappears"
@@ -252,6 +295,7 @@ function registerIpcHandlers(): void {
             raw_text?: string;
             polished_text?: string;
             error_type?: string;
+            injection_method?: string;
           };
           if (data.type === "status_update" && data.status) {
             const phaseMap: Record<string, string> = {
@@ -267,6 +311,7 @@ function registerIpcHandlers(): void {
                 raw_text: data.raw_text,
                 polished_text: data.polished_text,
                 ...(data.error_type ? { error_type: data.error_type } : {}),
+                ...(data.injection_method ? { injection_method: data.injection_method } : {}),
               };
               if (settingsWindow && !settingsWindow.isDestroyed()) {
                 settingsWindow.webContents.send("status-update", statusUpdate);
@@ -274,6 +319,18 @@ function registerIpcHandlers(): void {
               if (overlayWindow && !overlayWindow.isDestroyed()) {
                 overlayWindow.webContents.send("status-update", statusUpdate);
                 overlayWindow.showInactive();
+              }
+
+              // Show system notification when paste failed and text was
+              // left in clipboard as fallback.
+              if (
+                phase === "completed" &&
+                data.injection_method === "clipboard_fallback"
+              ) {
+                new Notification({
+                  title: "ASR Linux",
+                  body: "粘贴失败，文本已复制到剪贴板。\n请按 Ctrl+V 手动粘贴。",
+                }).show();
               }
             }
           }

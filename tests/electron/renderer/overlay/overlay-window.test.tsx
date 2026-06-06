@@ -73,10 +73,12 @@ function hasTimer(): boolean {
 
 let onStatusCb: ((s: DictationStatus) => void) | null = null;
 let onLevelCb: ((level: number) => void) | null = null;
+let onPartialCb: ((text: string) => void) | null = null;
 
 function createMockAPI(): VoiceAPI {
   onStatusCb = null;
   onLevelCb = null;
+  onPartialCb = null;
   return {
     getBackendConfig: vi.fn(),
     startDictation: vi.fn(),
@@ -99,6 +101,12 @@ function createMockAPI(): VoiceAPI {
         onLevelCb = null;
       };
     }),
+    onPartialTranscript: vi.fn((cb: (text: string) => void) => {
+      onPartialCb = cb;
+      return () => {
+        onPartialCb = null;
+      };
+    }),
     revealFile: vi.fn(),
   };
 }
@@ -111,6 +119,7 @@ afterEach(() => {
   delete (window as any).voiceAPI;
   onStatusCb = null;
   onLevelCb = null;
+  onPartialCb = null;
 });
 
 // ---------------------------------------------------------------------------
@@ -255,21 +264,18 @@ describe("OverlayWindow", () => {
     vi.useRealTimers();
   });
 
-  // ── Mic level updates ───────────────────────────────────────────────
+  // ── Mic level wave (still rendered during recording) ────────────────
 
-  it("shows mic wave overlay during recording that responds to level", () => {
+  it("shows mic wave overlay during recording with level", () => {
     render(<OverlayWindow initialStatus={{ phase: "recording" }} />);
 
     expect(hasProgressBar()).toBe(true);
+    expect(screen.queryByTestId("mic-wave-overlay")).toBeNull();
 
-    // Mic level is rendered as a separate wave overlay
     act(() => {
       onLevelCb!(0.5);
     });
-    const wave = screen.queryByTestId("mic-wave-overlay");
-    // The wave overlay is optional (uses framer-motion style)
-    // The main progress bar uses simulated animation, not mic level
-    expect(hasProgressBar()).toBe(true);
+    expect(screen.getByTestId("mic-wave-overlay")).toBeDefined();
   });
 
   // ── Status transitions ──────────────────────────────────────────────
@@ -352,6 +358,7 @@ describe("OverlayWindow", () => {
           registeredLevelCb = null;
         };
       }),
+      onPartialTranscript: vi.fn(),
       revealFile: vi.fn(),
     };
 

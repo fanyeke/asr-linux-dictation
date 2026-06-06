@@ -10,7 +10,7 @@ import re
 import subprocess
 from dataclasses import dataclass
 
-from backend.clipboard_manager import ClipboardManager
+from backend.clipboard_manager import ClipboardManager, FocusLostError
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -145,6 +145,12 @@ class TextInjector:
     async def inject(self, text: str) -> InjectionResult:
         """Inject *text* into the currently focused window.
 
+        Uses :meth:`ClipboardManager.inject_with_fallback` to save the
+        current clipboard content before injection, set the new text,
+        simulate paste, and restore the original clipboard on success.
+        On failure (paste error or focus change) the clipboard is **not**
+        restored — the injected text remains as a user fallback.
+
         Uses clipboard paste as the only automatic insertion method. Direct
         ``xdotool type`` is intentionally avoided because it can drop
         characters for IME/Chinese and long text.
@@ -165,47 +171,51 @@ class TextInjector:
                 error="No active window found",
             )
 
-        # 2. Detect terminal
+        # 2. Detect terminal type
         is_terminal = await self._is_terminal(window_id)
 
-        # 3. Set clipboard and wait until other X11 clients can read it. This
-        # avoids pasting stale clipboard content when the owner is slow to
-        # publish the new selection.
-        clipboard_set = await self._clipboard_manager.set_clipboard_for_paste(text)
-        if not clipboard_set:
-            return InjectionResult(
-                success=False,
-                method="failed",
-                clipboard_saved=False,
-                error="Clipboard could not be set",
+        # 3. Delegate clipboard save/restore and paste to inject_with_fallback
+        async def _do_paste(t: str) -> None:
+            """Inner function: set clipboard, check focus, paste.
+
+            Passed to :meth:`ClipboardManager.inject_with_fallback` which
+            wraps it with clipboard save/restore.
+            """
+            clipboard_set = await self._clipboard_manager.set_clipboard_for_paste(t)
+            if not clipboard_set:
+                raise RuntimeError("Clipboard could not be set")
+            await asyncio.sleep(CLIPBOARD_READY_DELAY_SECONDS)
+
+            # Re-check focus after clipboard operations
+            current_window = await self._get_active_window()
+            if current_window != window_id:
+                raise FocusLostError("Focus changed during injection")
+
+            paste_ok = await self._paste(window_id, is_terminal)
+            if not paste_ok:
+                raise RuntimeError("Paste command failed")
+
+        result = await self._clipboard_manager.inject_with_fallback(
+            text, _do_paste,
+        )
+
+        # Translate inject_with_fallback result dict to InjectionResult.
+        success = bool(result["success"])
+        method = str(result["method"])
+        if not success:
+            error_msg = (
+                "Paste failed — text left in clipboard for manual paste"
+                if method == "clipboard_fallback"
+                else "Text injection failed"
             )
-        await asyncio.sleep(CLIPBOARD_READY_DELAY_SECONDS)
+        else:
+            error_msg = None
 
-        # Re-check focus after clipboard operations
-        current_window = await self._get_active_window()
-        if current_window != window_id:
-            return InjectionResult(
-                success=False,
-                method="clipboard_fallback",
-                clipboard_saved=False,
-                error="Focus changed during injection, text left in clipboard",
-            )
-
-        paste_ok = await self._paste(window_id, is_terminal)
-
-        if paste_ok:
-            return InjectionResult(
-                success=True,
-                method="paste",
-                clipboard_saved=False,
-            )
-
-        # Paste failed — leave text in clipboard as user fallback.
         return InjectionResult(
-            success=False,
-            method="clipboard_fallback",
-            clipboard_saved=False,
-            error="Paste failed, text left in clipboard",
+            success=success,
+            method=method,
+            clipboard_saved=bool(result["clipboard_saved"]),
+            error=error_msg,
         )
 
     # ------------------------------------------------------------------

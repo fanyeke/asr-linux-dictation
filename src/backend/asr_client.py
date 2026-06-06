@@ -57,6 +57,17 @@ class ASRClient:
         self._client = httpx.AsyncClient(timeout=httpx.Timeout(30.0))
         self._retry_policy = retry_policy or RetryPolicy()
 
+    async def warmup(self) -> None:
+        """Pre-warm the HTTP connection pool to the ASR API server.
+
+        Sends a lightweight GET request to establish TCP + TLS connections.
+        This is fire-and-forget — failures are logged but never raised.
+        """
+        try:
+            await self._client.get(self.base_url, timeout=5.0)
+        except Exception:
+            logger.debug("ASR connection warmup failed (non-blocking)")
+
     async def transcribe(
         self,
         audio_bytes: bytes,

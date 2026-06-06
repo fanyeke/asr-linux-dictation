@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { DictationStatus } from "./types.js";
 import { useTranslation } from "../lib/i18n.js";
 import { ProgressBar } from "./ProgressBar.js";
@@ -26,6 +26,7 @@ export function OverlayWindow({
   );
   const [micLevel, setMicLevel] = useState<number>(initialMicLevel ?? 0);
   const [silenceRemainingMs, setSilenceRemainingMs] = useState<number | null>(null);
+  const [partialText, setPartialText] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const startTimeRef = useRef<number>(0);
 
@@ -45,8 +46,17 @@ export function OverlayWindow({
       return () => clearInterval(id);
     } else {
       setElapsed(0);
+      // Clear partial text when no longer recording
+      setPartialText("");
     }
   }, [phase]);
+
+  // -----------------------------------------------------------------------
+  // Partial transcript handler
+  // -----------------------------------------------------------------------
+  const handlePartialTranscript = useCallback((text: string) => {
+    setPartialText(text);
+  }, []);
 
   // -----------------------------------------------------------------------
   // Event listeners (voiceAPI)
@@ -62,11 +72,16 @@ export function OverlayWindow({
       setMicLevel(level);
     });
 
+    // Wire up partial transcript listener when available
+    const unsubPartial =
+      api.onPartialTranscript?.(handlePartialTranscript) ?? (() => {});
+
     return () => {
       unsubStatus();
       unsubLevel();
+      unsubPartial();
     };
-  }, []);
+  }, [handlePartialTranscript]);
 
   // -----------------------------------------------------------------------
   // Render
@@ -128,8 +143,8 @@ export function OverlayWindow({
       {showBar && (
         <ProgressBar
           phase={phase}
+          partialText={partialText}
           micLevel={micLevel}
-          silenceRemainingMs={silenceRemainingMs}
         />
       )}
     </div>

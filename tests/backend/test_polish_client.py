@@ -246,6 +246,40 @@ async def test_polish_fallback_on_malformed_response(client: PolishClient) -> No
         assert result == "malformed fallback"
 
 
+# ---------------------------------------------------------------------------
+# warmup() -- connection pre-warming
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_warmup_sends_get_to_base_url(client: PolishClient) -> None:
+    """Warmup sends a GET request to establish connections."""
+    with respx.mock:
+        route = respx.get(BASE_URL).respond(200, json={"status": "ok"})
+        await client.warmup()
+        assert route.called
+
+
+@pytest.mark.asyncio
+async def test_warmup_network_error_does_not_raise(client: PolishClient) -> None:
+    """Warmup failures are silently logged, never raised."""
+    with respx.mock:
+        respx.get(BASE_URL).mock(
+            side_effect=httpx.ConnectError("Connection refused"),
+        )
+        await client.warmup()  # Must not raise
+
+
+@pytest.mark.asyncio
+async def test_warmup_timeout_does_not_raise(client: PolishClient) -> None:
+    """Warmup timeout is silently handled."""
+    with respx.mock:
+        respx.get(BASE_URL).mock(
+            side_effect=httpx.TimeoutException("timed out"),
+        )
+        await client.warmup()  # Must not raise
+
+
 @pytest.mark.asyncio
 async def test_polish_raises_on_rate_limit(client: PolishClient) -> None:
     """Polish raises PolishError with rate_limit category on 429."""

@@ -55,6 +55,9 @@ from backend.text_injector import TextInjector
 _ws_connections: list[WebSocket] = []
 logger = get_logger(__name__)
 
+# Background task for partial transcript broadcasts during recording
+_partial_broadcast_task: asyncio.Task | None = None
+
 # Singletons for dictation pipeline
 _recorder: AudioRecorder | None = None
 _orchestrator: DictationOrchestrator | None = None
@@ -931,6 +934,63 @@ async def diagnostics_export(
     )
 
 
+async def _broadcast_partial_transcript(text: str) -> None:
+    """Broadcast a partial transcript event to all WebSocket clients.
+
+    Used by the streaming ASR loop to push real-time partial results
+    to the overlay during recording.
+    """
+    event = {"type": "partial_transcript", "text": text}
+    disconnected: list[WebSocket] = []
+    for ws in _ws_connections:
+        try:
+            await ws.send_json(event)
+        except Exception:
+            disconnected.append(ws)
+    for ws in disconnected:
+        if ws in _ws_connections:
+            _ws_connections.remove(ws)
+
+
+async def _streaming_asr_loop(
+    recorder: AudioRecorder,
+    asr_client: ASRClient,
+) -> None:
+    """Background streaming ASR loop during recording.
+
+    Every 2.5 seconds reads a slice from the recorder's ring buffer,
+    wraps it in a WAV header, sends it to the ASR API, and broadcasts
+    the partial result to all connected WebSocket clients so the
+    overlay marquee can show real-time recognition text.
+
+    The loop is cancelled when recording stops.
+    """
+    from backend.ring_buffer import pcm_to_wav
+
+    global _partial_broadcast_task
+    try:
+        while recorder.is_recording:
+            await asyncio.sleep(2.5)
+            ring = recorder.ring_buffer
+            if ring is None:
+                continue
+            slice_data = ring.read_slice(duration_seconds=3.0, overlap_seconds=1.0)
+            if slice_data is None or len(slice_data) < 32000:  # less than ~1s
+                continue
+            try:
+                # Wrap raw PCM in WAV so the ASR API can parse it
+                wav_data = pcm_to_wav(slice_data)
+                partial = await asr_client.transcribe(wav_data)
+                if partial and partial.strip():
+                    await _broadcast_partial_transcript(partial.strip())
+            except Exception:
+                logger.warning("Streaming ASR slice failed (non-blocking)", exc_info=True)
+    except asyncio.CancelledError:
+        pass
+    finally:
+        _partial_broadcast_task = None
+
+
 @app.post("/dictation/start")
 async def start_dictation(
     _: Annotated[None, Depends(verify_token)],
@@ -938,6 +998,12 @@ async def start_dictation(
     """Start recording audio. Returns session_id.
 
     Idempotent: if already recording, returns the existing session_id.
+
+    After starting the recorder this also pre-warms the ASR and LLM
+    HTTP connection pools in the background so that the first real
+    request after the user presses stop does not pay TCP + TLS
+    handshake latency.  Warmup is fire-and-forget — failures are
+    logged but never block the response.
     """
     if _dictation_processing_lock.locked():
         raise HTTPException(
@@ -948,6 +1014,27 @@ async def start_dictation(
     cfg = _user_config or UserConfig()
     recorder = get_recorder(vad_enabled=cfg.vad_enabled)
     session_id = await recorder.start()
+
+    # Fire-and-forget connection warmup — never block the client response.
+    try:
+        orch = get_orchestrator()
+        asyncio.create_task(orch.asr_client.warmup())
+        asyncio.create_task(orch.polish_client.warmup())
+    except Exception:
+        logger.debug("Connection warmup scheduling failed (non-blocking)")
+
+    # Start streaming ASR loop — reads slices from the recorder's ring
+    # buffer, transcribes them, and broadcasts partial results in real time.
+    global _partial_broadcast_task
+    if _partial_broadcast_task is None:
+        try:
+            orch = get_orchestrator()
+            _partial_broadcast_task = asyncio.create_task(
+                _streaming_asr_loop(recorder, orch.asr_client),
+            )
+        except Exception:
+            logger.debug("Failed to start streaming ASR loop (non-blocking)")
+
     return {"status": "started", "session_id": session_id}
 
 
@@ -979,6 +1066,12 @@ async def stop_dictation(
             status_code=409,
             detail="Dictation processing is still running",
         )
+
+    # Stop the partial transcript broadcast loop
+    global _partial_broadcast_task
+    if _partial_broadcast_task is not None:
+        _partial_broadcast_task.cancel()
+        _partial_broadcast_task = None
 
     async with _dictation_processing_lock:
         recorder = get_recorder()

@@ -8,6 +8,9 @@
 | 7 | History & Overlay | Copy/export history, dictionary match stats, continuous progress bar | HST-01..06, DIC-01..04, OVL-03..06 | 13 |
 | 8 | Overlay Polish + Onboarding | True 0→100% progress bar, fix broadcast timing, 4-step onboarding wizard | ONB-01..08, overlay fixes | 10 |
 | 9 | Scene Profiles | Profile DB/CRUD, 5 presets, settings UI, pipeline integration, quick-switch | PRO-01..07 | 7 |
+| 12 | Clipboard save/restore | Save/restore clipboard during injection, fallback on failure | CLP-01..03 | 3 |
+| 13 | Pseudo-streaming ASR | Ring buffer recording, slice & ASR during recording, real-time overlay, merge | STR-01..06 | 6 |
+| 14 | Connection warmup | Warmup ASR/LLM connections on recording start to reduce latency | WUP-01..03 | 3 |
 
 ---
 
@@ -107,3 +110,89 @@
 - `profile_switch`: log profile id, name, source (settings/tray/hotkey)
 - `profile_pipeline`: log which profile and prompt_template used per session
 - `profile_crud`: log all CRUD operations with affected profile id
+
+---
+
+## Phase 12: Clipboard Save/Restore + Fallback
+
+**Goal:** Save current clipboard content before injection, restore after successful paste; leave text in clipboard on failure.
+
+**Requirements:** CLP-01, CLP-02, CLP-03
+
+**Success criteria:**
+1. `TextInjector.inject()` saves clipboard content before setting injected text
+2. `TextInjector.inject()` restores original clipboard after successful paste
+3. On paste failure or focus change, original clipboard is NOT restored — injected text stays as fallback
+4. `InjectionResult.clipboard_saved` correctly reflects whether save succeeded
+5. `ClipboardManager.inject_with_fallback()` is used instead of hand-written flow
+6. All new code has TDD tests and structured timing logs
+
+**Logging instrumentation:**
+- `clipboard_save`: log whether clipboard was saved, content preview (truncated)
+- `clipboard_restore`: log restore attempt outcome
+- `clipboard_fallback`: log when text is left as fallback
+
+**TDD plan:**
+1. Write `test_inject_saves_and_restores_clipboard` — mock `inject_with_fallback`, verify it's called
+2. Write `test_inject_with_fallback_flow` — verify save + paste + restore sequence
+3. Write `test_inject_failure_does_not_restore` — verify clipboard NOT restored on failure
+4. Write `test_focus_loss_fallback` — verify FocusLostError path leaves text
+5. Update existing tests that mock clipboard methods to instead mock `inject_with_fallback`
+
+---
+
+## Phase 13: Pseudo-Streaming ASR
+
+**Goal:** Show partial ASR results in overlay during recording. Merge at end for full polish.
+
+**Requirements:** STR-01, STR-02, STR-03, STR-04, STR-05, STR-06
+
+**Success criteria:**
+1. AudioRecorder captures PCM to an in-memory ring buffer instead of file only
+2. During recording, a background task slices 3s chunks (1s overlap) from the ring buffer
+3. Each slice is sent to ASR asynchronously; partial results stored in a list
+4. Partial results are broadcast via WebSocket as `partial_transcript` events
+5. After recording stops, all partial results are merged using longest-suffix matching
+6. Merged full transcript is sent to LLM polish normally
+7. If a partial ASR fails, it's silently skipped (overlap covers gaps)
+8. Overlay shows accumulating partial text in a semi-transparent preview area
+9. All new code has TDD tests and structured timing logs
+
+**Logging instrumentation:**
+- `streaming_chunk`: log slice size, overlap, ASR duration, result length
+- `streaming_merge`: log merge method, input chunks, output length
+- `partial_asr_failed`: log when a chunk ASR fails (silently skipped)
+
+**TDD plan:**
+1. `RingBuffer` unit tests: push PCM, read slice, overlap behavior
+2. `AudioRecorder` pipe mode tests: reads from subprocess stdout
+3. `SliceScheduler` tests: timing, slice extraction, concurrent ASR calls
+4. `TranscriptMerger` tests: longest-suffix overlap detection, edge cases
+5. `DictationOrchestrator` streaming tests: partial results → merge → polish flow
+6. WebSocket broadcast tests for `partial_transcript` events
+
+---
+
+## Phase 14: Connection Warmup
+
+**Goal:** Eliminate TCP+TLS handshake latency by warming ASR/LLM connections on recording start.
+
+**Requirements:** WUP-01, WUP-02, WUP-03
+
+**Success criteria:**
+1. `ASRClient.warmup()` method issues a minimal probe to ASR endpoint to establish connections
+2. `PolishClient.warmup()` method issues a minimal probe to LLM endpoint
+3. Both warmup methods are called after `recorder.start()` in `/dictation/start`
+4. Warmup is fire-and-forget: failures are logged but never block or crash the pipeline
+5. Warmup runs in background without delaying the response to the client
+6. All new code has TDD tests and structured timing logs
+
+**Logging instrumentation:**
+- `connection_warmup`: log start/complete for asr/llm with duration
+- `connection_warmup_failed`: log failure without blocking pipeline
+
+**TDD plan:**
+1. `test_asr_client_warmup` — verify probe request sent, connection established
+2. `test_polish_client_warmup` — verify minimal probe to LLM endpoint
+3. `test_warmup_failure_does_not_block` — network error during warmup = logged but not raised
+4. `test_warmup_called_on_dictation_start` — verify route handler calls warmup after start

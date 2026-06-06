@@ -3,7 +3,7 @@ export type DictationStatus =
   | { phase: "recording" }
   | { phase: "transcribing" }
   | { phase: "polishing" }
-  | { phase: "completed"; raw_text?: string; polished_text?: string }
+  | { phase: "completed"; raw_text?: string; polished_text?: string; injection_method?: string }
   | { phase: "failed"; error: string; error_type?: string };
 
 export interface VoiceAPIEventMap {
@@ -30,6 +30,7 @@ export interface VoiceAPI {
   onStatusUpdate: (cb: (status: DictationStatus) => void) => () => void;
   onMicrophoneLevel: (cb: (level: number) => void) => () => void;
   onToggleDictation: (cb: () => void) => () => void;
+  onPartialTranscript?: (cb: (text: string) => void) => () => void;
   getHotkey: () => Promise<string | null>;
   setHotkey: (hotkey: string) => Promise<string | null>;
   revealFile: (filePath: string) => Promise<void>;
