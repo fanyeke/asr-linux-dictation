@@ -5,6 +5,7 @@ import { HotkeySection } from "./settings/HotkeySection.js";
 import { PromptManager } from "./settings/PromptManager.js";
 import { DictionaryManager } from "./settings/DictionaryManager.js";
 import { DiagnosticsSection } from "./settings/DiagnosticsSection.js";
+import { VadSection } from "./settings/VadSection.js";
 
 // ---------------------------------------------------------------------------
 // Component
@@ -62,6 +63,12 @@ export function SettingsPage({
         backendConfig={backendConfig}
         onToast={onToast}
         onHotkeyChange={onHotkeyChange}
+        t={t}
+      />
+
+      <VadSection
+        backendConfig={backendConfig}
+        onToast={onToast}
         t={t}
       />
 

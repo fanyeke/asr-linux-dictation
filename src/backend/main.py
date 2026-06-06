@@ -246,6 +246,8 @@ async def get_config(
         "ui_language": cfg.ui_language,
         "asr_language": cfg.asr_language,
         "vad_enabled": cfg.vad_enabled,
+        "silence_threshold": Settings().silence_threshold,
+        "silence_duration_ms": Settings().silence_duration_ms,
     }
 
 

@@ -55,6 +55,7 @@ export interface UserConfig {
   llmModel: string;
   hotkey: string;
   asrLanguage: string;
+  vadEnabled: boolean;
 }
 
 /** Result returned after a completed dictation session. */
