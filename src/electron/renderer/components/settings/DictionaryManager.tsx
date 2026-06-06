@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BookOpen, Plus, Pencil, Trash2, X } from "lucide-react";
 import type { BackendConfig, DictionaryEntry } from "../../settings/types.js";
 import { Card } from "../ui/Card.js";
@@ -42,6 +42,7 @@ export function DictionaryManager({
   const [dictionary, setDictionary] = useState<DictionaryEntry[]>([]);
   const [dictFormOpen, setDictFormOpen] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState<number | null>(null);
+  const [statsMap, setStatsMap] = useState<Record<number, { total_matches: number; session_count: number }>>({});
   const [dictForm, setDictForm] = useState({
     canonical_term: "",
     pronunciation: "",
@@ -51,6 +52,25 @@ export function DictionaryManager({
     enforcement_level: "suggested",
   });
   const loadedRef = useRef(false);
+
+  const loadStats = useCallback(async () => {
+    if (!backendConfig) return;
+    try {
+      const res = await fetch(`${backendConfig.url}/dictionary/stats/entries`, {
+        headers: { "x-token": backendConfig.token },
+      });
+      if (res.ok) {
+        const data = await res.json() as Array<{ entry_id: number; total_matches: number; session_count: number }>;
+        const map: Record<number, { total_matches: number; session_count: number }> = {};
+        for (const s of data) {
+          map[s.entry_id] = { total_matches: s.total_matches, session_count: s.session_count };
+        }
+        setStatsMap(map);
+      }
+    } catch (err) {
+      console.error("Failed to load dict stats:", err);
+    }
+  }, [backendConfig]);
 
   // Load dictionary entries
   useEffect(() => {
@@ -71,10 +91,11 @@ export function DictionaryManager({
       }
     }
     load();
+    loadStats();
     return () => {
       cancelled = true;
     };
-  }, [backendConfig]);
+  }, [backendConfig, loadStats]);
 
   const resetDictForm = useCallback(() => {
     setDictForm({
@@ -313,6 +334,21 @@ export function DictionaryManager({
               <div className="flex items-center gap-2">
                 {e.category && (
                   <span className="text-xs text-gray-400">{e.category}</span>
+                )}
+                {/* Match stats badge */}
+                {statsMap[e.id] && (
+                  <span
+                    className={`text-xs px-1.5 py-0.5 rounded ${
+                      statsMap[e.id].total_matches > 0
+                        ? "bg-green-50 text-green-700"
+                        : "bg-gray-50 text-gray-400"
+                    }`}
+                    title={`Last 10 sessions: ${statsMap[e.id].total_matches} matches in ${statsMap[e.id].session_count} sessions`}
+                  >
+                    {statsMap[e.id].total_matches > 0
+                      ? `${statsMap[e.id].total_matches} hits`
+                      : "no hits"}
+                  </span>
                 )}
                 <button
                   type="button"
