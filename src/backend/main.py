@@ -43,7 +43,7 @@ from backend.dictionary_manager import (
     record_dictionary_stats,
     update_entry,
 )
-from backend.history_store import get_session, list_sessions
+from backend.history_store import get_session, list_sessions, search_sessions
 from backend.logging_config import configure_logging, get_logger
 from backend.polish_client import PolishClient
 from backend.prompt_manager import list_prompts
@@ -727,6 +727,17 @@ async def get_history(
 ) -> list[dict]:
     """List dictation history sessions."""
     return await list_sessions(limit=limit, offset=offset)
+
+
+@app.get("/history/search")
+async def history_search(
+    _: Annotated[None, Depends(verify_token)],
+    q: str = "",
+    status: str | None = None,
+    limit: int = 50,
+) -> list[dict]:
+    """Search dictation history by text query and/or status."""
+    return await search_sessions(query=q, status=status, limit=limit)
 
 
 @app.post("/history/{session_id}/retry")

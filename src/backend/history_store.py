@@ -149,6 +149,52 @@ async def update_session(session_id: str, **kwargs) -> dict:
         return _row_to_dict(await row.fetchone())
 
 
+async def search_sessions(
+    query: str = "",
+    status: str | None = None,
+    limit: int = 50,
+) -> list[dict]:
+    """Search sessions by text query and/or status.
+
+    Searches ``raw_text`` and ``polished_text`` using SQL LIKE.
+    When *status* is provided, also filters by session status.
+
+    Args:
+        query: Free-text search term (case-insensitive LIKE match).
+        status: Optional status filter (e.g. ``"completed"``, ``"failed"``).
+        limit: Maximum number of results (default 50).
+
+    Returns:
+        List of matching session dicts, most recent first.
+    """
+    db_path = get_db_path()
+    async with sqlite_async.connect(db_path) as db:
+        db.row_factory = sqlite_async.Row
+
+        conditions: list[str] = []
+        params: list = []
+
+        if query:
+            like = f"%{query}%"
+            conditions.append("(raw_text LIKE ? OR polished_text LIKE ?)")
+            params.extend([like, like])
+
+        if status:
+            conditions.append("status = ?")
+            params.append(status)
+
+        where_clause = ""
+        if conditions:
+            where_clause = "WHERE " + " AND ".join(conditions)
+
+        sql = f"SELECT * FROM history {where_clause} ORDER BY id DESC LIMIT ?"
+        params.append(limit)
+
+        cursor = await db.execute(sql, tuple(params))
+        rows = await cursor.fetchall()
+        return [_row_to_dict(row) for row in rows]
+
+
 async def get_failed_sessions() -> list[dict]:
     """Retrieve all sessions with status 'failed'.
 
