@@ -7,17 +7,17 @@ last_updated: "2026-06-06T04:17:02.388Z"
 last_activity: 2026-06-06
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 3
-  completed_plans: 2
-  percent: 50
+  completed_plans: 3
+  percent: 75
 ---
 
 # State
 
 ## Current Phase
 
-**Phase 8 — Overlay Polish + Onboarding** 🔄 in progress
+**Phase 8 — Overlay Polish + Onboarding** ✅ completed
 
 ## Completed Phases
 
@@ -25,16 +25,16 @@ progress:
 - **Phase 2 — Frontend Refactor** ✅ (SettingsPage split, dead code removal, inserting phase cleanup)
 - **Phase 6 — Core Config & UX** ✅ (ASR language, VAD toggle, level optimization)
 - **Phase 7 — History & Overlay** ✅ (copy/export, dict stats, progress bar)
+- **Phase 8 — Overlay Polish + Onboarding** ✅ (broadcast timing, continuous progress bar, wizard)
 
 ## Last Action
 
-- Completed Phase 7: history copy/export, dictionary match stats, progress bar, status fix
-- Committed: `991c0ad`
-- Tests: 251 frontend + 245 backend passed (496 total)
+- Completed Phase 8: broadcast timing fix, 0→100% continuous progress bar, onboarding wizard
+- Committed: `63ab957`
+- Tests: 251 frontend + 251 backend passed (502 total)
 
 ## Next Step
 
-- Phase 8: Onboarding Wizard — first-run 4-step wizard
 - Phase 9: Scene Profiles — 5 presets + CRUD + pipeline integration
 
 ## Decisions
@@ -44,7 +44,7 @@ progress:
 
 ## Current Position
 
-Phase: 8 — Overlay Polish + Onboarding
-Plan: 08-PLAN.md — 4 waves, 24 tasks
-Status: Plan ready — awaiting approval
-Last activity: 2026-06-06 — Phase 7 completed
+Phase: 9 — Scene Profiles (next)
+Plan: —
+Status: Pending
+Last activity: 2026-06-06 — Phase 8 completed
