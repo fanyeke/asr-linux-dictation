@@ -8,6 +8,8 @@ last_activity: 2026-06-06
 progress:
   total_phases: 4
   completed_phases: 0
+  total_plans: 1
+  completed_plans: 0
   total_plans: 0
   completed_plans: 0
   percent: 0
@@ -41,7 +43,7 @@ progress:
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-06-06 — Milestone v1.0 started
+Phase: 6 — Core Config & UX
+Plan: 06-PLAN.md — 3 waves, 22 tasks
+Status: Plan ready — awaiting approval
+Last activity: 2026-06-06 — Phase 6 plan created
