@@ -17,6 +17,7 @@ import { DictatePage } from "./components/DictatePage.js";
 import { HistoryPage } from "./components/HistoryPage.js";
 import { SettingsPage } from "./components/SettingsPage.js";
 import { DashboardPage } from "./components/DashboardPage.js";
+import { OnboardingWizard } from "./components/OnboardingWizard.js";
 
 function getVoiceAPI(): VoiceAPI {
   return window.voiceAPI!;
@@ -42,6 +43,8 @@ function App(): JSX.Element {
     rawText?: string;
   } | null>(null);
   const [history, setHistory] = useState<HistorySession[]>([]);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
   const isRecordingRef = useRef(false);
   const isProcessingRef = useRef(false);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -84,9 +87,15 @@ function App(): JSX.Element {
             if (cfgData.ui_language === "en" || cfgData.ui_language === "zh") {
               i18n.setLanguage(cfgData.ui_language as Language);
             }
+            // Check if onboarding is needed
+            if (!cfgData.onboarding_completed) {
+              setShowOnboarding(true);
+            }
+            setOnboardingChecked(true);
           }
         } catch (err) {
           console.error("Failed to load config:", err);
+          setOnboardingChecked(true);
         }
 
         // Load history
@@ -287,6 +296,30 @@ function App(): JSX.Element {
     // hotkey registered successfully; could display in UI if needed
   }, []);
 
+  // ---- Onboarding handlers -------------------------------------------------
+  const handleOnboardingComplete = useCallback(async () => {
+    setShowOnboarding(false);
+    if (!backendConfig) return;
+    try {
+      await fetch(`${backendConfig.url}/config`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-token": backendConfig.token },
+        body: JSON.stringify({ onboarding_completed: true }),
+      });
+    } catch (err) {
+      console.error("Failed to save onboarding status:", err);
+    }
+  }, [backendConfig]);
+
+  const handleOnboardingSkip = useCallback(() => {
+    setShowOnboarding(false);
+  }, []);
+
+  // ---- Re-run onboarding from settings --------------------------------------
+  const handleRerunOnboarding = useCallback(() => {
+    setShowOnboarding(true);
+  }, []);
+
   // ---- Render --------------------------------------------------------------
   if (loading) {
     return (
@@ -390,11 +423,21 @@ function App(): JSX.Element {
                   backendConfig={backendConfig}
                   onToast={showToast}
                   onHotkeyChange={handleHotkeyChange}
+                  onRerunOnboarding={handleRerunOnboarding}
                 />
               )}
             </motion.div>
           </AnimatePresence>
         </div>
+
+        {/* Onboarding Wizard */}
+        {showOnboarding && (
+          <OnboardingWizard
+            backendConfig={backendConfig}
+            onComplete={handleOnboardingComplete}
+            onSkip={handleOnboardingSkip}
+          />
+        )}
 
         <Toast message={toast} />
 

@@ -15,12 +15,14 @@ interface SettingsPageProps {
   backendConfig: BackendConfig | null;
   onToast: (msg: string, durationMs?: number) => void;
   onHotkeyChange: (hotkey: string) => void;
+  onRerunOnboarding?: () => void;
 }
 
 export function SettingsPage({
   backendConfig,
   onToast,
   onHotkeyChange,
+  onRerunOnboarding,
 }: SettingsPageProps): JSX.Element {
   const { t, language, setLanguage } = useTranslation();
 
@@ -51,6 +53,15 @@ export function SettingsPage({
           <option value="zh">{t("lang_zh")}</option>
           <option value="en">{t("lang_en")}</option>
         </select>
+        {onRerunOnboarding && (
+          <button
+            type="button"
+            onClick={onRerunOnboarding}
+            className="ml-auto text-xs text-brand-600 hover:text-brand-800 transition-colors"
+          >
+            {t("onboarding_rerun")}
+          </button>
+        )}
       </div>
 
       <ApiConfigSection
