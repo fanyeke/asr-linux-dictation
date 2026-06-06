@@ -5,7 +5,7 @@ import type { HistorySession } from "../settings/types.js";
 import { Card } from "./ui/Card.js";
 import { Badge } from "./ui/Badge.js";
 import { Button } from "./ui/Button.js";
-import { ChevronDown, ChevronUp, RotateCcw, FileAudio2 } from "lucide-react";
+import { ChevronDown, ChevronUp, RotateCcw, FileAudio2, Copy } from "lucide-react";
 
 interface SessionListItemProps {
   session: HistorySession;
@@ -31,6 +31,7 @@ export function SessionListItem({
 }: SessionListItemProps): JSX.Element {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
   const isFailed = session.status === "failed";
 
   const timingMs = session.timing_ms ?? 0;
@@ -128,6 +129,31 @@ export function SessionListItem({
                   {t("result_error")}: {session.error_type}
                 </div>
               )}
+
+              {/* Copy + copy toast */}
+              <div className="flex items-center gap-2 mb-2">
+                <button
+                  type="button"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const text = session.polished_text ?? session.raw_text ?? "";
+                    if (text && window.voiceAPI?.copyToClipboard) {
+                      await window.voiceAPI.copyToClipboard(text);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    } else if (text) {
+                      await navigator.clipboard.writeText(text);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-brand-600 transition-colors"
+                  data-testid={`copy-btn-${session.id}`}
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  {copied ? t("copied") : t("copy")}
+                </button>
+              </div>
 
               {/* Session ID + action buttons */}
               <div className="flex items-center justify-between pt-1">

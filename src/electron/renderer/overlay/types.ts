@@ -32,6 +32,7 @@ export interface VoiceAPI {
   getHotkey: () => Promise<string | null>;
   setHotkey: (hotkey: string) => Promise<string | null>;
   revealFile: (filePath: string) => Promise<void>;
+  copyToClipboard: (text: string) => Promise<boolean>;
 }
 
 declare global {

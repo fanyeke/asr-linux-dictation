@@ -1,6 +1,7 @@
 import {
   app,
   BrowserWindow,
+  clipboard,
   Menu,
   Tray,
   globalShortcut,
@@ -368,6 +369,15 @@ function registerIpcHandlers(): void {
     if (overlayWindow && !overlayWindow.isDestroyed()) {
       overlayWindow.hide();
     }
+  });
+
+  // Copy text to system clipboard
+  ipcMain.handle("copy-to-clipboard", async (_event, text: string) => {
+    if (typeof text !== "string") {
+      throw new Error("Invalid clipboard text");
+    }
+    clipboard.writeText(text);
+    return true;
   });
 
   // Reveal a file in the system file manager (e.g. failed audio)

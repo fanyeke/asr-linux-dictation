@@ -142,6 +142,10 @@ const translations: Record<Language, Record<string, string>> = {
     result_retry: "重试",
     copied: "已复制",
     copy: "复制",
+    export_history: "导出",
+    export_format_txt: "纯文本 (.txt)",
+    export_format_md: "Markdown (.md)",
+    export_title: "选择导出格式",
 
     // Session statuses
     status_completed: "完成",
@@ -294,6 +298,10 @@ const translations: Record<Language, Record<string, string>> = {
     result_retry: "Retry",
     copied: "Copied",
     copy: "Copy",
+    export_history: "Export",
+    export_format_txt: "Plain Text (.txt)",
+    export_format_md: "Markdown (.md)",
+    export_title: "Choose Export Format",
 
     // Session statuses
     status_completed: "completed",

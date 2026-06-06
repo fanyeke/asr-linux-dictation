@@ -1,6 +1,6 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { RefreshCw, Clock } from "lucide-react";
+import { RefreshCw, Clock, Download } from "lucide-react";
 import type { BackendConfig, HistorySession } from "../settings/types.js";
 import { Button } from "./ui/Button.js";
 import { EmptyState } from "./ui/EmptyState.js";
@@ -37,6 +37,34 @@ export function HistoryPage({
 }: HistoryPageProps): JSX.Element {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  const handleExport = useCallback(
+    async (format: "txt" | "md") => {
+      setShowExportDialog(false);
+      if (!backendConfig) return;
+      try {
+        const res = await fetch(
+          `${backendConfig.url}/history/export?format=${format}`,
+          {
+            headers: { "x-token": backendConfig.token },
+          },
+        );
+        if (!res.ok) return;
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `asr-linux-history.${format}`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error("Export failed:", err);
+      }
+    },
+    [backendConfig],
+  );
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -81,17 +109,68 @@ export function HistoryPage({
         >
           {t("history_title")}
         </h1>
-        <Button
-          variant="icon"
-          size="md"
-          onClick={handleRefresh}
-          isLoading={refreshing}
-          data-testid="refresh-history-btn"
-          aria-label={t("refresh")}
-        >
-          <RefreshCw className="w-4 h-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="icon"
+            size="md"
+            onClick={() => setShowExportDialog(true)}
+            data-testid="export-history-btn"
+            aria-label={t("export_history")}
+          >
+            <Download className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="icon"
+            size="md"
+            onClick={handleRefresh}
+            isLoading={refreshing}
+            data-testid="refresh-history-btn"
+            aria-label={t("refresh")}
+          >
+            <RefreshCw className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
+
+      {/* Export format dialog */}
+      {showExportDialog && (
+        <div
+          ref={dialogRef}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+          onClick={(e) => {
+            if (e.target === dialogRef.current) setShowExportDialog(false);
+          }}
+        >
+          <div className="bg-white rounded-xl shadow-xl p-6 min-w-[300px]">
+            <h3 className="text-lg font-semibold text-dark-900 mb-4">
+              {t("export_title")}
+            </h3>
+            <div className="flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={() => handleExport("txt")}
+                className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 hover:border-brand-400 hover:bg-brand-50 transition-colors text-sm font-medium"
+              >
+                {t("export_format_txt")}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleExport("md")}
+                className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 hover:border-brand-400 hover:bg-brand-50 transition-colors text-sm font-medium"
+              >
+                {t("export_format_md")}
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowExportDialog(false)}
+              className="mt-4 w-full text-center text-sm text-gray-500 hover:text-gray-700"
+            >
+              {t("cancel")}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* List */}
       {history.length === 0 ? (

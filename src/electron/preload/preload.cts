@@ -71,6 +71,9 @@ const api = {
   setHotkey: (hotkey: string) => ipcRenderer.invoke("set-hotkey", hotkey),
 
   revealFile: (filePath: string) => ipcRenderer.invoke("reveal-file", filePath),
+
+  copyToClipboard: (text: string) =>
+    ipcRenderer.invoke("copy-to-clipboard", text),
 };
 
 contextBridge.exposeInMainWorld("voiceAPI", api);
