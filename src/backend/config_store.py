@@ -26,6 +26,7 @@ class UserConfig:
     hotkey: str = "Alt+="
     ui_language: str = "zh"
     asr_language: str = "auto"
+    vad_enabled: bool = True
 
     def to_dict(self) -> dict:
         return {
@@ -39,6 +40,7 @@ class UserConfig:
             "hotkey": self.hotkey,
             "ui_language": self.ui_language,
             "asr_language": self.asr_language,
+            "vad_enabled": self.vad_enabled,
         }
 
     @classmethod
@@ -55,6 +57,7 @@ class UserConfig:
             hotkey=data.get("hotkey", cls.hotkey),
             ui_language=data.get("ui_language", cls.ui_language),
             asr_language=data.get("asr_language", cls.asr_language),
+            vad_enabled=data.get("vad_enabled", cls.vad_enabled),
         )
 
 
@@ -68,7 +71,7 @@ async def load_user_config() -> UserConfig:
     async with sqlite_async.connect(_db_path()) as db:
         cursor = await db.execute(
             "SELECT api_key, asr_api_key, asr_base_url, asr_model, "
-            "llm_api_key, llm_enabled, llm_base_url, llm_model, hotkey, ui_language, asr_language "
+            "llm_api_key, llm_enabled, llm_base_url, llm_model, hotkey, ui_language, asr_language, vad_enabled "
             "FROM user_config WHERE id = 1"
         )
         row = await cursor.fetchone()
@@ -87,6 +90,7 @@ async def load_user_config() -> UserConfig:
                 hotkey=row[8] or UserConfig.hotkey,
                 ui_language=row[9] or UserConfig.ui_language,
                 asr_language=row[10] or UserConfig.asr_language,
+                vad_enabled=bool(row[11]) if row[11] is not None else UserConfig.vad_enabled,
             )
 
         asr_secret = await load_secret(ASR_SECRET_NAME)
@@ -124,6 +128,7 @@ async def save_user_config(config: UserConfig) -> None:
                 hotkey = ?,
                 ui_language = ?,
                 asr_language = ?,
+                vad_enabled = ?,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = 1
             """,
@@ -139,6 +144,7 @@ async def save_user_config(config: UserConfig) -> None:
                 config.hotkey,
                 config.ui_language,
                 config.asr_language,
+                1 if config.vad_enabled else 0,
             ),
         )
         await db.commit()

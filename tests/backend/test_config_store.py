@@ -177,6 +177,41 @@ def test_asr_language_defaults_to_auto() -> None:
     assert config.asr_language == "auto"
 
 
+def test_vad_enabled_defaults_to_true() -> None:
+    """UserConfig defaults vad_enabled to True."""
+    config = UserConfig()
+    assert config.vad_enabled is True
+
+
+def test_vad_enabled_in_to_dict_and_from_dict() -> None:
+    """vad_enabled round-trips through dict serialization."""
+    config = UserConfig(vad_enabled=False)
+    data = config.to_dict()
+    assert data["vad_enabled"] is False
+
+    restored = UserConfig.from_dict(data)
+    assert restored.vad_enabled is False
+
+
+@pytest.mark.asyncio
+async def test_vad_enabled_field_loads_and_saves(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """User config persists the vad_enabled field."""
+    monkeypatch.setenv("ASR_LINUX_DATA_DIR", str(tmp_path))
+    await init_database()
+
+    await save_user_config(UserConfig(vad_enabled=False))
+    loaded = await load_user_config()
+    assert loaded.vad_enabled is False
+
+    loaded.vad_enabled = True
+    await save_user_config(loaded)
+    reloaded = await load_user_config()
+    assert reloaded.vad_enabled is True
+
+
 def test_asr_language_in_to_dict_and_from_dict() -> None:
     """asr_language round-trips through dict serialization."""
     config = UserConfig(asr_language="ja")

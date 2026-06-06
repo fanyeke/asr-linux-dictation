@@ -224,3 +224,48 @@ class TestConfigRoute:
         assert response.status_code == 200
         data = response.json()
         assert data["asr_language"] == "en"
+
+    @pytest.mark.asyncio
+    async def test_post_config_saves_vad_enabled(
+        self,
+        client: AsyncClient,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ) -> None:
+        """POST /config persists vad_enabled to user config."""
+        monkeypatch.setenv("ASR_LINUX_SECRET_TOKEN", "")
+        monkeypatch.setenv("ASR_LINUX_DATA_DIR", str(tmp_path))
+        from backend.database import init_database
+
+        await init_database()
+        monkeypatch.setattr(main, "_user_config", UserConfig(vad_enabled=True))
+
+        response = await client.post(
+            "/config",
+            json={"vad_enabled": False},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["vad_enabled"] is False
+        assert data["status"] == "ok"
+
+    @pytest.mark.asyncio
+    async def test_get_config_returns_vad_enabled(
+        self,
+        client: AsyncClient,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """GET /config includes vad_enabled in response."""
+        monkeypatch.setenv("ASR_LINUX_SECRET_TOKEN", "")
+        monkeypatch.setattr(
+            main,
+            "_user_config",
+            UserConfig(vad_enabled=False),
+        )
+
+        response = await client.get("/config")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["vad_enabled"] is False

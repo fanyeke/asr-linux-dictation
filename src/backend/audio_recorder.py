@@ -30,14 +30,16 @@ class AudioRecorder:
         output_path = await recorder.stop()
     """
 
-    def __init__(self, settings: Settings | None = None) -> None:
+    def __init__(self, settings: Settings | None = None, vad_enabled: bool = True) -> None:
         """Initialize the audio recorder.
 
         Args:
             settings: Optional settings override. Uses default Settings
                 if not provided.
+            vad_enabled: Whether VAD auto-stop is enabled.
         """
         self.settings: Settings = settings or Settings()
+        self._vad_enabled = vad_enabled
         self._process: asyncio.subprocess.Process | None = None
         self._session_id: str | None = None
         self._output_path: Path | None = None
@@ -84,7 +86,7 @@ class AudioRecorder:
                 raise
 
             self._level_task = asyncio.create_task(self._monitor_levels())
-            if self.settings.silence_duration_ms > 0:
+            if self._vad_enabled and self.settings.silence_duration_ms > 0:
                 self._silence_task = asyncio.create_task(self._detect_silence())
             self._max_duration_task = asyncio.create_task(
                 self._enforce_max_duration()

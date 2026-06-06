@@ -87,11 +87,11 @@ def _build_asr_probe_wav() -> bytes:
     )
 
 
-def get_recorder() -> AudioRecorder:
+def get_recorder(vad_enabled: bool = True) -> AudioRecorder:
     """Return the singleton AudioRecorder instance."""
     global _recorder
     if _recorder is None:
-        _recorder = AudioRecorder()
+        _recorder = AudioRecorder(vad_enabled=vad_enabled)
     return _recorder
 
 
@@ -245,6 +245,7 @@ async def get_config(
         "hotkey": cfg.hotkey,
         "ui_language": cfg.ui_language,
         "asr_language": cfg.asr_language,
+        "vad_enabled": cfg.vad_enabled,
     }
 
 
@@ -283,6 +284,8 @@ async def set_config(
         cfg.ui_language = data["ui_language"] or cfg.ui_language
     if "asr_language" in data:
         cfg.asr_language = data["asr_language"] or cfg.asr_language
+    if "vad_enabled" in data:
+        cfg.vad_enabled = bool(data["vad_enabled"])
 
     _user_config = cfg
     await save_user_config(cfg)
@@ -299,6 +302,7 @@ async def set_config(
         "hotkey": cfg.hotkey,
         "ui_language": cfg.ui_language,
         "asr_language": cfg.asr_language,
+        "vad_enabled": cfg.vad_enabled,
     }
 
 
@@ -644,7 +648,8 @@ async def start_dictation(
             detail="Dictation processing is still running",
         )
 
-    recorder = get_recorder()
+    cfg = _user_config or UserConfig()
+    recorder = get_recorder(vad_enabled=cfg.vad_enabled)
     session_id = await recorder.start()
     return {"status": "started", "session_id": session_id}
 

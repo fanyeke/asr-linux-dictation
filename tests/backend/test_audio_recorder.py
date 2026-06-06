@@ -427,6 +427,36 @@ class TestAudioRecorderSilence:
         await recorder.stop()
 
 
+    @pytest.mark.asyncio
+    async def test_vad_disabled_stops_silence_detection(
+        self,
+        tmp_path: Path,
+        mock_create_subprocess: AsyncMock,
+        make_mock_process,
+    ) -> None:
+        """vad_enabled=False prevents silence detection from starting."""
+        mock_proc = make_mock_process()
+        mock_create_subprocess.return_value = mock_proc
+
+        settings = Settings(
+            data_dir=tmp_path,
+            silence_duration_ms=2000,  # Would enable silence normally
+        )
+        recorder = AudioRecorder(settings=settings, vad_enabled=False)
+
+        await recorder.start()
+        await asyncio.sleep(0.3)
+
+        # Should still be recording since VAD is disabled
+        assert recorder.is_recording is True
+
+        # Silence task should not have been started
+        assert recorder._silence_task is None
+
+        # Cleanup
+        await recorder.stop()
+
+
 class TestAudioRecorderConfig:
     """Tests for AudioRecorder configuration integration."""
 
