@@ -79,7 +79,7 @@ function createOverlayWindow(): void {
     primaryDisplay.workAreaSize;
 
   const overlayWidth = 400;
-  const overlayHeight = 80;
+  const overlayHeight = 90;
   const x = Math.round((screenWidth - overlayWidth) / 2);
   const y = screenHeight - overlayHeight - 60;
 

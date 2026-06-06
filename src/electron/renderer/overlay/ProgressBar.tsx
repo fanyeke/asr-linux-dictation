@@ -117,7 +117,7 @@ export function ProgressBar({
         showContent ? "opacity-100" : "opacity-0"
       }`}
     >
-      <div className="w-full h-2 bg-white/10 rounded-full mt-2 overflow-hidden relative">
+      <div className="w-full h-1.5 bg-white/10 rounded-full mt-1.5 overflow-hidden relative">
         {/* Main animated bar */}
         <motion.div
           data-testid="progress-bar-fill"
@@ -152,7 +152,7 @@ export function ProgressBar({
       </div>
 
       {/* Phase label */}
-      <div className="flex items-center justify-between mt-1.5">
+      <div className="flex items-center justify-between mt-1">
         <span
           data-testid="progress-label"
           className={`text-[11px] font-medium ${

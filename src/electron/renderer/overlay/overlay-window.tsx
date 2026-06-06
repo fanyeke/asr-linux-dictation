@@ -74,7 +74,7 @@ export function OverlayWindow({
   return (
     <div
       data-testid="overlay-window"
-      className="bg-dark-900/95 backdrop-blur-md rounded-xl px-5 py-3 shadow-lg font-sans text-white select-none min-w-[280px]"
+      className="bg-dark-900/95 backdrop-blur-md rounded-xl px-4 py-2.5 shadow-lg font-sans text-white select-none min-w-[280px]"
     >
       {/* ── Status dot + label + timer ── */}
       <div className="flex items-center gap-2">
