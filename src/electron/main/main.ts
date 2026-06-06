@@ -26,6 +26,9 @@ let isQuitting = false;
 /** Interval handle for polling microphone levels from the backend. */
 let _micLevelInterval: ReturnType<typeof setInterval> | null = null;
 
+/** Current ASR language for the tray menu. */
+let _trayAsrLanguage = "auto";
+
 /**
  * Creates the main settings window (900x600).
  */
@@ -379,14 +382,35 @@ function registerIpcHandlers(): void {
  * The tray allows the user to show the main window or quit the app
  * when the window is hidden to the system tray.
  */
-function createTray(): void {
-  const trayIconPath = app.isPackaged
-    ? path.join(process.resourcesPath, "assets", "tray-icon.png")
-    : path.join(__dirname, "../../assets", "tray-icon.png");
-  const trayIcon = nativeImage.createFromPath(trayIconPath);
-  tray = new Tray(trayIcon);
+function buildLanguageSubmenu(): Electron.MenuItemConstructorOptions[] {
+  const languages = [
+    { label: "Auto Detect", value: "auto" },
+    { label: "中文", value: "zh" },
+    { label: "English", value: "en" },
+  ];
+  return languages.map((lang) => ({
+    label: `${_trayAsrLanguage === lang.value ? "✓ " : ""}${lang.label}`,
+    click: () => {
+      _trayAsrLanguage = lang.value;
+      const info = supervisor.info;
+      if (info) {
+        fetch(`${info.url}/config`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-token": info.token,
+          },
+          body: JSON.stringify({ asr_language: lang.value }),
+        }).catch((err) => console.error("Failed to set language:", err));
+      }
+      // Rebuild tray menu to reflect the change
+      tray?.setContextMenu(buildTrayMenu());
+    },
+  }));
+}
 
-  const contextMenu = Menu.buildFromTemplate([
+function buildTrayMenu(): Electron.Menu {
+  return Menu.buildFromTemplate([
     {
       label: "Show",
       click: () => {
@@ -395,6 +419,10 @@ function createTray(): void {
           settingsWindow.focus();
         }
       },
+    },
+    {
+      label: "ASR Language",
+      submenu: buildLanguageSubmenu(),
     },
     { type: "separator" },
     {
@@ -405,6 +433,16 @@ function createTray(): void {
       },
     },
   ]);
+}
+
+function createTray(): void {
+  const trayIconPath = app.isPackaged
+    ? path.join(process.resourcesPath, "assets", "tray-icon.png")
+    : path.join(__dirname, "../../assets", "tray-icon.png");
+  const trayIcon = nativeImage.createFromPath(trayIconPath);
+  tray = new Tray(trayIcon);
+
+  const contextMenu = buildTrayMenu();
 
   tray.setToolTip("ASR Linux — Voice Input");
   tray.setContextMenu(contextMenu);
@@ -494,16 +532,23 @@ app.whenReady().then(async () => {
         headers: { "x-token": info.token },
       });
       if (res.ok) {
-        const cfg = await res.json() as { hotkey?: string };
+        const cfg = await res.json() as { hotkey?: string; asr_language?: string };
         if (cfg.hotkey) {
           preferredHotkey = cfg.hotkey;
         }
+        if (cfg.asr_language) {
+          _trayAsrLanguage = cfg.asr_language;
+        }
       }
     } catch (err) {
-      console.error("Failed to load hotkey preference:", err);
+      console.error("Failed to load config:", err);
     }
   }
   registerHotkey(preferredHotkey);
+  // Rebuild tray with loaded language
+  if (tray) {
+    tray.setContextMenu(buildTrayMenu());
+  }
 
   app.on("activate", () => {
     // macOS dock click: show existing window or create a new one.

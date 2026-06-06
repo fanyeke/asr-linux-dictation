@@ -53,6 +53,7 @@ function buildConfigPayload(state: {
   asrApiKey: string;
   asrBaseUrl: string;
   asrModel: string;
+  asrLanguage: string;
   llmApiKey: string;
   llmEnabled: boolean;
   llmBaseUrl: string;
@@ -61,6 +62,7 @@ function buildConfigPayload(state: {
   const payload: Record<string, unknown> = {
     asr_base_url: state.asrBaseUrl,
     asr_model: state.asrModel,
+    asr_language: state.asrLanguage,
     llm_enabled: state.llmEnabled,
     llm_base_url: state.llmBaseUrl,
     llm_model: state.llmModel,
@@ -96,6 +98,7 @@ export function ApiConfigSection({
     "https://token-plan-cn.xiaomimimo.com/v1",
   );
   const [asrModel, setAsrModel] = useState("mimo-v2.5-asr");
+  const [asrLanguage, setAsrLanguage] = useState("auto");
   const [llmApiKey, setLlmApiKey] = useState("");
   const [llmEnabled, setLlmEnabled] = useState(true);
   const [llmBaseUrl, setLlmBaseUrl] = useState("https://api.openai.com/v1");
@@ -125,6 +128,7 @@ export function ApiConfigSection({
         setLlmApiKey(cfg.llm_api_key_set ? MASKED_PLACEHOLDER : "");
         if (cfg.asr_base_url) setAsrBaseUrl(cfg.asr_base_url);
         if (cfg.asr_model) setAsrModel(cfg.asr_model);
+        if (cfg.asr_language) setAsrLanguage(cfg.asr_language);
         if (cfg.llm_enabled !== undefined && cfg.llm_enabled !== null) {
           setLlmEnabled(cfg.llm_enabled);
         }
@@ -145,6 +149,7 @@ export function ApiConfigSection({
     asrApiKey,
     asrBaseUrl,
     asrModel,
+    asrLanguage,
     llmApiKey,
     llmEnabled,
     llmBaseUrl,
@@ -388,6 +393,26 @@ export function ApiConfigSection({
           onChange={(e) => setLlmModel(e.target.value)}
           placeholder="gpt-4o-mini"
         />
+      </div>
+
+      {/* ASR Language */}
+      <div className="mb-4">
+        <label
+          htmlFor="asr-language-select"
+          className="block text-sm font-medium text-dark-700 mb-1"
+        >
+          {t("asr_language_label")}
+        </label>
+        <select
+          id="asr-language-select"
+          value={asrLanguage}
+          onChange={(e) => setAsrLanguage(e.target.value)}
+          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+        >
+          <option value="auto">{t("asr_lang_auto")}</option>
+          <option value="zh">{t("asr_lang_zh")}</option>
+          <option value="en">{t("asr_lang_en")}</option>
+        </select>
       </div>
 
       {/* Save Button */}

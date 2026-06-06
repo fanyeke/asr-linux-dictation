@@ -54,6 +54,7 @@ export interface UserConfig {
   llmBaseUrl: string;
   llmModel: string;
   hotkey: string;
+  asrLanguage: string;
 }
 
 /** Result returned after a completed dictation session. */
@@ -86,6 +87,7 @@ export interface AppState {
   llmBaseUrl: string;
   llmModel: string;
   hotkey: string;
+  asrLanguage: string;
   connectionStatus: ConnectionStatus;
   llmConnectionStatus: ConnectionStatus;
   isRecording: boolean;
