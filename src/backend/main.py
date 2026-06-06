@@ -20,6 +20,15 @@ from backend.asr_client import ASRClient
 from backend.audio_recorder import AudioRecorder
 from backend.config import Settings
 from backend.config_store import UserConfig, load_user_config, save_user_config
+from backend.profile_manager import (
+    create_profile as create_profile_entry,
+    delete_profile as delete_profile_entry,
+    get_active_profile,
+    get_profile as get_profile_entry,
+    list_profiles,
+    set_active_profile,
+    update_profile as update_profile_entry,
+)
 from backend.database import init_database
 from backend.diagnostics import build_diagnostics_bundle
 from backend.dictation_orchestrator import DictationOrchestrator
@@ -220,6 +229,8 @@ async def lifespan(app: FastAPI):
     log_file = settings.data_dir / "logs" / "asr-linux.log"
     configure_logging(log_level=settings.log_level, log_file=log_file)
     await init_database()
+    from backend.profile_manager import seed_profiles
+    await seed_profiles()
     _user_config = await load_user_config()
     yield
 
@@ -608,6 +619,96 @@ async def delete_dictionary_entry(
     if not deleted:
         raise HTTPException(status_code=404, detail="Entry not found")
     return {"status": "deleted", "id": entry_id}
+
+
+# ---------------------------------------------------------------------------
+# Profile routes
+# ---------------------------------------------------------------------------
+
+
+@app.get("/profiles")
+async def profiles_list(
+    _: Annotated[None, Depends(verify_token)],
+) -> list[dict]:
+    """List all profiles."""
+    return await list_profiles()
+
+
+@app.get("/profiles/active")
+async def profiles_get_active(
+    _: Annotated[None, Depends(verify_token)],
+) -> dict | None:
+    """Get the currently active profile."""
+    return await get_active_profile()
+
+
+@app.post("/profiles")
+async def profiles_create(
+    data: dict,
+    _: Annotated[None, Depends(verify_token)],
+) -> dict:
+    """Create a new profile."""
+    return await create_profile_entry(
+        name=data["name"],
+        prompt_template=data["prompt_template"],
+        dictionary_ids=data.get("dictionary_ids"),
+        asr_language=data.get("asr_language", "auto"),
+    )
+
+
+@app.get("/profiles/{profile_id}")
+async def profiles_get(
+    profile_id: int,
+    _: Annotated[None, Depends(verify_token)],
+) -> dict:
+    """Get a single profile by id."""
+    profile = await get_profile_entry(profile_id)
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return profile
+
+
+@app.put("/profiles/{profile_id}")
+async def profiles_update(
+    profile_id: int,
+    data: dict,
+    _: Annotated[None, Depends(verify_token)],
+) -> dict:
+    """Update an existing profile."""
+    profile = await update_profile_entry(
+        profile_id,
+        name=data.get("name"),
+        prompt_template=data.get("prompt_template"),
+        dictionary_ids=data.get("dictionary_ids"),
+        asr_language=data.get("asr_language"),
+    )
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return profile
+
+
+@app.post("/profiles/{profile_id}/activate")
+async def profiles_activate(
+    profile_id: int,
+    _: Annotated[None, Depends(verify_token)],
+) -> dict:
+    """Set a profile as the active one."""
+    profile = await set_active_profile(profile_id)
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return profile
+
+
+@app.delete("/profiles/{profile_id}")
+async def profiles_delete(
+    profile_id: int,
+    _: Annotated[None, Depends(verify_token)],
+) -> dict:
+    """Delete a profile (built-in profiles cannot be deleted)."""
+    deleted = await delete_profile_entry(profile_id)
+    if not deleted:
+        raise HTTPException(status_code=400, detail="Cannot delete built-in profile or not found")
+    return {"status": "deleted", "id": profile_id}
 
 
 @app.get("/dictionary/stats/entries")

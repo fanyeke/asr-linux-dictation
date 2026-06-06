@@ -15,7 +15,7 @@ from backend.dictionary_manager import (
 from backend.history_store import create_session, get_session, update_session
 from backend.logging_config import get_logger
 from backend.polish_client import PolishClient
-from backend.prompt_manager import get_active_prompt
+from backend.profile_manager import get_active_profile
 
 logger = get_logger(__name__)
 
@@ -104,10 +104,21 @@ class DictationOrchestrator:
 
         if self.polish_enabled:
             # ---- Prompt + Dictionary -------------------------------------------
-            active = await get_active_prompt()
-            prompt_template = active["template"] if active else DEFAULT_PROMPT_TEMPLATE
+            active_profile = await get_active_profile()
+            prompt_template = (
+                active_profile["prompt_template"] if active_profile
+                else DEFAULT_PROMPT_TEMPLATE
+            )
 
+            # Filter dictionary entries if profile specifies ids
             entries = await list_entries()
+            if active_profile and active_profile.get("dictionary_ids"):
+                allowed_ids = {
+                    int(x) for x in active_profile["dictionary_ids"].split(",") if x.strip().isdigit()
+                }
+                if allowed_ids:
+                    entries = [e for e in entries if e["id"] in allowed_ids]
+
             mapped = [
                 {
                     "term": e["canonical_term"],
@@ -209,10 +220,20 @@ class DictationOrchestrator:
 
         if self.polish_enabled:
             # ---- Prompt + Dictionary -------------------------------------------
-            active = await get_active_prompt()
-            prompt_template = active["template"] if active else DEFAULT_PROMPT_TEMPLATE
+            active_profile = await get_active_profile()
+            prompt_template = (
+                active_profile["prompt_template"] if active_profile
+                else DEFAULT_PROMPT_TEMPLATE
+            )
 
             entries = await list_entries()
+            if active_profile and active_profile.get("dictionary_ids"):
+                allowed_ids = {
+                    int(x) for x in active_profile["dictionary_ids"].split(",") if x.strip().isdigit()
+                }
+                if allowed_ids:
+                    entries = [e for e in entries if e["id"] in allowed_ids]
+
             mapped = [
                 {
                     "term": e["canonical_term"],

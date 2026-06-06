@@ -208,4 +208,35 @@ async def init_database() -> None:
             """
         )
 
+        # Phase 7: dictionary_stats table
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS dictionary_stats (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                entry_id INTEGER NOT NULL,
+                session_id TEXT NOT NULL,
+                matched_count INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (entry_id) REFERENCES dictionary(id)
+            )
+            """
+        )
+
+        # Phase 9: profiles table
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS profiles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                prompt_template TEXT NOT NULL,
+                dictionary_ids TEXT,
+                asr_language TEXT DEFAULT 'auto',
+                is_active INTEGER DEFAULT 0,
+                builtin INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+
         await db.commit()
