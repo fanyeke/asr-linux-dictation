@@ -86,6 +86,43 @@
 | OVL-05 | P1 | VAD countdown integrated into progress bar (gray tail fill) | ✅ | — |
 | OVL-06 | P2 | Completed bar stays briefly then fade out (2s delay) | ✅ | — |
 
+### DSH — Dashboard & Stats (Phase 11)
+
+| ID | Priority | Requirement | TDD | Logging |
+|----|----------|-------------|-----|---------|
+| DSH-01 | P1 | Backend `/dashboard/stats` endpoint with SQL aggregates | ✅ | ✅ |
+| DSH-02 | P1 | Dashboard page with stat cards (active sessions, success rate, avg latency, total chars) | ✅ | — |
+| DSH-03 | P2 | Daily usage bar chart (7-day view) | ✅ | — |
+| DSH-04 | P2 | Latency trend line chart with dual ASR/LLM lines | ✅ | — |
+| DSH-05 | P2 | Empty state for no-data scenarios | ✅ | — |
+
+### CLP — Clipboard Save/Restore (Phase 12)
+
+| ID | Priority | Requirement | TDD | Logging |
+|----|----------|-------------|-----|---------|
+| CLP-01 | P0 | Save clipboard before injection, restore after successful paste | ✅ | ✅ |
+| CLP-02 | P0 | On paste failure or focus loss, injected text stays as clipboard fallback | ✅ | ✅ |
+| CLP-03 | P1 | `ClipboardManager.inject_with_fallback()` used instead of hand-written flow | ✅ | — |
+
+### STR — Pseudo-Streaming ASR (Phase 13)
+
+| ID | Priority | Requirement | TDD | Logging |
+|----|----------|-------------|-----|---------|
+| STR-01 | P1 | AudioRecorder captures PCM to in-memory ring buffer | ✅ | — |
+| STR-02 | P1 | Background task slices 3s chunks (1s overlap) from ring buffer | 🚧 | — |
+| STR-03 | P1 | Each slice sent to ASR asynchronously; partial results stored | 🚧 | ✅ |
+| STR-04 | P1 | Partial results broadcast via WebSocket as `partial_transcript` events | 🚧 | — |
+| STR-05 | P1 | After recording stops, partial results merged via longest-suffix matching | ✅ | ✅ |
+| STR-06 | P2 | Overlay shows accumulating partial text in preview area | 🚧 | — |
+
+### WUP — Connection Warmup (Phase 14)
+
+| ID | Priority | Requirement | TDD | Logging |
+|----|----------|-------------|-----|---------|
+| WUP-01 | P1 | `ASRClient.warmup()` issues minimal probe to ASR endpoint | ✅ | ✅ |
+| WUP-02 | P1 | `PolishClient.warmup()` issues minimal probe to LLM endpoint | ✅ | ✅ |
+| WUP-03 | P1 | Warmup called after `recorder.start()`; failures logged but never block | ✅ | ✅ |
+
 ---
 
 ## Traceability
@@ -96,15 +133,19 @@
 | Phase 7 — History & Overlay | HST-01, HST-02, HST-03, HST-04, HST-05, HST-06, DIC-01, DIC-02, DIC-03, DIC-04, OVL-03, OVL-04, OVL-05, OVL-06 |
 | Phase 8 — Onboarding Wizard | ONB-01, ONB-02, ONB-03, ONB-04, ONB-05, ONB-06, ONB-07, ONB-08 |
 | Phase 9 — Scene Profiles | PRO-01, PRO-02, PRO-03, PRO-04, PRO-05, PRO-06, PRO-07 |
+| Phase 11 — Dashboard & Stats | DSH-01, DSH-02, DSH-03, DSH-04, DSH-05 |
+| Phase 12 — Clipboard Save/Restore | CLP-01, CLP-02, CLP-03 |
+| Phase 13 — Pseudo-Streaming ASR | STR-01, STR-02, STR-03, STR-04, STR-05, STR-06 |
+| Phase 14 — Connection Warmup | WUP-01, WUP-02, WUP-03 |
 
 ---
 
-## Out of Scope (v1.0)
+## Out of Scope (v1.2)
 
 - Wayland compatibility — deferred to future milestone
-- Streaming ASR preview — deferred to future milestone
 - Push-to-talk mode beyond current toggle behavior
 - Cloud sync of config/profiles
+- Per-app behavior profiles (auto-switch based on focused window)
 
 ## Future Considerations
 

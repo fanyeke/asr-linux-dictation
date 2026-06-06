@@ -269,3 +269,121 @@ class TestConfigRoute:
         assert response.status_code == 200
         data = response.json()
         assert data["vad_enabled"] is False
+
+
+class TestDashboardStats:
+    """Tests for the /dashboard/stats endpoint."""
+
+    @pytest.fixture(autouse=True)
+    async def _setup_db(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Set up a fresh database with sample history records."""
+        monkeypatch.setenv("ASR_LINUX_SECRET_TOKEN", "")
+        monkeypatch.setenv("ASR_LINUX_DATA_DIR", str(tmp_path))
+        from backend.database import init_database, get_db_path
+        from backend import sqlite_async
+
+        await init_database()
+        db_path = get_db_path()
+        async with sqlite_async.connect(db_path) as db:
+            # Insert records at different times
+            records = [
+                # Today (simulated by just not setting a past date)
+                ("sess-t1", "today text 1", "Today polished 1", "completed", 1500, 600, 800),
+                ("sess-t2", "today text 2", "Today polished 2", "completed", 2000, 700, 1100),
+                ("sess-t3", "today fail", None, "failed", None, None, None),
+                # Yesterday (24h range but not today — subtract >24h)
+                ("sess-y1", "yesterday text", "Yesterday polish", "completed", 1800, 650, 1000),
+                ("sess-y2", "yesterday fail 2", None, "failed", None, None, None),
+                # 5 days ago
+                ("sess-w1", "week old text", "Week old polish", "completed", 3000, 1200, 1600),
+            ]
+            from datetime import datetime, timedelta
+
+            now = datetime.now()
+            for i, (sid, raw, polished, status, timing, asr, polish) in enumerate(records):
+                if sid.startswith("sess-y"):
+                    # Guarantee yesterday: 36 hours ago
+                    ts = now - timedelta(hours=36)
+                elif sid.startswith("sess-w"):
+                    ts = now - timedelta(days=5)
+                else:
+                    ts = now
+
+                await db.execute(
+                    """INSERT INTO history (session_id, raw_text, polished_text, status, timing_ms, asr_ms, polish_ms, created_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (sid, raw, polished, status, timing, asr, polish, ts.isoformat()),
+                )
+            await db.commit()
+
+    @pytest.mark.asyncio
+    async def test_dashboard_stats_default_range(self, client: AsyncClient) -> None:
+        """Default range (today) returns only today's records."""
+        response = await client.get("/dashboard/stats")
+        assert response.status_code == 200
+        data = response.json()
+
+        assert "summary" in data
+        assert "timeline" in data
+        assert "latency_trend" in data
+
+        # Today: 3 sessions (2 completed, 1 failed)
+        assert data["summary"]["total_sessions"] == 3
+        assert data["summary"]["success_count"] == 2
+        assert data["summary"]["fail_count"] == 1
+
+    @pytest.mark.asyncio
+    async def test_dashboard_stats_range_24h(self, client: AsyncClient) -> None:
+        """Range 24h includes today and yesterday records."""
+        response = await client.get("/dashboard/stats?range=24h")
+        assert response.status_code == 200
+        data = response.json()
+
+        # 24h: 5 sessions (3 today + 2 yesterday)
+        assert data["summary"]["total_sessions"] == 5
+
+    @pytest.mark.asyncio
+    async def test_dashboard_stats_range_7d(self, client: AsyncClient) -> None:
+        """Range 7d includes all recent records."""
+        response = await client.get("/dashboard/stats?range=7d")
+        assert response.status_code == 200
+        data = response.json()
+
+        # 7d: 6 sessions
+        assert data["summary"]["total_sessions"] == 6
+        assert len(data["timeline"]) == 7  # 7 daily slots
+
+    @pytest.mark.asyncio
+    async def test_dashboard_stats_timeline_fills_gaps(self, client: AsyncClient) -> None:
+        """Timeline fills empty slots with 0."""
+        response = await client.get("/dashboard/stats?range=24h")
+        assert response.status_code == 200
+        data = response.json()
+
+        # 24h timeline should have 24 hourly slots
+        assert len(data["timeline"]) == 24
+        # Some slots should have 0 count
+        zero_slots = [e for e in data["timeline"] if e["count"] == 0]
+        assert len(zero_slots) > 0
+
+    @pytest.mark.asyncio
+    async def test_dashboard_stats_latency_averages(self, client: AsyncClient) -> None:
+        """Latency averages are computed correctly."""
+        response = await client.get("/dashboard/stats?range=7d")
+        assert response.status_code == 200
+        data = response.json()
+        summary = data["summary"]
+
+        # ASR avg: (600 + 700 + 650 + 1200) / 4 = 787.5 → 788
+        assert summary["avg_asr_ms"] is not None
+        assert summary["avg_total_ms"] is not None
+
+    @pytest.mark.asyncio
+    async def test_dashboard_stats_invalid_range(self, client: AsyncClient) -> None:
+        """Invalid range parameter returns 422."""
+        response = await client.get("/dashboard/stats?range=invalid")
+        assert response.status_code == 422

@@ -25,18 +25,25 @@ Hotkey-triggered voice dictation that records audio, sends it to cloud ASR, poli
 - **Commit prefix:** `phase-N:`
 - **Branch naming:** `phase-N-short-description`
 
-## Current Milestone: v1.0 Experience Enhancements
+## Current Milestone: v1.2 Speed & Reliability
 
-**Goal:** Transform the MVP dictation app into a reliable daily-driver with onboarding, language selection, VAD, scene profiles, history tools, dictionary insights, and polished overlay feedback.
+**Goal:** Make voice dictation faster and more reliable with clipboard save/restore, streaming ASR infrastructure, and connection warmup.
 
-**Target features:**
-- Onboarding Wizard (first-run setup guide, 4 steps)
-- ASR Language Selection (settings dropdown + tray quick-switch)
-- VAD Silence Detection (configurable auto-stop + overlay countdown)
-- Scene Profiles (3–5 presets with CRUD and quick-switch)
-- History Record Enhancement (copy, export txt/md)
-- Dictionary Matching Frequency (per-entry stats badges)
-- Overlay Level Refresh & Progress Bar (WS push + continuous progress)
+**Completed features:**
+- ✅ Clipboard Save/Restore with fallback — `ClipboardManager` with save/restore/fallback
+- ✅ Connection Warmup — fire-and-forget probe to ASR/LLM on recording start
+- ✅ Streaming ASR Core — `RingBuffer` for PCM slicing, `TranscriptMerger` for overlap detection
+- 🚧 Streaming ASR Pipeline Integration — background slice scheduling, partial broadcast, overlay preview (in progress)
+
+**Previous milestone (v1.0 Experience Enhancements):**
+- ✅ Onboarding Wizard (first-run setup guide, 4 steps)
+- ✅ ASR Language Selection (settings dropdown + tray quick-switch)
+- ✅ VAD Silence Detection (configurable auto-stop + overlay countdown)
+- ✅ Scene Profiles (5 presets with CRUD and quick-switch)
+- ✅ History Record Enhancement (copy, export txt/md, diff view)
+- ✅ Dictionary Matching Frequency (per-entry stats badges)
+- ✅ Overlay Progress Bar (continuous 0→100% animation)
+- ✅ Dashboard + Stats (latency charts, stats API)
 
 ## Evolution
 

@@ -192,4 +192,4 @@
 
 ---
 
-*Convention analysis: 2026-06-05*
+*Convention analysis: 2026-06-06 (refreshed)*

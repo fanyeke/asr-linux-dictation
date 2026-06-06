@@ -24,10 +24,13 @@ asr_linux/
 │   │   ├── polish_sanitizer.py # LLM output cleanup
 │   │   ├── dictation_orchestrator.py # Pipeline state machine
 │   │   ├── text_injector.py  # X11 clipboard + xdotool injection
-│   │   ├── clipboard_manager.py # Clipboard save/restore/set
+│   │   ├── clipboard_manager.py # Clipboard save/restore/set + fallback
 │   │   ├── history_store.py  # Session history persistence
 │   │   ├── prompt_manager.py # Prompt template CRUD
-│   │   └── dictionary_manager.py # Term storage + relevance matching
+│   │   ├── dictionary_manager.py # Term storage + relevance matching
+│   │   ├── profile_manager.py # Scene profiles CRUD + 5 presets
+│   │   ├── ring_buffer.py    # PCM audio ring buffer for streaming ASR
+│   │   └── transcript_merger.py # Overlapping partial transcript merge
 │   └── electron/             # Electron desktop shell
 │       ├── main/
 │       │   ├── main.ts       # Main process entry point
@@ -56,6 +59,7 @@ asr_linux/
 │               ├── DashboardPage.tsx
 │               ├── DictatePage.tsx
 │               ├── HistoryPage.tsx
+│               ├── OnboardingWizard.tsx  # 4-step first-run setup (Phase 8)
 │               ├── SettingsPage.tsx
 │               ├── PhaseIndicator.tsx
 │               ├── RecordingButton.tsx
@@ -64,13 +68,23 @@ asr_linux/
 │               ├── TabSidebar.tsx
 │               ├── Toast.tsx
 │               ├── WaveformVisualizer.tsx
-│               ├── __tests__/          # Component unit tests
-│               └── ui/                 # Reusable UI primitives
+│               ├── __tests__/            # Component unit tests
+│               ├── settings/             # Settings sub-components (Phase 6-9)
+│               │   ├── ApiConfigSection.tsx
+│               │   ├── DiagnosticsSection.tsx
+│               │   ├── DictionaryManager.tsx
+│               │   ├── HotkeySection.tsx
+│               │   ├── ProfileManager.tsx
+│               │   ├── PromptManager.tsx
+│               │   └── VadSection.tsx
+│               └── ui/                   # Reusable UI primitives
 │                   ├── Badge.tsx
+│                   ├── BarChart.tsx       # Dashboard chart (Phase 11)
 │                   ├── Button.tsx
 │                   ├── Card.tsx
 │                   ├── EmptyState.tsx
 │                   ├── Input.tsx
+│                   ├── LineChart.tsx      # Dashboard latency chart (Phase 11)
 │                   └── __tests__/
 ├── tests/
 │   ├── backend/              # Python backend tests (pytest)
@@ -93,6 +107,13 @@ asr_linux/
 │   │   ├── test_history_retry.py
 │   │   ├── test_prompt_manager.py
 │   │   ├── test_dictionary_manager.py
+│   │   ├── test_profile_manager.py
+│   │   ├── test_ring_buffer.py
+│   │   ├── test_transcript_merger.py
+│   │   ├── test_streaming_orchestrator.py
+│   │   ├── test_history_export.py
+│   │   ├── test_history_search.py
+│   │   ├── test_system_deps.py
 │   │   ├── test_logging.py
 │   │   ├── test_diagnostics.py
 │   │   └── test_retry_policy.py
@@ -181,14 +202,19 @@ asr_linux/
 - `src/backend/asr_client.py` — Cloud ASR integration.
 - `src/backend/polish_client.py` — Cloud LLM polish integration.
 - `src/backend/text_injector.py` — X11 text injection.
+- `src/backend/clipboard_manager.py` — Clipboard save/restore with fallback.
+- `src/backend/profile_manager.py` — Scene profile CRUD.
+- `src/backend/ring_buffer.py` — PCM audio ring buffer for streaming ASR.
+- `src/backend/transcript_merger.py` — Overlapping transcript merge.
 
 **Persistence:**
-- `src/backend/database.py` — SQLite schema initialization and migrations.
+- `src/backend/database.py` — SQLite schema initialization and migrations (profiles, dictionary_stats tables).
 - `src/backend/sqlite_async.py` — Custom thin async wrapper over stdlib `sqlite3`.
 - `src/backend/config_store.py` — User config persistence (SQLite + Secret Service).
 - `src/backend/history_store.py` — Dictation session history CRUD.
 - `src/backend/prompt_manager.py` — Prompt template CRUD.
 - `src/backend/dictionary_manager.py` — Dictionary entry CRUD + relevance matching.
+- `src/backend/profile_manager.py` — Profile CRUD + built-in presets.
 
 **Testing:**
 - `tests/backend/conftest.py` — Shared pytest fixtures and mocks.
@@ -280,4 +306,4 @@ asr_linux/
 
 ---
 
-*Structure analysis: 2026-06-05*
+*Structure analysis: 2026-06-06 (refreshed)*

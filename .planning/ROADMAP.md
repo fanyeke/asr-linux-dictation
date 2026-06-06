@@ -1,6 +1,6 @@
-# Roadmap — v1.0 Experience Enhancements
+# Roadmap — v1.2 Speed & Reliability
 
-4 phases | 33 requirements mapped | All covered ✓
+7 phases | requirements mapped | 6 completed, 1 in progress
 
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|------------------|
@@ -8,9 +8,9 @@
 | 7 | History & Overlay | Copy/export history, dictionary match stats, continuous progress bar | HST-01..06, DIC-01..04, OVL-03..06 | 13 |
 | 8 | Overlay Polish + Onboarding | True 0→100% progress bar, fix broadcast timing, 4-step onboarding wizard | ONB-01..08, overlay fixes | 10 |
 | 9 | Scene Profiles | Profile DB/CRUD, 5 presets, settings UI, pipeline integration, quick-switch | PRO-01..07 | 7 |
-| 12 | Clipboard save/restore | Save/restore clipboard during injection, fallback on failure | CLP-01..03 | 3 |
-| 13 | Pseudo-streaming ASR | Ring buffer recording, slice & ASR during recording, real-time overlay, merge | STR-01..06 | 6 |
-| 14 | Connection warmup | Warmup ASR/LLM connections on recording start to reduce latency | WUP-01..03 | 3 |
+| 12 | Clipboard save/restore | Save/restore clipboard during injection, fallback on failure | CLP-01..03 | 3 ✅ |
+| 13 | Pseudo-streaming ASR | Ring buffer recording, slice & ASR during recording, real-time overlay, merge | STR-01..06 | 6 🚧 |
+| 14 | Connection warmup | Warmup ASR/LLM connections on recording start to reduce latency | WUP-01..03 | 3 ✅ |
 
 ---
 
@@ -113,7 +113,7 @@
 
 ---
 
-## Phase 12: Clipboard Save/Restore + Fallback
+## Phase 12: Clipboard Save/Restore + Fallback — ✅ Done
 
 **Goal:** Save current clipboard content before injection, restore after successful paste; leave text in clipboard on failure.
 
@@ -163,17 +163,31 @@
 - `streaming_merge`: log merge method, input chunks, output length
 - `partial_asr_failed`: log when a chunk ASR fails (silently skipped)
 
-**TDD plan:**
-1. `RingBuffer` unit tests: push PCM, read slice, overlap behavior
-2. `AudioRecorder` pipe mode tests: reads from subprocess stdout
-3. `SliceScheduler` tests: timing, slice extraction, concurrent ASR calls
-4. `TranscriptMerger` tests: longest-suffix overlap detection, edge cases
-5. `DictationOrchestrator` streaming tests: partial results → merge → polish flow
-6. WebSocket broadcast tests for `partial_transcript` events
+**Delivered so far:**
+- ✅ `RingBuffer` with unit tests (PCM write, slice read, overlap, edge cases)
+- ✅ `TranscriptMerger` with unit tests (longest-suffix, CJK-aware, edge cases)
+- ✅ `pcm_to_wav()` helper for slice WAV wrapping
+- ✅ Streaming orchestrator integration tests (`test_streaming_orchestrator.py`)
+- ✅ Empty/silent/overflow handling for ring buffer
+
+**Remaining work:**
+- 🔲 Background slice scheduling in AudioRecorder during recording
+- 🔲 Concurrent ASR calls for each slice
+- 🔲 WebSocket `partial_transcript` event broadcast
+- 🔲 Overlay partial text preview area
+- 🔲 DictationOrchestrator streaming integration
+- 🔲 Merge partial results → polish flow
+- 🔲 Tests for slice timing, concurrent ASR, partial broadcast
+
+**TDD plan (remaining items):**
+1. `AudioRecorder` pipe mode tests: reads from subprocess stdout
+2. `SliceScheduler` tests: timing, slice extraction, concurrent ASR calls
+3. `DictationOrchestrator` streaming tests: partial results → merge → polish flow
+4. WebSocket broadcast tests for `partial_transcript` events
 
 ---
 
-## Phase 14: Connection Warmup
+## Phase 14: Connection Warmup — ✅ Done
 
 **Goal:** Eliminate TCP+TLS handshake latency by warming ASR/LLM connections on recording start.
 

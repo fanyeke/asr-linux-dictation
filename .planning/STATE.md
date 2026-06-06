@@ -1,23 +1,23 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: Speed & Reliability
-status: planning
-last_updated: "2026-06-06T06:30:00.000Z"
+milestone: v0.2.0
+milestone_name: Dashboard + Speed & Reliability
+status: in_progress
+last_updated: "2026-06-06T12:00:00.000Z"
 last_activity: 2026-06-06
 progress:
   total_phases: 3
-  completed_phases: 0
+  completed_phases: 2
   total_plans: 3
-  completed_plans: 0
-  percent: 0
+  completed_plans: 2
+  percent: 67
 ---
 
 # State
 
 ## Current Phase
 
-**Phase 12 — Clipboard Save/Restore** 🔄 planning
+**Phase 13 — Pseudo-Streaming ASR** 🚧 core infra done, pipeline integration pending
 
 ## Completed Phases
 
@@ -29,12 +29,12 @@ progress:
 - **Phase 9 — Scene Profiles** ✅ (5 presets, CRUD, pipeline integration, tray switch)
 - **Phase 10 — History Redesign** ✅ (preview, copy, diff view, search API)
 - **Phase 11 — Dashboard + Stats** ✅ (timing breakdown, stats API, trend charts)
+- **Phase 12 — Clipboard Save/Restore** ✅ (clipboard save/restore, fallback, inject_with_fallback)
+- **Phase 14 — Connection Warmup** ✅ (ASR/LLM probe, fire-and-forget on recording start)
 
 ## Next Step
 
-- Plan and implement Phase 12: Clipboard save/restore
-- Then Phase 13: Pseudo-streaming ASR
-- Then Phase 14: Connection warmup
+- Phase 13: Integrate streaming ASR pipeline (bg slices → partial broadcast → overlay preview)
 
 ## Decisions
 

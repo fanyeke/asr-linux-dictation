@@ -203,8 +203,8 @@ class DictationOrchestrator:
                     error_type=f"inject:{type(e).__name__}",
                 )
 
-        session = await update_session(session_id, status="completed")
         total_ms = int((time.monotonic() - pipeline_start) * 1000)
+        session = await update_session(session_id, status="completed", timing_ms=total_ms)
         logger.info("pipeline_completed", session_id=session_id, duration_ms=total_ms)
         await self._broadcast(
             session_id, "completed",
@@ -320,8 +320,8 @@ class DictationOrchestrator:
                     error_type=f"inject:{type(e).__name__}",
                 )
 
-        session = await update_session(session_id, status="completed")
         total_ms = int((time.monotonic() - pipeline_start) * 1000)
+        session = await update_session(session_id, status="completed", timing_ms=total_ms)
         logger.info("retry_completed", session_id=session_id, duration_ms=total_ms)
         return session
 

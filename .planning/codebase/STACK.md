@@ -122,4 +122,4 @@
 
 ---
 
-*Stack analysis: 2026-06-05*
+*Stack analysis: 2026-06-06 (refreshed)*

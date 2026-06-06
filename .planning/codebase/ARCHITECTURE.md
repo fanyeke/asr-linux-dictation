@@ -80,9 +80,13 @@ The two processes communicate over localhost HTTP and WebSocket. The backend bin
 | ASR Client | Cloud ASR (MiMo / OpenAI-compatible) with retry + error classification | `src/backend/asr_client.py` |
 | Polish Client | LLM text polish with prompt templating + dictionary context | `src/backend/polish_client.py` |
 | Text Injector | X11 clipboard + `xdotool` paste into focused window | `src/backend/text_injector.py` |
+| Clipboard Manager | Clipboard save/restore around text injection with fallback | `src/backend/clipboard_manager.py` |
 | History Store | SQLite persistence of session metadata and retry support | `src/backend/history_store.py` |
 | Prompt Manager | CRUD for prompt templates and active-prompt selection | `src/backend/prompt_manager.py` |
 | Dictionary Manager | Term storage + relevance matching (text + pinyin fuzzy) | `src/backend/dictionary_manager.py` |
+| Profile Manager | Scene-based profile CRUD with 5 built-in presets | `src/backend/profile_manager.py` |
+| Ring Buffer | In-memory PCM audio buffer for streaming ASR slices | `src/backend/ring_buffer.py` |
+| Transcript Merger | Overlapping partial transcript merge (longest-suffix) | `src/backend/transcript_merger.py` |
 
 ## Pattern Overview
 
@@ -139,7 +143,7 @@ The two processes communicate over localhost HTTP and WebSocket. The backend bin
    b. **ASR** — `ASRClient.transcribe()` sends base64-encoded audio to cloud ASR; on success stores `raw_text`.
    c. **Dictionary lookup** — `find_relevant_entries()` matches canonical terms / aliases / pinyin against `raw_text`.
    d. **Polish** — `PolishClient.polish()` sends `raw_text` + prompt template + dictionary context to LLM; returns `polished_text`.
-   e. **Inject** — `TextInjector.inject()` saves clipboard, sets new text, simulates `ctrl+v` (or `ctrl+shift+v` for terminals).
+   e. **Inject** — `ClipboardManager.inject_with_fallback()` saves clipboard, calls `TextInjector.inject()` which sets clipboard text and simulates `ctrl+v` (or `ctrl+shift+v` for terminals). On focus loss, text stays on clipboard as fallback.
    f. **History** — `history_store.update_session()` writes final state and timing.
 7. **Status broadcast** — each phase emits a WebSocket `status_update` event so overlay and settings UIs update in real time.
 8. **Result display** — renderer shows raw/polished text or error info.
@@ -180,6 +184,26 @@ The two processes communicate over localhost HTTP and WebSocket. The backend bin
 - Examples: `src/backend/text_injector.py`
 - Pattern: Adapter — wraps `xdotool`, `xsel`, `xclip` into an async inject API.
 
+**ClipboardManager:**
+- Purpose: Manages clipboard save/restore with fallback and polling verification.
+- Examples: `src/backend/clipboard_manager.py`
+- Pattern: Utility — wraps `xsel`/`xclip` with timeout-bounded loops and FocusLostError handling.
+
+**ProfileManager:**
+- Purpose: Scene-based profile CRUD with 5 built-in presets (通用, 编程, 写作, 会议记录, 聊天).
+- Examples: `src/backend/profile_manager.py`
+- Pattern: Repository — simple data access layer for the `profiles` SQLite table with seed logic.
+
+**RingBuffer:**
+- Purpose: In-memory ring buffer for PCM audio, supporting slice reads with overlap for streaming ASR.
+- Examples: `src/backend/ring_buffer.py`
+- Pattern: Data Structure — chunked byte storage with position tracking.
+
+**TranscriptMerger:**
+- Purpose: Merges overlapping partial ASR transcripts using longest-suffix matching, with CJK-aware spacing.
+- Examples: `src/backend/transcript_merger.py`
+- Pattern: Algorithm — sequential overlap detection and merge.
+
 **Backend Supervisor:**
 - Purpose: Bridge between Electron main and the Python backend process.
 - Examples: `src/electron/main/backend-supervisor.ts`
@@ -201,11 +225,12 @@ The two processes communicate over localhost HTTP and WebSocket. The backend bin
 - Location: `src/electron/renderer/app.tsx`
 - Triggers: Loaded by main BrowserWindow (`index.html`)
 - Responsibilities: Tab-based UI (Dashboard, Dictate, History, Settings), fetch backend config, subscribe to WebSocket events.
+- Settings page is split into sub-components: `ApiConfigSection`, `VadSection`, `HotkeySection`, `DictionaryManager`, `PromptManager`, `ProfileManager`, `DiagnosticsSection` (under `src/electron/renderer/components/settings/`).
 
 **Renderer Overlay App:**
 - Location: `src/electron/renderer/overlay-app.tsx`
 - Triggers: Loaded by overlay BrowserWindow (`overlay.html`)
-- Responsibilities: Minimal always-on-top UI showing current pipeline phase and microphone level.
+- Responsibilities: Minimal always-on-top UI showing current pipeline phase, microphone level, recording timer, and continuous progress bar (via `ProgressBar.tsx`).
 
 ## Architectural Constraints
 
@@ -213,7 +238,8 @@ The two processes communicate over localhost HTTP and WebSocket. The backend bin
 - **Global state:** Module-level singletons in `main.py` (`_recorder`, `_orchestrator`, `_ws_connections`, `_user_config`). These are managed via FastAPI dependency functions and an `asyncio.Lock` (`_dictation_processing_lock`) to prevent concurrent dictation sessions.
 - **Port binding:** Backend must bind to `127.0.0.1` with ephemeral port `0`; Electron discovers the actual port from stdout.
 - **Authentication:** All backend routes (except `/health`) require `x-token` header matching the runtime-generated secret. WebSocket uses `?token=` query param.
-- **Clipboard ownership:** `xclip` acts as a clipboard owner process; `ClipboardManager` uses bounded loops and timeouts to avoid hanging the pipeline.
+- **Clipboard ownership:** `xclip` acts as a clipboard owner process; `ClipboardManager` uses `-loops 2` bounded mode and polling to avoid hanging the pipeline or leaving stale clipboard content.
+- **Streaming ASR:** `RingBuffer` captures PCM chunks during recording; slices are sent to ASR in parallel; `TranscriptMerger` merges partial results at the end.
 - **No cross-process shared memory:** All state transfer is HTTP/WebSocket or filesystem (SQLite, WAV files).
 
 ## Anti-Patterns
@@ -252,4 +278,4 @@ The two processes communicate over localhost HTTP and WebSocket. The backend bin
 
 ---
 
-*Architecture analysis: 2026-06-05*
+*Architecture analysis: 2026-06-06 (refreshed)*

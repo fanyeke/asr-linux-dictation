@@ -161,4 +161,4 @@
 
 ---
 
-*Integration audit: 2026-06-05*
+*Integration audit: 2026-06-06 (refreshed)*

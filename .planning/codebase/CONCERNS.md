@@ -1,6 +1,6 @@
 # Codebase Concerns
 
-**Analysis Date:** 2026-06-05
+**Analysis Date:** 2026-06-06
 
 ## Tech Debt
 
@@ -11,28 +11,17 @@
 - **Fix approach:** Remove the file and its test after verifying `SettingsPage.tsx` covers all features.
 
 ### New SettingsPage Still Too Large
-- **Issue:** `src/electron/renderer/components/SettingsPage.tsx` is 964 lines, mixing API config, hotkey editing, dictionary CRUD, prompt display, diagnostics, and i18n logic in one file.
-- **Files:** `src/electron/renderer/components/SettingsPage.tsx`
-- **Impact:** Hard to test in isolation; violates module boundaries from `docs/modules.md`.
-- **Fix approach:** Extract `ApiConfigCard`, `HotkeyCard`, `DictionaryManager`, `PromptManager`, `DiagnosticsCard` into separate components under `src/electron/renderer/components/settings/`.
+- **Status:** ✅ **RESOLVED** — SettingsPage was split into 7 sub-components under `src/electron/renderer/components/settings/`: ApiConfigSection, VadSection, HotkeySection, DictionaryManager, PromptManager, ProfileManager, DiagnosticsSection.
+- **Evidence:** Each sub-component is a focused, testable module.
 
 ### Ghost `inserting` Phase in Frontend
-- **Issue:** The frontend type system, overlay, app state, and tests all recognize an `"inserting"` phase, but the backend never broadcasts it. `DictationOrchestrator` transitions directly from `polishing` to `completed`/`failed`. The frontend maps `"inserting"` to `"polishing"` as a workaround.
-- **Files:** `src/electron/renderer/settings/types.ts` (`PipelinePhase`), `src/electron/renderer/overlay/overlay-window.tsx`, `src/electron/renderer/overlay/types.ts`, `src/electron/renderer/app.tsx:144-146`, `tests/electron/renderer/overlay/overlay-window.test.tsx`
-- **Impact:** Dead code, misleading types, and wasted test coverage on a phase that never occurs.
-- **Fix approach:** Remove `"inserting"` from all frontend types, components, and tests. Update `docs/modules.md` if it mentions the phase.
+- **Status:** ✅ **RESOLVED** — PipelinePhase type was reduced to: `"idle" | "recording" | "transcribing" | "polishing" | "completed" | "failed"`. No "inserting" phase exists.
 
 ### `failed_audio_path` Not Exposed to Frontend
-- **Issue:** The backend `history_store.py` stores `failed_audio_path`, but the frontend `HistorySession` type does not include the field, so users cannot replay or locate failed audio from the GUI.
-- **Files:** `src/backend/history_store.py`, `src/electron/renderer/settings/types.ts`
-- **Impact:** Feature gap; failed-audio retention rule exists but is not user-accessible.
-- **Fix approach:** Add `failed_audio_path?: string | null` to `HistorySession`, expose a "Play/Replay" or "Open folder" action in `HistoryPage`.
+- **Status:** ✅ **RESOLVED** — `HistorySession.failed_audio_path` is now typed. SessionListItem shows "Open Audio" button and "revealFile" IPC action for failed sessions.
 
 ### Prompt CRUD Backend Exists but Frontend is Read-Only
-- **Issue:** Backend has full `POST/PUT/DELETE /dictionary` and prompt management functions, but `SettingsPage` only shows a read-only list of prompts with an empty-state placeholder. No UI to create, edit, activate, or delete prompts.
-- **Files:** `src/backend/main.py` (prompt routes), `src/electron/renderer/components/SettingsPage.tsx` (Prompt Management card)
-- **Impact:** Users cannot manage prompts without direct API calls.
-- **Fix approach:** Add prompt CRUD UI mirroring the dictionary form pattern, or explicitly defer to Phase 6.
+- **Status:** ✅ **RESOLVED** — PromptManager.tsx provides full CRUD UI (create, edit, delete, activate prompts).
 
 ---
 
@@ -45,10 +34,8 @@
 - **Recommendations:** Replace with `crypto.randomBytes(16).toString('hex')` or `crypto.randomUUID()`.
 
 ### API Keys Returned in Plaintext by `/config` GET
-- **Risk:** `GET /config` returns the raw `asr_api_key` and `llm_api_key` strings in JSON. The frontend fetches this on every settings load and stores keys in React state.
-- **Files:** `src/backend/main.py:153-175`, `src/electron/renderer/components/SettingsPage.tsx:111-130`
-- **Current mitigation:** Backend binds to `127.0.0.1`; token required.
-- **Recommendations:** Remove raw keys from the `GET /config` response. Return only `asr_api_key_set: boolean` and `llm_api_key_set: boolean`. The settings form can keep its local state for new key entry, but should not receive existing keys back from the server. If key display is needed, return a masked version.
+- **Status:** ✅ **RESOLVED** — `ApiConfigSection.tsx` now uses `asr_api_key_set: boolean` and `llm_api_key_set: boolean` flags. Existing keys are never returned as raw values — the form shows `"••••••••"` placeholder for configured keys.
+- **Evidence:** `src/electron/renderer/components/settings/ApiConfigSection.tsx:126-128`
 
 ### Renderer Accesses `process.env` Directly
 - **Risk:** `settings-window.tsx` and `SettingsPage.tsx` read `process.env.HOME` / `process.env.USERPROFILE` directly in the renderer process. This breaks Electron context isolation assumptions and exposes Node APIs to the renderer.
@@ -124,23 +111,17 @@
 - **Impact:** Risk of conflicting guidance for agents; some "risks" in the redesign plan (e.g., R1 auth header) appear to already be fixed in code.
 - **Fix approach:** Consolidate into a single document, mark completed risks as resolved, and archive the older plan.
 
-### Dashboard Lacks Backend Stats Endpoint
-- **Issue:** `DashboardPage` computes statistics (success rate, avg duration, total chars) entirely on the client from `/history` data. There is no `/stats` endpoint.
-- **Files:** `src/electron/renderer/components/DashboardPage.tsx`, `docs/frontend-redesign-plan.md`
-- **Impact:** Inaccurate or slow for large histories; frontend must load all history to compute aggregates.
-- **Fix approach:** Add a lightweight `GET /stats` backend endpoint with SQL aggregates.
+### Dashboard Uses Both Client and Server Stats
+- **Issue:** `DashboardPage` fetches `/dashboard/stats` backend endpoint (Phase 11) but also computes client-side aggregates from `/history`. The two sources may disagree.
+- **Files:** `src/electron/renderer/components/DashboardPage.tsx`, `src/backend/main.py`
+- **Impact:** Potential inconsistency between server-computed and client-computed stats.
+- **Fix approach:** Unify to single source — prefer the `/dashboard/stats` endpoint and deprecate client-side computation.
 
-### Language Config Ignored by Frontend
-- **Issue:** Backend supports `asr_language` and `ui_language`, but the frontend only uses `ui_language`. The ASR language setting has no UI control.
-- **Files:** `src/backend/config.py`, `src/electron/renderer/components/SettingsPage.tsx`
-- **Impact:** Users cannot change dictation language without editing environment variables.
-- **Fix approach:** Add an ASR language selector to the API Configuration card.
-
-### Silence Detection Parameters Have No UI
-- **Issue:** `silence_threshold` and `silence_duration_ms` are configurable only via environment variables (`ASR_LINUX_SILENCE_THRESHOLD`, `ASR_LINUX_SILENCE_DURATION_MS`).
-- **Files:** `src/backend/config.py`, `src/backend/audio_recorder.py`
-- **Impact:** Users cannot tune auto-stop behavior from the GUI.
-- **Fix approach:** Expose sliders/inputs in Settings and persist via `/config`.
+### Streamlined SettingsPage Still Large
+- **Issue:** After splitting into sub-components, `SettingsPage.tsx` still orchestrates 7 sub-components with per-component state loading, which creates complex coupling.
+- **Files:** `src/electron/renderer/components/SettingsPage.tsx`
+- **Impact:** Each sub-component re-fetches config independently, causing redundant network calls.
+- **Fix approach:** Centralize config fetching in the parent; pass data down via props or context.
 
 ---
 
@@ -182,20 +163,40 @@
 
 ---
 
-## Missing Critical Features
+## New Features (Recently Added)
 
-### No Backend `/stats` Endpoint
-- **Problem:** Dashboard computes aggregates client-side. No server-side aggregation exists.
-- **Blocks:** Accurate stats for large histories; future analytics features.
+### Backend Stats Endpoint
+- **Status:** ✅ Added in Phase 11 — `GET /dashboard/stats` returns `daily_usage`, `hourly_distribution`, `avg_latency`, `latency_trend`.
+- **Evidence:** `src/backend/main.py`, `src/electron/renderer/components/DashboardPage.tsx`
 
-### No Prompt Activation UI
-- **Problem:** Users can view prompts but cannot mark one as active from the GUI.
-- **Blocks:** Scenario-specific prompt switching (Phase 6 goal).
+### Prompt Activation UI
+- **Status:** ✅ Added — `PromptManager.tsx` provides full CRUD with activate/deactivate.
+- **Evidence:** `src/electron/renderer/components/settings/PromptManager.tsx`
 
-### No Per-App Behavior Profiles
-- **Problem:** No mechanism to vary dictionary/prompt/injection behavior based on the active window class.
-- **Blocks:** Phase 6 "Per-app behavior profiles" feature.
+### Scene Profiles (Profile Manager)
+- **Status:** ✅ Added in Phase 9 — CRUD API + 5 built-in presets (通用/编程/写作/会议记录/聊天) + settings UI + tray switch.
+- **Evidence:** `src/backend/profile_manager.py`, `src/electron/renderer/components/settings/ProfileManager.tsx`
+
+### Onboarding Wizard
+- **Status:** ✅ Added in Phase 8 — 4-step modal (deps check, ASR config, LLM config, trial recording).
+- **Evidence:** `src/electron/renderer/components/OnboardingWizard.tsx`
+
+### Clipboard Save/Restore
+- **Status:** ✅ Added in Phase 12 — `ClipboardManager` with save/restore, fallback, polling verification.
+- **Evidence:** `src/backend/clipboard_manager.py`
+
+### Streaming ASR Infrastructure
+- **Status:** ✅ Core infrastructure added — `RingBuffer` for PCM slicing, `TranscriptMerger` for overlap detection.
+- **Evidence:** `src/backend/ring_buffer.py`, `src/backend/transcript_merger.py`
+
+### Connection Warmup
+- **Status:** ✅ Added in Phase 14 — Fire-and-forget warmup probes to ASR/LLM on recording start.
+- **Evidence:** `src/backend/asr_client.py`, `src/backend/polish_client.py`
+
+### History Diff View
+- **Status:** ✅ Added in Phase 10 — `SessionListItem` shows diff (ASR vs LLM) with color-coded segments.
+- **Evidence:** `src/electron/renderer/lib/diff.ts`, `SessionListItem.tsx`
 
 ---
 
-*Concerns audit: 2026-06-05*
+*Concerns audit: 2026-06-06 (refreshed)*

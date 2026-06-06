@@ -1,6 +1,6 @@
 # Testing Patterns
 
-**Analysis Date:** 2026-06-05
+**Analysis Date:** 2026-06-06 (refreshed)
 
 ## Test Framework
 
@@ -77,14 +77,21 @@ tests/
 │   ├── test_dictation_orchestrator.py  # Full pipeline integration
 │   ├── test_dictation_routes.py
 │   ├── test_dictionary_manager.py
+│   ├── test_history_export.py           # Phase 7: history export txt/md
 │   ├── test_history_retry.py
+│   ├── test_history_search.py           # Phase 10: history search API
 │   ├── test_history_store.py
 │   ├── test_logging.py      # JSON format, rotation, redaction
 │   ├── test_polish_client.py
 │   ├── test_polish_sanitizer.py
+│   ├── test_profile_manager.py          # Phase 9: profile CRUD
 │   ├── test_prompt_manager.py
 │   ├── test_retry_policy.py
+│   ├── test_ring_buffer.py              # Phase 13: streaming ASR ring buffer
+│   ├── test_streaming_orchestrator.py   # Phase 13: streaming pipeline integration
+│   ├── test_system_deps.py              # Phase 8: system deps check
 │   ├── test_text_injector.py
+│   ├── test_transcript_merger.py        # Phase 13: transcript overlap merge
 │   └── test_websocket.py
 └── electron/
     ├── baseline.test.ts
@@ -288,6 +295,11 @@ uv run pytest --cov=backend --cov-report=html
 - WebSocket events via fake WebSocket objects
 - File cleanup with temporary directories
 - Mocked cloud APIs (default test runs)
+- **Phase 7:** History export format tests (txt/md)
+- **Phase 9:** Profile CRUD + seed + active profile tests
+- **Phase 10:** History search/filter API tests
+- **Phase 13:** RingBuffer PCM operations, overlap slice reading, transcript merge with CJK edge cases
+- **Phase 14:** Connection warmup fire-and-forget behavior tests
 
 **Contract Tests:**
 - Electron-to-backend API shape verification

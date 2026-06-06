@@ -214,36 +214,182 @@ Coverage target:
 - Renderer state/IPC contract coverage: at least 70%.
 - Logging, config, history, and orchestrator modules: at least 85%.
 
-## Phase 6: Experience Enhancements
+## Phase 6: Core Config & UX — ✅ Done
 
 Goal:
 
-- Improve speed and input quality after the MVP is stable.
+- Low-hanging UX improvements: ASR language dropdown, VAD user controls, level polling optimization.
 
-Possible deliverables:
+Deliverables:
 
-- Streaming ASR preview if the provider supports it reliably.
-- Better dictionary relevance ranking.
-- Scenario-specific prompt switching.
-- Per-app behavior profiles.
-- Silence auto-stop by default after tuning.
-- More polished overlay animation.
-- Wayland compatibility path.
+- ASR language selector (zh/en/auto) in settings with tray quick-switch submenu.
+- VAD toggle enable/disable with threshold and duration sliders.
+- Level polling optimized to 60-80ms from 100ms.
+- WebSocket push evaluation for mic level.
+- Overlay VAD countdown indicator.
 
-Required docs:
+Exit criteria met:
 
-- Add short design notes for any behavior that changes user workflow.
-- Update manual smoke tests for new desktop environments.
+- Language persisted across restarts and used by dictation orchestrator.
+- VAD toggle respected by AudioRecorder.
+- All new code has TDD tests and structured timing logs.
 
-Exit criteria:
+Coverage target: Maintained.
 
-- Enhancements do not weaken the baseline dictation flow.
-- Existing phase 4 and phase 5 smoke tests still pass.
-- New feature has tests and logs.
+## Phase 7: History & Overlay — ✅ Done
 
-Coverage target:
+Goal:
 
-- Maintain or improve phase 5 targets.
+- Make history actionable (copy/export), transparent (dictionary stats), visually polished (progress bar).
+
+Deliverables:
+
+- Copy button per history item with toast confirmation.
+- Export button with txt/md format dialog.
+- Dictionary match frequency tracking (per-entry "最近N次触发M次" badge).
+- Continuous progress bar replacing step dots.
+- VAD countdown as gray tail fill on progress bar.
+- Completed state shows green bar for 2s then fade out.
+
+Exit criteria met:
+
+- All new code has TDD tests and structured timing logs.
+
+## Phase 8: Overlay Polish + Onboarding — ✅ Done
+
+Goal:
+
+- True 0→100% continuous progress bar, fix phase broadcast timing, build onboarding wizard.
+
+Deliverables:
+
+- Progress bar smooth animates 0→100% across pipeline (simulated, not segmented).
+- Recording: 0-30%, Transcribing: 30-60%, Polishing: 60-88%, Completed: 88-100%.
+- Mic wave overlay during recording on progress bar.
+- Broadcast `transcribing` BEFORE ASR, `polishing` BEFORE LLM (not after).
+- 4-step onboarding wizard: deps check, ASR config, LLM config, trial recording.
+- Onboarding persisted to DB; Settings has "重新引导" link.
+- Prev/next/skip navigation.
+
+Exit criteria met:
+
+- All new code has TDD tests and structured timing logs.
+
+## Phase 9: Scene Profiles — ✅ Done
+
+Goal:
+
+- Preset scene system with CRUD, pipeline integration, and quick-switch.
+
+Deliverables:
+
+- `profiles` table with 5 built-in presets (通用/编程/写作/会议记录/聊天) seeded on migration.
+- CRUD API: list/get/create/update/delete profiles.
+- Settings → 场景管理 panel with active profile selection.
+- ProfileManager sub-component with duplicate preset functionality.
+- Tray menu for quick profile switching.
+- Pipeline uses active profile's prompt template and ASR language.
+
+Exit criteria met:
+
+- All new code has TDD tests and structured timing logs.
+
+## Phase 10: History Redesign — ✅ Done
+
+Goal:
+
+- Redesign history list with preview, copy, diff view, and search API.
+
+Deliverables:
+
+- Expandable session detail with animated diff view (ASR vs LLM with color-coded segments).
+- Framer Motion expand/collapse on session list items.
+- Backend history search API (keyword filtering).
+- Copy-to-clipboard button per session.
+
+Exit criteria met:
+
+- All new code has TDD tests and structured timing logs.
+
+## Phase 11: Dashboard + Stats — ✅ Done
+
+Goal:
+
+- Build a stats dashboard with latency breakdown and charts.
+
+Deliverables:
+
+- Backend `/dashboard/stats` endpoint with SQL aggregates.
+- DashboardPage with stat cards (active sessions, success rate, avg latency, total chars).
+- Daily usage bar chart (BarChart component).
+- Latency trend line chart (LineChart component with dual ASR/LLM lines).
+- Empty state for no-data scenarios.
+
+Exit criteria met:
+
+- All new code has TDD tests and structured timing logs.
+
+## Phase 12: Clipboard Save/Restore — ✅ Done
+
+Goal:
+
+- Save current clipboard before injection, restore after successful paste; leave text on clipboard on failure.
+
+Deliverables:
+
+- ClipboardManager with save/restore/set operations.
+- `inject_with_fallback()` flow: save → paste → restore.
+- FocusLostError path leaves text on clipboard.
+- Polling verification that clipboard content is visible before paste.
+- Bounded `xclip` loops with timeout.
+
+Exit criteria met:
+
+- All new code has TDD tests and structured timing logs.
+
+## Phase 13: Pseudo-Streaming ASR — Core Infrastructure Ready
+
+Goal:
+
+- Ring buffer for PCM capture during recording, slice-based ASR, transcript merge.
+
+Deliverables:
+
+- RingBuffer with chunked PCM storage and slice read with overlap.
+- pcm_to_wav() helper wrapping raw PCM in RIFF/WAV header.
+- TranscriptMerger with longest-suffix overlap detection (CJK-aware).
+- Streaming orchestrator tests for slice scheduling and merge.
+
+Remaining work:
+
+- Integration into DictationOrchestrator (background slice scheduling during recording).
+- WebSocket broadcast of `partial_transcript` events.
+- Overlay partial text preview area.
+
+## Phase 14: Connection Warmup — ✅ Done
+
+Goal:
+
+- Eliminate TCP+TLS handshake latency by warming ASR/LLM connections on recording start.
+
+Deliverables:
+
+- `ASRClient.warmup()` — minimal probe to ASR endpoint.
+- `PolishClient.warmup()` — minimal probe to LLM endpoint.
+- Both called fire-and-forget after `recorder.start()` in `/dictation/start`.
+- Failures logged but never block the pipeline.
+
+Exit criteria met:
+
+- All new code has TDD tests and structured timing logs.
+
+## Future Work (Not Yet Phased)
+
+- Streaming ASR full integration (partial results in overlay).
+- Per-app behavior profiles (auto-switch based on focused window).
+- Wayland compatibility path (wl-copy/wtype).
+- Push-to-talk mode.
+- Profile import/export.
 
 ## Phase Gate Rules
 

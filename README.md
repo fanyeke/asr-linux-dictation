@@ -132,6 +132,17 @@ sequenceDiagram
 | 1 | ✅ Done | Bug fix sprint (overlay, dictionary) |
 | 2 | ✅ Done | Frontend refactor (SettingsPage split) |
 | 3 | ✅ Done | Polish & hardening (security, error handling, prompt CRUD) |
+| 6 | ✅ Done | Core config & UX (ASR language, VAD controls, level optimization) |
+| 7 | ✅ Done | History & overlay (copy/export, dict stats, progress bar) |
+| 8 | ✅ Done | Overlay polish + onboarding (continuous progress bar, 4-step wizard) |
+| 9 | ✅ Done | Scene profiles (5 presets, CRUD, tray switch) |
+| 10 | ✅ Done | History redesign (preview, diff view, search API) |
+| 11 | ✅ Done | Dashboard + stats (latency charts, stats API) |
+| 12 | ✅ Done | Clipboard save/restore (save/restore/fallback) |
+| 13 | 🚧 Core infra | Streaming ASR (ring buffer, transcript merge — pipeline integration pending) |
+| 14 | ✅ Done | Connection warmup (fire-and-forget probe on recording start) |
+
+> **v0.2.0** — Major Dashboard rework: time range selector (today/7d/30d), server-side stats, Y-axis labels, timezone-corrected timeline, auto-refresh on tab switch, fixed `timing_ms` storage bug.
 
 ## Tech Stack
 

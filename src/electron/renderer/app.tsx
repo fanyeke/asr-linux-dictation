@@ -25,9 +25,19 @@ function getVoiceAPI(): VoiceAPI {
 
 function App(): JSX.Element {
   const [activeTab, setActiveTab] = useState<TabId>("dictate");
+  const [dashboardKey, setDashboardKey] = useState(0);
   const [backendConfig, setBackendConfig] = useState<BackendConfig | null>(
     null,
   );
+
+  // Bump dashboard key every time the user switches to the dashboard tab,
+  // forcing a full remount so fresh data is always fetched.
+  const handleTabChange = useCallback((tab: TabId) => {
+    setActiveTab(tab);
+    if (tab === "dashboard") {
+      setDashboardKey((k) => k + 1);
+    }
+  }, []);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -333,7 +343,7 @@ function App(): JSX.Element {
           color: "#1a1a1a",
         }}
       >
-        <TabSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+        <TabSidebar activeTab={activeTab} onTabChange={handleTabChange} />
         <div
           style={{
             flex: 1,
@@ -361,7 +371,7 @@ function App(): JSX.Element {
           color: "#1a1a1a",
         }}
       >
-        <TabSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+        <TabSidebar activeTab={activeTab} onTabChange={handleTabChange} />
 
         <div className="pb-20 sm:pb-0" style={{ flex: 1, overflow: "auto", background: "#fff" }}>
           {/* Global error banner */}
@@ -413,8 +423,8 @@ function App(): JSX.Element {
 
               {activeTab === "dashboard" && (
                 <DashboardPage
+                  key={dashboardKey}
                   backendConfig={backendConfig}
-                  history={history}
                 />
               )}
 

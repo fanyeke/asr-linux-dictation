@@ -63,7 +63,7 @@ Responsibilities:
 
 - Bottom-screen dictation status.
 - Recording level visualization.
-- Pipeline state display, such as recording, transcribing, polishing, inserting, and failed.
+- Pipeline state display, such as recording, transcribing, polishing, completed, and failed.
 
 Testing focus:
 
@@ -219,20 +219,77 @@ Testing focus:
 
 Responsibilities:
 
-- Insert final text into focused desktop app.
-- Preserve and restore clipboard where possible.
-- Save text to clipboard when target input loses focus during injection.
-- Use terminal-specific paste when needed.
+- Insert final text into focused desktop app via xdotool keyboard simulation.
+- Detect terminal windows via xprop and use Ctrl+Shift+V for terminal paste.
 - Report injection failure clearly.
 
 Testing focus:
 
 - Target app classification logic.
 - Command selection.
-- Focus-loss detection and clipboard fallback.
-- Clipboard restore paths.
 
 Manual smoke required for real X11 apps and terminal windows.
+
+### Clipboard Manager
+
+Responsibilities:
+
+- Save current X11 clipboard content before injection.
+- Restore original clipboard content after successful paste.
+- Leave injected text on clipboard as fallback on paste failure or focus loss.
+- Poll clipboard to verify content is visible to target application.
+- Bounded timeout loops to prevent pipeline hanging.
+
+Testing focus:
+
+- Save/restore sequence.
+- Focus-loss fallback path.
+- Timeout behavior.
+- Clipboard tool detection (xsel vs xclip).
+
+### Profile Manager
+
+Responsibilities:
+
+- Store scene-based profiles with prompt template, dictionary associations, ASR language.
+- Seed 5 built-in presets (通用, 编程, 写作, 会议记录, 聊天).
+- CRUD operations; built-in profiles cannot be deleted.
+- Active profile selection for dictation pipeline.
+
+Testing focus:
+
+- CRUD operations.
+- Built-in profile protection.
+- Active profile selection.
+- Seed logic.
+
+### Ring Buffer
+
+Responsibilities:
+
+- In-memory PCM audio buffer for streaming ASR.
+- Support reading slices with configurable overlap for progressive ASR.
+- Empty/insufficient-data detection.
+
+Testing focus:
+
+- PCM byte write and slice extraction.
+- Overlap calculation.
+- Edge cases (empty buffer, partial reads).
+
+### Transcript Merger
+
+Responsibilities:
+
+- Merge overlapping partial ASR transcripts using longest-suffix matching.
+- CJK-aware adjacency handling (no extra spaces between Chinese characters).
+- Minimum overlap threshold to prevent false positive merges.
+
+Testing focus:
+
+- Overlap detection with varying overlap sizes.
+- CJK text handling.
+- Empty/whitespace chunk filtering.
 
 ### Logging And Diagnostics
 

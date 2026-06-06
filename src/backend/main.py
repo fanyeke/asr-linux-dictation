@@ -4,12 +4,14 @@ import asyncio
 import os
 import time
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta
 from typing import Annotated
 
 from fastapi import (
     Depends,
     FastAPI,
     HTTPException,
+    Query,
     Request,
     Response,
     WebSocket,
@@ -339,69 +341,119 @@ async def health() -> dict:
     return {"status": "ok"}
 
 
+# ---------------------------------------------------------------------------
+# Dashboard stats helpers
+# ---------------------------------------------------------------------------
+
+
+def _time_range_where(time_range: str) -> str:
+    """Return SQL WHERE clause for the given time range."""
+    if time_range == "today":
+        return "created_at >= datetime('now', 'start of day')"
+    elif time_range == "24h":
+        return "created_at >= datetime('now', '-1 day')"
+    elif time_range == "7d":
+        return "created_at >= datetime('now', '-7 days')"
+    elif time_range == "30d":
+        return "created_at >= datetime('now', '-30 days')"
+    return "1=1"
+
+
+async def _build_timeline(
+    db: sqlite_async.Connection,
+    where: str,
+    time_range: str,
+) -> list[dict]:
+    """Build timeline data, filling missing slots with 0."""
+    if time_range in ("today", "24h"):
+        # Hourly: 24 slots (in local timezone)
+        cursor = await db.execute(f"""
+            SELECT CAST(strftime('%H', datetime(created_at, 'localtime')) AS INTEGER) AS slot,
+                   COUNT(*) AS count,
+                   SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS successes
+            FROM history WHERE {where}
+            GROUP BY slot ORDER BY slot
+        """)
+        rows = await cursor.fetchall()
+        data = {r[0]: {"count": r[1], "successes": r[2] or 0} for r in rows}
+        return [
+            {"slot": f"{h:02d}", "count": 0, "successes": 0}
+            if h not in data
+            else {"slot": f"{h:02d}", "count": data[h]["count"], "successes": data[h]["successes"]}
+            for h in range(24)
+        ]
+    else:
+        # Daily: 7 or 30 slots
+        num_days = 30 if time_range == "30d" else 7
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+
+        cursor = await db.execute(f"""
+            SELECT DATE(datetime(created_at, 'localtime')) AS slot,
+                   COUNT(*) AS count,
+                   SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS successes
+            FROM history WHERE {where}
+            GROUP BY slot ORDER BY slot
+        """)
+        rows = await cursor.fetchall()
+        data = {r[0]: {"count": r[1], "successes": r[2] or 0} for r in rows}
+
+        result = []
+        for i in range(num_days):
+            day = (today - timedelta(days=num_days - 1 - i)).strftime("%Y-%m-%d")
+            entry = data.get(day, {"count": 0, "successes": 0})
+            result.append({"slot": day, "count": entry["count"], "successes": entry["successes"]})
+        return result
+
+
 @app.get("/dashboard/stats")
 async def dashboard_stats(
     _: Annotated[None, Depends(verify_token)],
+    range: str = Query("today", pattern="^(today|24h|7d|30d)$"),
 ) -> dict:
     """Aggregated dictation statistics for the dashboard.
 
-    Returns daily usage (last 7 days), hourly distribution,
-    and average ASR/polish latency.
+    Returns summary stats, timeline data (by hour or day), and latency trend
+    for the requested time range.
+
+    Query params:
+        range: Time range — ``today`` (default), ``24h``, ``7d``, ``30d``.
     """
     db_path = get_db_path()
+    where = _time_range_where(range)
     async with sqlite_async.connect(db_path) as db:
-        # Daily usage — last 7 days
-        cursor = await db.execute(
-            """
-            SELECT DATE(created_at) AS day, COUNT(*) AS count,
-                   SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS successes
-            FROM history
-            WHERE created_at >= DATE('now', '-7 days')
-            GROUP BY day ORDER BY day
-            """
-        )
-        rows = await cursor.fetchall()
-        daily_usage = [
-            {"day": r[0], "count": r[1], "successes": r[2] or 0}
-            for r in rows
-        ]
-
-        # Hourly distribution
-        cursor = await db.execute(
-            """
-            SELECT CAST(strftime('%H', created_at) AS INTEGER) AS hour,
-                   COUNT(*) AS count
-            FROM history
-            WHERE created_at >= DATE('now', '-30 days')
-            GROUP BY hour ORDER BY hour
-            """
-        )
-        rows = await cursor.fetchall()
-        hourly_dist = {r[0]: r[1] for r in rows}
-
-        # Average latency
-        cursor = await db.execute(
-            """
-            SELECT AVG(asr_ms) AS avg_asr, AVG(polish_ms) AS avg_polish,
-                   AVG(timing_ms) AS avg_total
-            FROM history
-            WHERE status = 'completed' AND created_at >= DATE('now', '-30 days')
-            """
-        )
+        # Summary — AVG fields only over completed sessions so that
+        # asr_ms / polish_ms / timing_ms all come from the same row set.
+        cursor = await db.execute(f"""
+            SELECT COUNT(*) AS total,
+                   SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS successes,
+                   SUM(CASE WHEN status != 'completed' THEN 1 ELSE 0 END) AS fails,
+                   COALESCE(SUM(LENGTH(raw_text)), 0) AS total_chars,
+                   AVG(CASE WHEN status = 'completed' THEN asr_ms END) AS avg_asr,
+                   AVG(CASE WHEN status = 'completed' THEN polish_ms END) AS avg_polish,
+                   AVG(CASE WHEN status = 'completed' THEN timing_ms END) AS avg_total
+            FROM history WHERE {where}
+        """)
         row = await cursor.fetchone()
-        avg_asr = round(row[0]) if row and row[0] else None
-        avg_polish = round(row[1]) if row and row[1] else None
-        avg_total = round(row[2]) if row and row[2] else None
+        summary = {
+            "total_sessions": row[0] if row else 0,
+            "success_count": row[1] or 0 if row else 0,
+            "fail_count": row[2] or 0 if row else 0,
+            "total_chars": row[3] or 0 if row else 0,
+            "avg_asr_ms": round(row[4]) if row and row[4] else None,
+            "avg_polish_ms": round(row[5]) if row and row[5] else None,
+            "avg_total_ms": round(row[6]) if row and row[6] else None,
+        }
 
-        # Recent latency trend (last 20 completed sessions)
-        cursor = await db.execute(
-            """
+        # Timeline
+        timeline = await _build_timeline(db, where, range)
+
+        # Latency trend (last 20 completed sessions in range)
+        cursor = await db.execute(f"""
             SELECT asr_ms, polish_ms, timing_ms, created_at
             FROM history
-            WHERE status = 'completed' AND asr_ms IS NOT NULL
+            WHERE status = 'completed' AND asr_ms IS NOT NULL AND {where}
             ORDER BY id DESC LIMIT 20
-            """
-        )
+        """)
         rows = await cursor.fetchall()
         latency_trend = [
             {
@@ -414,13 +466,8 @@ async def dashboard_stats(
         ]
 
         return {
-            "daily_usage": daily_usage,
-            "hourly_distribution": hourly_dist,
-            "avg_latency": {
-                "asr_ms": avg_asr,
-                "polish_ms": avg_polish,
-                "total_ms": avg_total,
-            },
+            "summary": summary,
+            "timeline": timeline,
             "latency_trend": latency_trend,
         }
 
