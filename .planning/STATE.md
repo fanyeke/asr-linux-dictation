@@ -7,17 +7,17 @@ last_updated: "2026-06-06T06:04:40.991Z"
 last_activity: 2026-06-06
 progress:
   total_phases: 2
-  completed_phases: 0
-  total_plans: 1
-  completed_plans: 0
-  percent: 0
+  completed_phases: 1
+  total_plans: 2
+  completed_plans: 1
+  percent: 50
 ---
 
 # State
 
 ## Current Phase
 
-**Phase 10 — History Redesign** 🔄 in progress
+**Phase 11 — Dashboard + Stats** 🔄 in progress
 
 ## Completed Phases
 
@@ -27,16 +27,16 @@ progress:
 - **Phase 7 — History & Overlay** ✅ (copy/export, dict stats, progress bar)
 - **Phase 8 — Overlay Polish + Onboarding** ✅ (broadcast timing, continuous progress bar, wizard)
 - **Phase 9 — Scene Profiles** ✅ (5 presets, CRUD, pipeline integration, tray switch)
+- **Phase 10 — History Redesign** ✅ (preview, copy, diff view, search API)
 
 ## Last Action
 
-- Milestone v1.0 complete
-- Tests: 251 frontend + 262 backend passed (513 total)
+- Phase 11: backend timing breakdown, dashboard stats API, chart components, dashboard redesign
+- Tests: 247 frontend + 268 backend passed (515 total)
 
 ## Next Step
 
-- Phase 10: History Redesign — collapsed preview, always-visible copy, diff view, failed highlight, search/filter
-- Phase 11: Dashboard + Stats — timing breakdown, stats API, trend charts, heatmap
+- Phase 11 remaining: dashboard final polish, heatmap component, verification
 
 ## Decisions
 
