@@ -6,7 +6,7 @@
 |---|-------|------|--------------|------------------|
 | 6 | Core Config & UX | ASR language selection, VAD auto-stop with settings UI, level polling optimization | ASR-01..05, VAD-01..07, OVL-01..02 | 15 |
 | 7 | History & Overlay | Copy/export history, dictionary match stats, continuous progress bar | HST-01..06, DIC-01..04, OVL-03..06 | 13 |
-| 8 | Onboarding Wizard | First-run 4-step modal wizard with dep check, API test, trial recording | ONB-01..08 | 8 |
+| 8 | Overlay Polish + Onboarding | True 0→100% progress bar, fix broadcast timing, 4-step onboarding wizard | ONB-01..08, overlay fixes | 10 |
 | 9 | Scene Profiles | Profile DB/CRUD, 5 presets, settings UI, pipeline integration, quick-switch | PRO-01..07 | 7 |
 
 ---
@@ -57,23 +57,31 @@
 
 ---
 
-## Phase 8: Onboarding Wizard
+## Phase 8: Overlay Polish + Onboarding
 
-**Goal:** First-run wizard that guides users through environment setup, API configuration, and trial dictation.
+**Goal:** Fix overlay progress bar to true 0→100% continuous animation, fix phase broadcast timing, build first-run onboarding wizard.
 
-**Requirements:** ONB-01, ONB-02, ONB-03, ONB-04, ONB-05, ONB-06, ONB-07, ONB-08
+**Requirements:** ONB-01..08 + overlay fixes (broadcast timing, continuous progress)
 
 **Success criteria:**
-1. Fresh install → modal wizard appears on first launch (not embedded in Settings)
-2. Step 1: system deps detected with green/red badges, fix instructions shown
-3. Step 2: ASR URL + key input with test-connection button using probe audio
-4. Step 3: LLM URL + key + model with test-connection button
-5. Step 4: trial recording runs full pipeline, shows result in wizard
-6. Prev/next/skip navigation works, skip defers to later
-7. After completion, `onboarding_completed` flag persisted; Settings has "重新引导" link
-8. All new code has TDD tests and structured timing logs
+- [ ] Broadcast `transcribing` BEFORE ASR, `polishing` BEFORE LLM (not after)
+- [ ] Progress bar smoothly animates 0→100% across pipeline (simulated, not segmented)
+- [ ] Recording: 0-35% with mic wave overlay
+- [ ] Transcribing: 35-65% smooth advance + pulse
+- [ ] Polishing: 65-90% smooth advance + pulse
+- [ ] Completed: 100% green, 2s, fade out
+- [ ] Failed: freeze current position + red flash
+- [ ] Fresh install → modal wizard appears on first launch
+- [ ] Step 1: system deps detected with green/red badges, fix instructions shown
+- [ ] Step 2: ASR URL + key input with test-connection button using probe audio
+- [ ] Step 3: LLM URL + key + model with test-connection button
+- [ ] Step 4: trial recording runs full pipeline, shows result in wizard
+- [ ] Prev/next/skip navigation works, skip defers to later
+- [ ] After completion, `onboarding_completed` flag persisted; Settings has "重新引导" link
+- [ ] All new code has TDD tests and structured timing logs
 
 **Logging instrumentation:**
+- `phase_broadcast`: log broadcast timing (before/after API call)
 - `onboarding_start/complete`: log step timestamps, completion status
 - `dep_check`: log each dep result (found/missing) per check
 - `probe_asr/llm`: log probe timing, success/failure, error category
