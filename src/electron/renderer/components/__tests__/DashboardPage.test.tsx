@@ -12,7 +12,7 @@ vi.mock("../../lib/i18n.js", () => ({
         loading: "Loading...",
         no_sessions: "No sessions yet",
         no_sessions_desc: "Your dictation sessions will appear here",
-        stat_active_sessions: "Sessions",
+        stat_active_sessions: "Active Sessions",
         stat_success_rate: "Success Rate",
         stat_avg_duration: "Avg Duration",
         stat_total_chars: "Total Chars",
@@ -70,25 +70,25 @@ describe("DashboardPage", () => {
   });
 
   it("displays stat cards with history data", async () => {
-    render(<DashboardPage backendConfig={mockBackendConfig} history={mockSessions} />);
-    expect(await screen.findByText("Sessions")).toBeInTheDocument();
+    render(<DashboardPage backendConfig={null} history={mockSessions} />);
+    expect(await screen.findByText("Active Sessions")).toBeInTheDocument();
     expect(screen.getByText("Success Rate")).toBeInTheDocument();
     expect(screen.getByText("Avg Duration")).toBeInTheDocument();
     expect(screen.getByText("Total Chars")).toBeInTheDocument();
   });
 
   it("calculates success rate correctly (4/6 = 67%)", async () => {
-    render(<DashboardPage backendConfig={mockBackendConfig} history={mockSessions} />);
+    render(<DashboardPage backendConfig={null} history={mockSessions} />);
     expect(await screen.findByText("67%")).toBeInTheDocument();
   });
 
   it("calculates average duration correctly", async () => {
     render(<DashboardPage backendConfig={null} history={mockSessions} />);
     await screen.findByText("Dashboard");
-    // All sessions averaged (null timing_ms treated as 0):
-    // (1500 + 2300 + 0 + 3200 + 0 + 800) / 6 = 1300ms → 1.3s
+    // Only sessions with non-null timing_ms:
+    // (1500 + 2300 + 3200 + 800) / 4 = 1950ms → 1.9s
     const content = document.body.textContent || "";
-    expect(content).toContain("1.3s");
+    expect(content).toContain("1.9s");
   });
 
   it("calculates total chars correctly", async () => {

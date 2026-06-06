@@ -70,29 +70,49 @@ export function DashboardPage({
     }
     if (loadedRef.current) return;
     loadedRef.current = true;
+
+    // Safety timeout: show dashboard even if stats API hangs
+    const safetyTimer = setTimeout(() => setLoading(false), 2000);
+
     fetch(`${backendConfig.url}/dashboard/stats`, {
       headers: { "x-token": backendConfig.token },
     })
       .then((r) => r.json())
       .then((data) => {
         setStats(data as DashboardStats);
+        clearTimeout(safetyTimer);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        clearTimeout(safetyTimer);
+        setLoading(false);
+      });
   }, [backendConfig]);
 
-  // Compute stats from local history as fallback
-  const total = history.length;
+  // Compute stats from local history
+  const now = Date.now();
+  const oneDayMs = 86400000;
+  const activeSessions = history.filter(
+    (h) => h.status === "recording" || (h.created_at && (now - new Date(h.created_at).getTime()) < oneDayMs),
+  ).length;
   const completed = history.filter((h) => h.status === "completed").length;
-  const successRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const successRate = history.length > 0 ? Math.round((completed / history.length) * 100) : 0;
+
+  // Only average over sessions that have timing data
+  const timings = history
+    .filter((h) => h.timing_ms != null)
+    .map((h) => h.timing_ms as number);
   const avgTiming =
-    history.length > 0
-      ? history.reduce((acc, h) => acc + (h.timing_ms ?? 0), 0) / history.length
+    timings.length > 0
+      ? timings.reduce((a, b) => a + b, 0) / timings.length
       : 0;
-  const totalChars = history.reduce((acc, h) => {
+
+    const totalChars = history.reduce((acc, h) => {
     const text = h.raw_text ?? h.polished_text ?? "";
     return acc + text.length;
   }, 0);
+
+  const hasData = history.length > 0;
 
   if (loading) {
     return (
@@ -102,7 +122,7 @@ export function DashboardPage({
     );
   }
 
-  if (total === 0) {
+  if (!hasData) {
     return (
       <div className="max-w-3xl mx-auto p-8">
         <EmptyState
@@ -141,7 +161,7 @@ export function DashboardPage({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatCard
           icon={<Zap className="w-5 h-5 text-brand-600" />}
-          value={total}
+          value={activeSessions}
           label={t("stat_active_sessions")}
           colorClass="bg-brand-50"
         />
