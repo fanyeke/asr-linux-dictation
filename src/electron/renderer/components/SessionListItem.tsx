@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useTranslation } from "../lib/i18n.js";
 import { motion, AnimatePresence } from "framer-motion";
 import type { HistorySession } from "../settings/types.js";
 import { Card } from "./ui/Card.js";
 import { Badge } from "./ui/Badge.js";
 import { Button } from "./ui/Button.js";
-import { ChevronDown, ChevronUp, RotateCcw, FileAudio2, Copy } from "lucide-react";
+import { ChevronDown, ChevronUp, RotateCcw, FileAudio2, Copy, Check } from "lucide-react";
+import { computeDiff, type DiffSegment } from "../lib/diff.js";
 
 interface SessionListItemProps {
   session: HistorySession;
@@ -25,6 +26,11 @@ function statusToBadgeVariant(
   }
 }
 
+function textPreview(text: string | null, maxLen: number = 30): string {
+  if (!text) return "";
+  return text.length > maxLen ? text.slice(0, maxLen) + "…" : text;
+}
+
 export function SessionListItem({
   session,
   onRetry,
@@ -40,33 +46,95 @@ export function SessionListItem({
     ? new Date(session.created_at).toLocaleString()
     : "";
 
+  const previewText =
+    session.polished_text ?? session.raw_text ?? "";
+
+  // Compute diff segments for expanded view
+  const diffSegments: DiffSegment[] =
+    expanded &&
+    session.polished_text &&
+    session.raw_text &&
+    session.polished_text !== session.raw_text
+      ? computeDiff(session.raw_text, session.polished_text)
+      : [];
+
+  const handleCopy = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      const text = session.polished_text ?? session.raw_text ?? "";
+      if (!text) return;
+      try {
+        if (window.voiceAPI?.copyToClipboard) {
+          await window.voiceAPI.copyToClipboard(text);
+        } else {
+          await navigator.clipboard.writeText(text);
+        }
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        // ignore
+      }
+    },
+    [session],
+  );
+
   return (
-    <Card padding="md" hoverable className="cursor-pointer">
+    <Card
+      padding="md"
+      hoverable
+      className={`cursor-pointer ${isFailed ? "bg-red-50/50 border-red-200" : ""}`}
+    >
       {/* Header - always visible */}
       <button
         type="button"
         onClick={() => setExpanded((prev) => !prev)}
-        className="flex items-center justify-between w-full text-left focus:outline-none"
+        className="flex items-start justify-between w-full text-left focus:outline-none gap-2"
         data-testid={`session-header-${session.id}`}
       >
-        <div className="flex items-center gap-3 min-w-0">
-          <Badge variant={statusToBadgeVariant(session.status)} size="sm">
-            {session.status}
-          </Badge>
-          {formattedTime && (
-            <span className="text-[13px] text-gray-500 whitespace-nowrap">
-              {formattedTime}
-            </span>
-          )}
+        <div className="flex flex-col min-w-0 gap-1">
+          <div className="flex items-center gap-2">
+            <Badge variant={statusToBadgeVariant(session.status)} size="sm">
+              {session.status === "completed"
+                ? t("status_completed")
+                : session.status === "failed"
+                  ? t("status_failed")
+                  : session.status}
+            </Badge>
+            {formattedTime && (
+              <span className="text-[12px] text-gray-500 whitespace-nowrap">
+                {formattedTime}
+              </span>
+            )}
+          </div>
+          {/* Text preview - always visible */}
+          <span className="text-[13px] text-gray-600 truncate max-w-[250px] sm:max-w-[400px]">
+            {textPreview(previewText, 40)}
+          </span>
         </div>
 
-        <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Always-visible copy button */}
+          {previewText && (
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="p-1.5 rounded-md text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+              data-testid={`copy-btn-${session.id}`}
+              title={t("copy")}
+            >
+              {copied ? (
+                <Check className="w-3.5 h-3.5 text-green-500" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
+            </button>
+          )}
           {session.timing_ms !== null && (
-            <span className="text-[13px] text-gray-500">
+            <span className="text-[12px] text-gray-500 tabular-nums">
               {(timingMs / 1000).toFixed(1)}s
             </span>
           )}
-          <span className="text-[13px] text-gray-400">{charCount} {t("chars")}</span>
+          <span className="text-[12px] text-gray-400">{charCount}c</span>
           {expanded ? (
             <ChevronUp className="w-4 h-4 text-gray-400" />
           ) : (
@@ -88,40 +156,58 @@ export function SessionListItem({
             data-testid={`session-detail-${session.id}`}
           >
             <div className="pt-4 space-y-3">
-              {/* ASR raw text */}
-              {session.raw_text && (
+              {/* Diff-style comparison */}
+              {diffSegments.length > 0 ? (
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge variant="info" size="sm">
-                      ASR
-                    </Badge>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant="info" size="sm">ASR → LLM</Badge>
                     <span className="text-[11px] text-gray-500">
-                      {t("result_raw")}
+                      <span className="text-red-500">●</span> removed&nbsp;
+                      <span className="text-green-500">●</span> added&nbsp;
+                      <span className="text-yellow-500">●</span> changed
                     </span>
                   </div>
-                  <pre className="font-mono text-sm bg-gray-50 p-3 rounded whitespace-pre-wrap break-words m-0">
-                    {session.raw_text}
-                  </pre>
+                  <div className="text-sm bg-white p-3 rounded border border-gray-200 leading-relaxed whitespace-pre-wrap break-words">
+                    {diffSegments.map((seg, i) => {
+                      let cls = "";
+                      if (seg.type === "added") cls = "text-green-700 bg-green-50";
+                      else if (seg.type === "removed") cls = "text-red-700 bg-red-50 line-through";
+                      else if (seg.type === "changed") cls = "text-yellow-700 bg-yellow-50";
+                      return (
+                        <span key={i} className={cls}>
+                          {seg.text}{" "}
+                        </span>
+                      );
+                    })}
+                  </div>
                 </div>
+              ) : (
+                <>
+                  {/* Fallback: side-by-side */}
+                  {session.raw_text && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="info" size="sm">ASR</Badge>
+                        <span className="text-[11px] text-gray-500">{t("result_raw")}</span>
+                      </div>
+                      <pre className="font-mono text-sm bg-gray-50 p-3 rounded whitespace-pre-wrap break-words m-0">
+                        {session.raw_text}
+                      </pre>
+                    </div>
+                  )}
+                  {session.polished_text && session.polished_text !== session.raw_text && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="info" size="sm">LLM</Badge>
+                        <span className="text-[11px] text-gray-500">{t("result_polished")}</span>
+                      </div>
+                      <div className="text-sm bg-white p-3 rounded border border-purple-100">
+                        {session.polished_text}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
-
-              {/* LLM polished text */}
-              {session.polished_text &&
-                session.polished_text !== session.raw_text && (
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="info" size="sm">
-                        LLM
-                      </Badge>
-                    <span className="text-[11px] text-gray-500">
-                      {t("result_polished")}
-                    </span>
-                    </div>
-                    <div className="text-sm bg-white p-3 rounded border border-purple-100">
-                      {session.polished_text}
-                    </div>
-                  </div>
-                )}
 
               {/* Error info */}
               {isFailed && session.error_type && (
@@ -129,31 +215,6 @@ export function SessionListItem({
                   {t("result_error")}: {session.error_type}
                 </div>
               )}
-
-              {/* Copy + copy toast */}
-              <div className="flex items-center gap-2 mb-2">
-                <button
-                  type="button"
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    const text = session.polished_text ?? session.raw_text ?? "";
-                    if (text && window.voiceAPI?.copyToClipboard) {
-                      await window.voiceAPI.copyToClipboard(text);
-                      setCopied(true);
-                      setTimeout(() => setCopied(false), 2000);
-                    } else if (text) {
-                      await navigator.clipboard.writeText(text);
-                      setCopied(true);
-                      setTimeout(() => setCopied(false), 2000);
-                    }
-                  }}
-                  className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-brand-600 transition-colors"
-                  data-testid={`copy-btn-${session.id}`}
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  {copied ? t("copied") : t("copy")}
-                </button>
-              </div>
 
               {/* Session ID + action buttons */}
               <div className="flex items-center justify-between pt-1">
@@ -176,7 +237,6 @@ export function SessionListItem({
                       {t("open_audio")}
                     </Button>
                   )}
-
                   {isFailed && (
                     <Button
                       variant="secondary"
