@@ -8,6 +8,7 @@ from backend.database import init_database
 from backend.dictionary_manager import (
     _get_pinyin,
     _pinyin_sequence_match,
+    count_matches_in_text,
     create_entry,
     delete_entry,
     find_relevant_entries,
@@ -283,3 +284,70 @@ class TestPinyinHelpers:
             _pinyin_sequence_match(["wo", "jue", "de", "gui", "ze", "hen", "hao"], ["gui", "ze"])
             is True
         )
+
+
+class TestDictionaryStats:
+    """Test dictionary match frequency tracking."""
+
+    @pytest.fixture(autouse=True)
+    async def setup_db(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        """Initialize database for each test."""
+        monkeypatch.setenv("ASR_LINUX_DATA_DIR", str(tmp_path))
+        await init_database()
+        yield
+
+    def test_count_matches_basic(self) -> None:
+        """Counts occurrences of dictionary terms in text."""
+        entries = [
+            {"id": 1, "canonical_term": "ASR"},
+            {"id": 2, "canonical_term": "Linux"},
+        ]
+        result = count_matches_in_text(entries, "ASR Linux is great. I use ASR every day.")
+        assert len(result) == 2
+        asr_match = next(r for r in result if r["entry_id"] == 1)
+        assert asr_match["count"] == 2
+        linux_match = next(r for r in result if r["entry_id"] == 2)
+        assert linux_match["count"] == 1
+
+    def test_count_matches_empty_text(self) -> None:
+        """Returns empty list for empty text."""
+        entries = [{"id": 1, "canonical_term": "ASR"}]
+        result = count_matches_in_text(entries, "")
+        assert result == []
+
+    def test_count_matches_no_match(self) -> None:
+        """Returns empty list when no terms appear."""
+        entries = [{"id": 1, "canonical_term": "ASR"}]
+        result = count_matches_in_text(entries, "hello world")
+        assert result == []
+
+    def test_count_matches_case_insensitive(self) -> None:
+        """Matching is case-insensitive."""
+        entries = [{"id": 1, "canonical_term": "asr"}]
+        result = count_matches_in_text(entries, "ASR is great. Asr works well.")
+        assert len(result) == 1
+        assert result[0]["count"] == 2
+
+    @pytest.mark.asyncio
+    async def test_record_and_retrieve_stats(self) -> None:
+        """Stats can be recorded and retrieved via get_dictionary_stats_summary."""
+        from backend.dictionary_manager import (
+            get_dictionary_stats_summary,
+            record_dictionary_stats,
+        )
+
+        # Create a dictionary entry first so the JOIN works
+        entry = await create_entry(canonical_term="ASR")
+
+        await record_dictionary_stats("session-1", [
+            {"entry_id": entry["id"], "canonical_term": "ASR", "count": 2},
+        ])
+        await record_dictionary_stats("session-2", [
+            {"entry_id": entry["id"], "canonical_term": "ASR", "count": 1},
+        ])
+
+        summary = await get_dictionary_stats_summary(limit_sessions=10)
+        assert len(summary) >= 1
+        asr_stats = next(s for s in summary if s["entry_id"] == entry["id"])
+        assert asr_stats["total_matches"] == 3
+        assert asr_stats["session_count"] == 2

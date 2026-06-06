@@ -24,9 +24,12 @@ from backend.database import init_database
 from backend.diagnostics import build_diagnostics_bundle
 from backend.dictation_orchestrator import DictationOrchestrator
 from backend.dictionary_manager import (
+    count_matches_in_text,
     create_entry,
     delete_entry,
+    get_dictionary_stats_summary,
     list_entries,
+    record_dictionary_stats,
     update_entry,
 )
 from backend.history_store import get_session, list_sessions
@@ -582,6 +585,14 @@ async def delete_dictionary_entry(
     if not deleted:
         raise HTTPException(status_code=404, detail="Entry not found")
     return {"status": "deleted", "id": entry_id}
+
+
+@app.get("/dictionary/stats/entries")
+async def dictionary_stats_entries(
+    _: Annotated[None, Depends(verify_token)],
+) -> list[dict]:
+    """Get dictionary match frequency summary for the last 10 sessions."""
+    return await get_dictionary_stats_summary(limit_sessions=10)
 
 
 @app.get("/history")

@@ -7,7 +7,11 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from backend.asr_client import ASRClient, ASRError
-from backend.dictionary_manager import list_entries
+from backend.dictionary_manager import (
+    count_matches_in_text,
+    list_entries,
+    record_dictionary_stats,
+)
 from backend.history_store import create_session, get_session, update_session
 from backend.logging_config import get_logger
 from backend.polish_client import PolishClient
@@ -129,7 +133,16 @@ class DictationOrchestrator:
                 )
         else:
             polished = raw_text
+            entries = []
             logger.info("polish_skipped", session_id=session_id)
+
+        # ---- Dictionary Stats -------------------------------------------------
+        if entries:
+            match_counts = count_matches_in_text(entries, polished)
+            if match_counts:
+                await record_dictionary_stats(session_id, match_counts)
+                logger.info("dict_stats_recorded", session_id=session_id,
+                            matches=len(match_counts))
 
         await update_session(session_id, status="polishing", polished_text=polished)
         await self._broadcast(session_id, "polishing", polished_text=polished)

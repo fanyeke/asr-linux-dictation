@@ -186,4 +186,18 @@ async def init_database() -> None:
                 "ALTER TABLE user_config ADD COLUMN vad_enabled INTEGER DEFAULT 1"
             )
 
+        # Phase 7: dictionary_stats table
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS dictionary_stats (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                entry_id INTEGER NOT NULL,
+                session_id TEXT NOT NULL,
+                matched_count INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (entry_id) REFERENCES dictionary(id)
+            )
+            """
+        )
+
         await db.commit()

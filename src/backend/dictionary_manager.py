@@ -296,3 +296,102 @@ async def find_relevant_entries(transcript: str) -> list[dict]:
             seen_ids.add(entry_id)
 
     return relevant
+
+
+# ---------------------------------------------------------------------------
+# Match frequency tracking
+# ---------------------------------------------------------------------------
+
+def count_matches_in_text(
+    dictionary_entries: list[dict],
+    text: str,
+) -> list[dict]:
+    """Count how many times each dictionary entry appears in *text*.
+
+    Args:
+        dictionary_entries: List of entry dicts with at least ``id`` and
+            ``canonical_term`` keys.
+        text: The text to scan (typically the polished transcript).
+
+    Returns:
+        List of ``{"entry_id": int, "canonical_term": str, "count": int}``
+        for entries that appear at least once in *text*.
+    """
+    if not text:
+        return []
+
+    text_lower = text.lower()
+    results: list[dict] = []
+    for entry in dictionary_entries:
+        term = entry.get("canonical_term", "")
+        if term and term.lower() in text_lower:
+            count = text_lower.count(term.lower())
+            results.append({
+                "entry_id": entry["id"],
+                "canonical_term": term,
+                "count": count,
+            })
+    return results
+
+
+async def record_dictionary_stats(
+    session_id: str,
+    match_counts: list[dict],
+) -> None:
+    """Write dictionary match stats for a session.
+
+    Args:
+        session_id: The dictation session id.
+        match_counts: List of ``{"entry_id": ..., "count": ...}`` from
+            :func:`count_matches_in_text`.
+    """
+    db_path = get_db_path()
+    async with sqlite_async.connect(db_path) as db:
+        for mc in match_counts:
+            await db.execute(
+                "INSERT INTO dictionary_stats (entry_id, session_id, matched_count) VALUES (?, ?, ?)",
+                (mc["entry_id"], session_id, mc["count"]),
+            )
+        await db.commit()
+
+
+async def get_dictionary_stats_summary(
+    limit_sessions: int = 10,
+) -> list[dict]:
+    """Get per-entry match frequency summary for the last N sessions.
+
+    Returns a list of dicts with ``entry_id``, ``canonical_term``,
+    ``total_matches``, ``session_count``.
+    """
+    db_path = get_db_path()
+    async with sqlite_async.connect(db_path) as db:
+        db.row_factory = sqlite_async.Row
+        cursor = await db.execute(
+            """
+            SELECT
+                ds.entry_id,
+                d.canonical_term,
+                SUM(ds.matched_count) AS total_matches,
+                COUNT(DISTINCT ds.session_id) AS session_count
+            FROM dictionary_stats ds
+            JOIN dictionary d ON d.id = ds.entry_id
+            WHERE ds.session_id IN (
+                SELECT DISTINCT session_id FROM dictionary_stats
+                ORDER BY created_at DESC
+                LIMIT ?
+            )
+            GROUP BY ds.entry_id
+            ORDER BY total_matches DESC
+            """,
+            (limit_sessions,),
+        )
+        rows = await cursor.fetchall()
+        return [
+            {
+                "entry_id": row["entry_id"],
+                "canonical_term": row["canonical_term"],
+                "total_matches": row["total_matches"],
+                "session_count": row["session_count"],
+            }
+            for row in rows
+        ]
