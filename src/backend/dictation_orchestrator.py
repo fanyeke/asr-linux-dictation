@@ -77,6 +77,11 @@ class DictationOrchestrator:
         logger.info("pipeline_started", session_id=session_id, audio_bytes=len(audio_bytes))
 
         # ---- ASR -----------------------------------------------------------
+        # Broadcast BEFORE the API call so the overlay shows "transcribing"
+        # during the actual transcription, not after it completes.
+        await update_session(session_id, status="transcribing")
+        await self._broadcast(session_id, "transcribing")
+
         asr_start = time.monotonic()
         try:
             raw_text = await self.asr_client.transcribe(
@@ -95,8 +100,7 @@ class DictationOrchestrator:
                 error_type=f"asr:{e.error_category}",
             )
 
-        await update_session(session_id, status="transcribing", raw_text=raw_text)
-        await self._broadcast(session_id, "transcribing", raw_text=raw_text)
+        await update_session(session_id, raw_text=raw_text)
 
         if self.polish_enabled:
             # ---- Prompt + Dictionary -------------------------------------------
@@ -115,6 +119,11 @@ class DictationOrchestrator:
             logger.info("dictionary_lookup", session_id=session_id, matches=len(entries))
 
             # ---- Polish --------------------------------------------------------
+            # Broadcast BEFORE the API call so the overlay shows "polishing"
+            # during the actual LLM call, not after it completes.
+            await update_session(session_id, status="polishing")
+            await self._broadcast(session_id, "polishing")
+
             try:
                 polish_start = time.monotonic()
                 polished = await self.polish_client.polish(
@@ -131,9 +140,13 @@ class DictationOrchestrator:
                     raw_text=raw_text,
                     error_type=f"polish:{type(e).__name__}",
                 )
+
+            # Store polished text after completion
+            await update_session(session_id, polished_text=polished)
         else:
             polished = raw_text
             entries = []
+            await update_session(session_id, polished_text=polished)
             logger.info("polish_skipped", session_id=session_id)
 
         # ---- Dictionary Stats -------------------------------------------------
@@ -143,9 +156,6 @@ class DictationOrchestrator:
                 await record_dictionary_stats(session_id, match_counts)
                 logger.info("dict_stats_recorded", session_id=session_id,
                             matches=len(match_counts))
-
-        await update_session(session_id, status="polishing", polished_text=polished)
-        await self._broadcast(session_id, "polishing", polished_text=polished)
 
         # ---- Inject --------------------------------------------------------
         if self.injector:
@@ -214,6 +224,11 @@ class DictationOrchestrator:
             logger.info("dictionary_lookup", session_id=session_id, matches=len(entries))
 
             # ---- Polish --------------------------------------------------------
+            # Broadcast BEFORE the API call so the overlay shows "polishing"
+            # during the actual LLM call, not after it completes.
+            await update_session(session_id, status="polishing")
+            await self._broadcast(session_id, "polishing")
+
             try:
                 polish_start = time.monotonic()
                 polished = await self.polish_client.polish(
@@ -235,12 +250,13 @@ class DictationOrchestrator:
                     raw_text=raw_text,
                     error_type=f"polish:{type(e).__name__}",
                 )
+
+            # Store polished text after completion
+            await update_session(session_id, polished_text=polished)
         else:
             polished = raw_text
+            await update_session(session_id, polished_text=polished)
             logger.info("polish_skipped", session_id=session_id)
-
-        await update_session(session_id, status="polishing", polished_text=polished)
-        await self._broadcast(session_id, "polishing", polished_text=polished)
 
         # ---- Inject --------------------------------------------------------
         if self.injector:
