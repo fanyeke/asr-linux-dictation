@@ -29,10 +29,12 @@ from backend.profile_manager import (
     set_active_profile,
     update_profile as update_profile_entry,
 )
-from backend.database import init_database
+from backend.database import get_db_path, init_database
 from backend.diagnostics import build_diagnostics_bundle
 from backend.dictation_orchestrator import DictationOrchestrator
 import shutil
+
+from backend import sqlite_async
 
 from backend.dictionary_manager import (
     count_matches_in_text,
@@ -332,6 +334,92 @@ async def set_config(
 async def health() -> dict:
     """Health check endpoint."""
     return {"status": "ok"}
+
+
+@app.get("/dashboard/stats")
+async def dashboard_stats(
+    _: Annotated[None, Depends(verify_token)],
+) -> dict:
+    """Aggregated dictation statistics for the dashboard.
+
+    Returns daily usage (last 7 days), hourly distribution,
+    and average ASR/polish latency.
+    """
+    db_path = get_db_path()
+    async with sqlite_async.connect(db_path) as db:
+        # Daily usage — last 7 days
+        cursor = await db.execute(
+            """
+            SELECT DATE(created_at) AS day, COUNT(*) AS count,
+                   SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS successes
+            FROM history
+            WHERE created_at >= DATE('now', '-7 days')
+            GROUP BY day ORDER BY day
+            """
+        )
+        rows = await cursor.fetchall()
+        daily_usage = [
+            {"day": r[0], "count": r[1], "successes": r[2] or 0}
+            for r in rows
+        ]
+
+        # Hourly distribution
+        cursor = await db.execute(
+            """
+            SELECT CAST(strftime('%H', created_at) AS INTEGER) AS hour,
+                   COUNT(*) AS count
+            FROM history
+            WHERE created_at >= DATE('now', '-30 days')
+            GROUP BY hour ORDER BY hour
+            """
+        )
+        rows = await cursor.fetchall()
+        hourly_dist = {r[0]: r[1] for r in rows}
+
+        # Average latency
+        cursor = await db.execute(
+            """
+            SELECT AVG(asr_ms) AS avg_asr, AVG(polish_ms) AS avg_polish,
+                   AVG(timing_ms) AS avg_total
+            FROM history
+            WHERE status = 'completed' AND created_at >= DATE('now', '-30 days')
+            """
+        )
+        row = await cursor.fetchone()
+        avg_asr = round(row[0]) if row and row[0] else None
+        avg_polish = round(row[1]) if row and row[1] else None
+        avg_total = round(row[2]) if row and row[2] else None
+
+        # Recent latency trend (last 20 completed sessions)
+        cursor = await db.execute(
+            """
+            SELECT asr_ms, polish_ms, timing_ms, created_at
+            FROM history
+            WHERE status = 'completed' AND asr_ms IS NOT NULL
+            ORDER BY id DESC LIMIT 20
+            """
+        )
+        rows = await cursor.fetchall()
+        latency_trend = [
+            {
+                "asr_ms": r[0],
+                "polish_ms": r[1],
+                "total_ms": r[2],
+                "created_at": r[3],
+            }
+            for r in reversed(rows)
+        ]
+
+        return {
+            "daily_usage": daily_usage,
+            "hourly_distribution": hourly_dist,
+            "avg_latency": {
+                "asr_ms": avg_asr,
+                "polish_ms": avg_polish,
+                "total_ms": avg_total,
+            },
+            "latency_trend": latency_trend,
+        }
 
 
 @app.get("/system/deps")

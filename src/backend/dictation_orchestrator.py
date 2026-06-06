@@ -90,6 +90,7 @@ class DictationOrchestrator:
             asr_ms = int((time.monotonic() - asr_start) * 1000)
             logger.info("asr_completed", session_id=session_id,
                         raw_text_preview=raw_text[:60], duration_ms=asr_ms)
+            await update_session(session_id, asr_ms=asr_ms)
         except ASRError as e:
             asr_ms = int((time.monotonic() - asr_start) * 1000)
             logger.error("asr_failed", session_id=session_id, error=str(e),
@@ -143,6 +144,7 @@ class DictationOrchestrator:
                 polish_ms = int((time.monotonic() - polish_start) * 1000)
                 logger.info("polish_completed", session_id=session_id,
                             polished_preview=polished[:60], duration_ms=polish_ms)
+                await update_session(session_id, polish_ms=polish_ms)
             except Exception as e:
                 logger.error("polish_failed", session_id=session_id, error=str(e))
                 return await update_session(
@@ -262,6 +264,7 @@ class DictationOrchestrator:
                     polished_preview=polished[:60],
                     duration_ms=polish_ms,
                 )
+                await update_session(session_id, polish_ms=polish_ms)
             except Exception as e:
                 logger.error("polish_failed", session_id=session_id, error=str(e))
                 await self._broadcast(session_id, "failed", error_type=f"polish:{type(e).__name__}")

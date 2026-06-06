@@ -18,6 +18,8 @@ def _row_to_dict(row: sqlite_async.Row) -> dict:
         "prompt_id": row["prompt_id"],
         "error_type": row["error_type"],
         "failed_audio_path": row["failed_audio_path"],
+        "asr_ms": row["asr_ms"],
+        "polish_ms": row["polish_ms"],
         "created_at": row["created_at"],
     }
 
@@ -115,6 +117,8 @@ async def update_session(session_id: str, **kwargs) -> dict:
         "prompt_id",
         "error_type",
         "failed_audio_path",
+        "asr_ms",
+        "polish_ms",
     }
     updates = {k: v for k, v in kwargs.items() if k in valid_columns}
 

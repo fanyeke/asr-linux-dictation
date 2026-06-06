@@ -239,4 +239,12 @@ async def init_database() -> None:
             """
         )
 
+        # Phase 11: add asr_ms and polish_ms to history table
+        cursor = await db.execute("PRAGMA table_info(history)")
+        hist_columns = [row[1] for row in await cursor.fetchall()]
+        if "asr_ms" not in hist_columns:
+            await db.execute("ALTER TABLE history ADD COLUMN asr_ms INTEGER")
+        if "polish_ms" not in hist_columns:
+            await db.execute("ALTER TABLE history ADD COLUMN polish_ms INTEGER")
+
         await db.commit()
