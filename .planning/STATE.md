@@ -7,9 +7,9 @@ last_updated: "2026-06-06T04:17:02.388Z"
 last_activity: 2026-06-06
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 1
-  completed_plans: 0
+  completed_plans: 1
   total_plans: 0
   completed_plans: 0
   percent: 0
@@ -19,22 +19,23 @@ progress:
 
 ## Current Phase
 
-**Phase 6 — Experience Enhancements** 🔄 in progress
+**Phase 6 — Core Config & UX** ✅ completed
 
 ## Completed Phases
 
 - **Phase 1 — Bug Fix Sprint** ✅ (overlay sidebar, visibility, corner bleed, dictionary)
 - **Phase 2 — Frontend Refactor** ✅ (SettingsPage split, dead code removal, inserting phase cleanup)
+- **Phase 6 — Core Config & UX** ✅ (ASR language, VAD toggle, level optimization)
 
 ## Last Action
 
-- Completed Phase 3: security hardening, error surfacing, failed audio exposure, prompt CRUD
-- Committed: `b3fdefe`
-- Tests: 255 frontend + 223 backend passed
+- Completed Phase 6: ASR language selection, VAD toggle, level polling optimization
+- Committed: `b558366`
+- Tests: 255 frontend + 236 backend passed (491 total)
 
 ## Next Step
 
-- Phase 6: Experience Enhancements — onboarding wizard, ASR language, VAD, scene profiles, history enhancement, dictionary stats, overlay progress bar
+- Phase 7: History & Overlay — copy/export history, dictionary match stats, progress bar, VAD countdown
 
 ## Decisions
 
@@ -43,7 +44,7 @@ progress:
 
 ## Current Position
 
-Phase: 6 — Core Config & UX
-Plan: 06-PLAN.md — 3 waves, 22 tasks
-Status: Plan ready — awaiting approval
-Last activity: 2026-06-06 — Phase 6 plan created
+Phase: 7 — History & Overlay (next)
+Plan: —
+Status: Pending
+Last activity: 2026-06-06 — Phase 6 completed
