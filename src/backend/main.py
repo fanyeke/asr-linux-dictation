@@ -617,6 +617,67 @@ async def retry_session(
     return await orchestrator.retry_from_text(session["raw_text"])
 
 
+@app.get("/history/export")
+async def history_export(
+    _: Annotated[None, Depends(verify_token)],
+    format: str = "txt",
+) -> Response:
+    """Export dictation history in txt or md format.
+
+    Args:
+        format: Output format — ``"txt"`` or ``"md"``.
+    """
+    if format not in ("txt", "md"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported format '{format}'. Use 'txt' or 'md'.",
+        )
+
+    sessions = await list_sessions(limit=500)
+
+    if format == "txt":
+        lines: list[str] = []
+        for s in sessions:
+            ts = s.get("created_at", "") or ""
+            text = s.get("polished_text") or s.get("raw_text") or ""
+            if ts:
+                lines.append(f"[{ts}] {text}")
+            else:
+                lines.append(text)
+        content = "\n".join(lines) + "\n" if lines else ""
+        return Response(
+            content=content,
+            media_type="text/plain; charset=utf-8",
+            headers={
+                "Content-Disposition": "attachment; filename=asr-linux-history.txt",
+            },
+        )
+
+    # md format
+    md_lines = ["# ASR Linux — Dictation History\n"]
+    for s in sessions:
+        ts = s.get("created_at", "") or ""
+        status = s.get("status", "")
+        raw = s.get("raw_text") or ""
+        polished = s.get("polished_text") or ""
+        md_lines.append(f"## Session: {s['session_id']}")
+        md_lines.append(f"- **Time:** {ts}")
+        md_lines.append(f"- **Status:** {status}")
+        if raw:
+            md_lines.append(f"- **Raw:** {raw}")
+        if polished and polished != raw:
+            md_lines.append(f"- **Polished:** {polished}")
+        md_lines.append("")
+
+    return Response(
+        content="\n".join(md_lines),
+        media_type="text/markdown; charset=utf-8",
+        headers={
+            "Content-Disposition": "attachment; filename=asr-linux-history.md",
+        },
+    )
+
+
 @app.get("/diagnostics/export")
 async def diagnostics_export(
     _: Annotated[None, Depends(verify_token)],
