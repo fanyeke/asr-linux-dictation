@@ -29,7 +29,7 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Dashboard
     dashboard_title: "概览",
-    stat_active_sessions: "活跃会话",
+    stat_active_sessions: "总次数",
     stat_success_rate: "成功率",
     stat_avg_duration: "平均时长",
     stat_total_chars: "总字数",
@@ -219,7 +219,7 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Dashboard
     dashboard_title: "Dashboard",
-    stat_active_sessions: "Active Sessions",
+    stat_active_sessions: "Total Sessions",
     stat_success_rate: "Success Rate",
     stat_avg_duration: "Avg Duration",
     stat_total_chars: "Total Chars",

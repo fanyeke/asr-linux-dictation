@@ -134,22 +134,16 @@ export function DashboardPage({
     );
   }
 
-  // Build chart data from stats
+  // Build chart data
   const dailyData = stats?.daily_usage?.map((d) => {
     const date = new Date(d.day);
     const dayLabel = dayNames[date.getDay()] ?? d.day.slice(5);
     return { label: dayLabel, value: d.count };
   }) ?? [];
 
-  const latencyData = stats?.latency_trend?.map((l) => ({
-    label: l.created_at ? new Date(l.created_at).toLocaleDateString() : "",
-    value: l.total_ms,
-  })) ?? [];
-
-  const asrLatencyData = stats?.latency_trend?.map((l) => ({
-    label: "",
-    value: l.asr_ms,
-  })) ?? [];
+  const trend = stats?.latency_trend ?? [];
+  const asrData = trend.map((l) => l.asr_ms);
+  const llmData = trend.map((l) => l.polish_ms ?? 0);
 
   return (
     <div className="max-w-3xl mx-auto p-8 pb-20 sm:pb-8 space-y-6">
@@ -173,7 +167,7 @@ export function DashboardPage({
         />
         <StatCard
           icon={<Clock className="w-5 h-5 text-amber-600" />}
-          value={avgTiming >= 1000 ? `${(avgTiming / 1000).toFixed(1)}s` : `${Math.round(avgTiming)}ms`}
+          value={timings.length > 0 ? (avgTiming >= 1000 ? `${(avgTiming / 1000).toFixed(1)}s` : `${Math.round(avgTiming)}ms`) : "--"}
           label={t("stat_avg_duration")}
           colorClass="bg-amber-50"
         />
@@ -198,8 +192,15 @@ export function DashboardPage({
 
         <Card padding="md">
           <h3 className="text-sm font-semibold text-dark-900 mb-3">Latency Trend</h3>
-          {latencyData.length > 1 ? (
-            <LineChart data={latencyData} height={100} color="#6366f1" />
+          {asrData.length > 1 ? (
+            <LineChart
+              series={[
+                { label: "ASR", data: asrData, color: "#6366f1" },
+                { label: "LLM", data: llmData, color: "#a855f7" },
+              ]}
+              height={100}
+              xLabels={trend.map((_, i) => `#${i + 1}`)}
+            />
           ) : (
             <p className="text-xs text-gray-400">Insufficient data</p>
           )}

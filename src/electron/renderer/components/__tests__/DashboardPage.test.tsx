@@ -12,7 +12,7 @@ vi.mock("../../lib/i18n.js", () => ({
         loading: "Loading...",
         no_sessions: "No sessions yet",
         no_sessions_desc: "Your dictation sessions will appear here",
-        stat_active_sessions: "Active Sessions",
+        stat_active_sessions: "Total Sessions",
         stat_success_rate: "Success Rate",
         stat_avg_duration: "Avg Duration",
         stat_total_chars: "Total Chars",
@@ -71,7 +71,7 @@ describe("DashboardPage", () => {
 
   it("displays stat cards with history data", async () => {
     render(<DashboardPage backendConfig={null} history={mockSessions} />);
-    expect(await screen.findByText("Active Sessions")).toBeInTheDocument();
+    expect(await screen.findByText("Total Sessions")).toBeInTheDocument();
     expect(screen.getByText("Success Rate")).toBeInTheDocument();
     expect(screen.getByText("Avg Duration")).toBeInTheDocument();
     expect(screen.getByText("Total Chars")).toBeInTheDocument();
