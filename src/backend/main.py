@@ -661,8 +661,12 @@ async def dictation_level(
     _: Annotated[None, Depends(verify_token)],
 ) -> dict:
     """Get current microphone audio level."""
+    import time as time_module
+    start = time_module.time()
     recorder = get_recorder()
     level = await recorder.get_level()
+    elapsed_ms = int((time_module.time() - start) * 1000)
+    logger.info("level_poll", response_time_ms=elapsed_ms, level=round(level, 3))
     return {"level": level, "recording": recorder.is_recording}
 
 

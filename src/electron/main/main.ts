@@ -185,6 +185,7 @@ function registerIpcHandlers(): void {
       clearInterval(_micLevelInterval);
     }
     _micLevelInterval = setInterval(async () => {
+      const pollStart = performance.now();
       try {
         const levelRes = await fetch(`${info.url}/dictation/level`, {
           headers: { "x-token": info.token },
@@ -202,7 +203,9 @@ function registerIpcHandlers(): void {
       } catch (err) {
         console.error("Mic level polling failed:", err);
       }
-    }, 100);
+      const pollMs = (performance.now() - pollStart).toFixed(1);
+      console.debug(`[level_poll] response_time_ms=${pollMs} interval_ms=60`);
+    }, 60);
   });
 
   // Proxy stop-dictation request to the backend
