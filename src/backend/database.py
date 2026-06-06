@@ -186,6 +186,14 @@ async def init_database() -> None:
                 "ALTER TABLE user_config ADD COLUMN vad_enabled INTEGER DEFAULT 1"
             )
 
+        # Migration: add onboarding_completed column to existing user_config tables
+        cursor = await db.execute("PRAGMA table_info(user_config)")
+        config_columns = [row[1] for row in await cursor.fetchall()]
+        if "onboarding_completed" not in config_columns:
+            await db.execute(
+                "ALTER TABLE user_config ADD COLUMN onboarding_completed INTEGER DEFAULT 0"
+            )
+
         # Phase 7: dictionary_stats table
         await db.execute(
             """

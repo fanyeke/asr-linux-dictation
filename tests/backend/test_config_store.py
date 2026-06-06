@@ -212,6 +212,41 @@ async def test_vad_enabled_field_loads_and_saves(
     assert reloaded.vad_enabled is True
 
 
+def test_onboarding_completed_defaults_to_false() -> None:
+    """UserConfig defaults onboarding_completed to False."""
+    config = UserConfig()
+    assert config.onboarding_completed is False
+
+
+def test_onboarding_completed_in_to_dict_and_from_dict() -> None:
+    """onboarding_completed round-trips through dict serialization."""
+    config = UserConfig(onboarding_completed=True)
+    data = config.to_dict()
+    assert data["onboarding_completed"] is True
+
+    restored = UserConfig.from_dict(data)
+    assert restored.onboarding_completed is True
+
+
+@pytest.mark.asyncio
+async def test_onboarding_completed_loads_and_saves(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """User config persists the onboarding_completed field."""
+    monkeypatch.setenv("ASR_LINUX_DATA_DIR", str(tmp_path))
+    await init_database()
+
+    await save_user_config(UserConfig(onboarding_completed=True))
+    loaded = await load_user_config()
+    assert loaded.onboarding_completed is True
+
+    loaded.onboarding_completed = False
+    await save_user_config(loaded)
+    reloaded = await load_user_config()
+    assert reloaded.onboarding_completed is False
+
+
 def test_asr_language_in_to_dict_and_from_dict() -> None:
     """asr_language round-trips through dict serialization."""
     config = UserConfig(asr_language="ja")

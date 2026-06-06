@@ -23,6 +23,8 @@ from backend.config_store import UserConfig, load_user_config, save_user_config
 from backend.database import init_database
 from backend.diagnostics import build_diagnostics_bundle
 from backend.dictation_orchestrator import DictationOrchestrator
+import shutil
+
 from backend.dictionary_manager import (
     count_matches_in_text,
     create_entry,
@@ -249,6 +251,7 @@ async def get_config(
         "ui_language": cfg.ui_language,
         "asr_language": cfg.asr_language,
         "vad_enabled": cfg.vad_enabled,
+        "onboarding_completed": cfg.onboarding_completed,
         "silence_threshold": Settings().silence_threshold,
         "silence_duration_ms": Settings().silence_duration_ms,
     }
@@ -291,6 +294,8 @@ async def set_config(
         cfg.asr_language = data["asr_language"] or cfg.asr_language
     if "vad_enabled" in data:
         cfg.vad_enabled = bool(data["vad_enabled"])
+    if "onboarding_completed" in data:
+        cfg.onboarding_completed = bool(data["onboarding_completed"])
 
     _user_config = cfg
     await save_user_config(cfg)
@@ -308,6 +313,7 @@ async def set_config(
         "ui_language": cfg.ui_language,
         "asr_language": cfg.asr_language,
         "vad_enabled": cfg.vad_enabled,
+        "onboarding_completed": cfg.onboarding_completed,
     }
 
 
@@ -315,6 +321,23 @@ async def set_config(
 async def health() -> dict:
     """Health check endpoint."""
     return {"status": "ok"}
+
+
+@app.get("/system/deps")
+async def system_deps(
+    _: Annotated[None, Depends(verify_token)],
+) -> list[dict]:
+    """Check system dependencies required for dictation.
+
+    Returns a list of ``{"name": str, "found": bool}`` for each
+    required command-line tool.
+    """
+    deps = ["arecord", "xdotool", "xsel", "xclip", "xprop"]
+    results: list[dict] = []
+    for dep in deps:
+        found = shutil.which(dep) is not None
+        results.append({"name": dep, "found": found})
+    return results
 
 
 @app.get("/test-asr-key")
