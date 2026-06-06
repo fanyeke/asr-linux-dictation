@@ -25,6 +25,7 @@ class UserConfig:
     llm_model: str = "gpt-4o-mini"
     hotkey: str = "Alt+="
     ui_language: str = "zh"
+    asr_language: str = "auto"
 
     def to_dict(self) -> dict:
         return {
@@ -37,6 +38,7 @@ class UserConfig:
             "llm_model": self.llm_model,
             "hotkey": self.hotkey,
             "ui_language": self.ui_language,
+            "asr_language": self.asr_language,
         }
 
     @classmethod
@@ -52,6 +54,7 @@ class UserConfig:
             llm_model=data.get("llm_model", cls.llm_model),
             hotkey=data.get("hotkey", cls.hotkey),
             ui_language=data.get("ui_language", cls.ui_language),
+            asr_language=data.get("asr_language", cls.asr_language),
         )
 
 
@@ -65,7 +68,7 @@ async def load_user_config() -> UserConfig:
     async with sqlite_async.connect(_db_path()) as db:
         cursor = await db.execute(
             "SELECT api_key, asr_api_key, asr_base_url, asr_model, "
-            "llm_api_key, llm_enabled, llm_base_url, llm_model, hotkey, ui_language "
+            "llm_api_key, llm_enabled, llm_base_url, llm_model, hotkey, ui_language, asr_language "
             "FROM user_config WHERE id = 1"
         )
         row = await cursor.fetchone()
@@ -83,6 +86,7 @@ async def load_user_config() -> UserConfig:
                 llm_model=row[7] or UserConfig.llm_model,
                 hotkey=row[8] or UserConfig.hotkey,
                 ui_language=row[9] or UserConfig.ui_language,
+                asr_language=row[10] or UserConfig.asr_language,
             )
 
         asr_secret = await load_secret(ASR_SECRET_NAME)
@@ -119,6 +123,7 @@ async def save_user_config(config: UserConfig) -> None:
                 llm_model = ?,
                 hotkey = ?,
                 ui_language = ?,
+                asr_language = ?,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = 1
             """,
@@ -133,6 +138,7 @@ async def save_user_config(config: UserConfig) -> None:
                 config.llm_model,
                 config.hotkey,
                 config.ui_language,
+                config.asr_language,
             ),
         )
         await db.commit()

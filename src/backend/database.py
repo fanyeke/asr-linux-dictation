@@ -101,6 +101,7 @@ async def init_database() -> None:
                 llm_model TEXT DEFAULT 'gpt-4o-mini',
                 hotkey TEXT DEFAULT 'Alt+=',
                 ui_language TEXT DEFAULT 'zh',
+                asr_language TEXT DEFAULT 'auto',
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """
@@ -166,6 +167,14 @@ async def init_database() -> None:
         if "ui_language" not in config_columns:
             await db.execute(
                 "ALTER TABLE user_config ADD COLUMN ui_language TEXT DEFAULT 'zh'"
+            )
+
+        # Migration: add asr_language column to existing user_config tables
+        cursor = await db.execute("PRAGMA table_info(user_config)")
+        config_columns = [row[1] for row in await cursor.fetchall()]
+        if "asr_language" not in config_columns:
+            await db.execute(
+                "ALTER TABLE user_config ADD COLUMN asr_language TEXT DEFAULT 'auto'"
             )
 
         await db.commit()

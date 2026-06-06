@@ -7,7 +7,6 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from backend.asr_client import ASRClient, ASRError
-from backend.config import Settings
 from backend.dictionary_manager import list_entries
 from backend.history_store import create_session, get_session, update_session
 from backend.logging_config import get_logger
@@ -28,6 +27,7 @@ class DictationOrchestrator:
         polish_client: PolishClient,
         injector: Callable[[str], Any | Awaitable[Any]] | None = None,
         polish_enabled: bool = True,
+        asr_language: str = "auto",
         on_status_change: Callable[[str, str, dict], Awaitable[None] | None] | None = None,
     ) -> None:
         """Initialize the orchestrator.
@@ -36,6 +36,8 @@ class DictationOrchestrator:
             asr_client: Client for speech-to-text.
             polish_client: Client for text polishing via LLM.
             injector: Optional callable invoked with the polished text.
+            polish_enabled: Whether LLM polish is enabled.
+            asr_language: Language code for ASR ("zh", "en", "auto").
             on_status_change: Optional callback ``(session_id, status, extra)`` invoked
                 whenever the pipeline advances to a new phase. Used for real-time
                 WebSocket broadcasting.
@@ -44,6 +46,7 @@ class DictationOrchestrator:
         self.polish_client = polish_client
         self.injector = injector
         self.polish_enabled = polish_enabled
+        self.asr_language = asr_language
         self.on_status_change = on_status_change
 
     async def _broadcast(self, session_id: str, status: str, **extra: Any) -> None:
@@ -72,9 +75,8 @@ class DictationOrchestrator:
         # ---- ASR -----------------------------------------------------------
         asr_start = time.monotonic()
         try:
-            settings = Settings()
             raw_text = await self.asr_client.transcribe(
-                audio_bytes, language=settings.asr_language
+                audio_bytes, language=self.asr_language
             )
             asr_ms = int((time.monotonic() - asr_start) * 1000)
             logger.info("asr_completed", session_id=session_id,

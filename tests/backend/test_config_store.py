@@ -142,3 +142,46 @@ def test_legacy_api_key_maps_to_asr_key() -> None:
 
     assert config.asr_api_key == "legacy-secret"
     assert config.llm_api_key is None
+
+
+@pytest.mark.asyncio
+async def test_asr_language_field_loads_and_saves(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """User config persists the asr_language field."""
+    monkeypatch.setenv("ASR_LINUX_DATA_DIR", str(tmp_path))
+    await init_database()
+
+    await save_user_config(
+        UserConfig(
+            asr_api_key="asr-secret",
+            asr_language="zh",
+        )
+    )
+
+    loaded = await load_user_config()
+    assert loaded.asr_language == "zh"
+
+    # Change and save again
+    loaded.asr_language = "en"
+    await save_user_config(loaded)
+
+    reloaded = await load_user_config()
+    assert reloaded.asr_language == "en"
+
+
+def test_asr_language_defaults_to_auto() -> None:
+    """UserConfig defaults asr_language to 'auto'."""
+    config = UserConfig()
+    assert config.asr_language == "auto"
+
+
+def test_asr_language_in_to_dict_and_from_dict() -> None:
+    """asr_language round-trips through dict serialization."""
+    config = UserConfig(asr_language="ja")
+    data = config.to_dict()
+    assert data["asr_language"] == "ja"
+
+    restored = UserConfig.from_dict(data)
+    assert restored.asr_language == "ja"

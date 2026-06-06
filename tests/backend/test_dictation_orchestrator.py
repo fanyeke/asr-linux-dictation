@@ -278,3 +278,31 @@ class TestDictationOrchestrator:
         )
         status = await orchestrator.get_status("nonexistent-session")
         assert status is None
+
+    # ----------------------------------------------------------------
+    # ASR language parameter
+    # ----------------------------------------------------------------
+
+    @pytest.mark.asyncio
+    async def test_asr_language_passed_to_transcribe(self, mock_asr, mock_polish):
+        """Orchestrator passes configured asr_language to the ASR client."""
+        orchestrator = DictationOrchestrator(
+            asr_client=mock_asr,
+            polish_client=mock_polish,
+            asr_language="zh",
+        )
+        await orchestrator.process(audio_bytes=b"fake-audio")
+
+        mock_asr.transcribe.assert_called_once()
+        _args, kwargs = mock_asr.transcribe.call_args
+        assert kwargs.get("language") == "zh"
+
+    @pytest.mark.asyncio
+    async def test_asr_language_defaults_to_auto(self, mock_asr, mock_polish):
+        """Default asr_language is 'auto' when not specified."""
+        orchestrator = DictationOrchestrator(
+            asr_client=mock_asr,
+            polish_client=mock_polish,
+        )
+
+        assert orchestrator.asr_language == "auto"

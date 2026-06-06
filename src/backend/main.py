@@ -135,6 +135,7 @@ def get_orchestrator() -> DictationOrchestrator:
         cfg.llm_enabled,
         cfg.llm_base_url,
         cfg.llm_model,
+        cfg.asr_language,
     )
     old_fingerprint = getattr(_orchestrator, "_config_fingerprint", None)
 
@@ -172,6 +173,7 @@ def get_orchestrator() -> DictationOrchestrator:
 
         _orchestrator = DictationOrchestrator(
             asr, polish, injector=injector.inject, polish_enabled=cfg.llm_enabled,
+            asr_language=cfg.asr_language,
             on_status_change=_broadcast_status,
         )
         _orchestrator._config_fingerprint = config_fingerprint  # type: ignore[attr-defined]
@@ -242,6 +244,7 @@ async def get_config(
         "llm_model": cfg.llm_model,
         "hotkey": cfg.hotkey,
         "ui_language": cfg.ui_language,
+        "asr_language": cfg.asr_language,
     }
 
 
@@ -278,6 +281,8 @@ async def set_config(
         cfg.hotkey = data["hotkey"] or cfg.hotkey
     if "ui_language" in data:
         cfg.ui_language = data["ui_language"] or cfg.ui_language
+    if "asr_language" in data:
+        cfg.asr_language = data["asr_language"] or cfg.asr_language
 
     _user_config = cfg
     await save_user_config(cfg)
@@ -293,6 +298,7 @@ async def set_config(
         "llm_model": cfg.llm_model,
         "hotkey": cfg.hotkey,
         "ui_language": cfg.ui_language,
+        "asr_language": cfg.asr_language,
     }
 
 
