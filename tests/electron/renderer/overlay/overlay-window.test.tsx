@@ -34,6 +34,7 @@ const DOT_COLORS: Record<string, string> = {
   recording: "bg-red-500",
   transcribing: "bg-brand-500",
   polishing: "bg-purple-500",
+  completed: "bg-green-500",
   failed: "bg-red-500",
 };
 
@@ -50,26 +51,15 @@ function getLabel(): string {
   return el.textContent ?? "";
 }
 
-/** Return true when the level bar element is present */
-function hasLevelBar(): boolean {
-  return screen.queryByTestId("level-bar") !== null;
+/** Return true when the progress bar element is present */
+function hasProgressBar(): boolean {
+  return screen.queryByTestId("progress-bar") !== null;
 }
 
-/** Return the fill width as a percentage string (e.g. "50%") */
-function getLevelBarWidth(): string {
-  const fill = screen.getByTestId("level-bar-fill");
+/** Return the fill width as a percentage string */
+function getProgressWidth(): string {
+  const fill = screen.getByTestId("progress-bar-fill");
   return fill.style.width;
-}
-
-/** Return true when the mini step bar is present */
-function hasStepBar(): boolean {
-  return screen.queryByTestId("step-bar") !== null;
-}
-
-/** Return the state attribute for a given step dot */
-function getStepState(stepKey: string): string | null {
-  const dot = screen.queryByTestId(`step-dot-${stepKey}`);
-  return dot?.getAttribute("data-state") ?? null;
 }
 
 /** Return true when the timer element is present */
@@ -96,6 +86,7 @@ function createMockAPI(): VoiceAPI {
     onToggleDictation: vi.fn(),
     getHotkey: vi.fn(),
     setHotkey: vi.fn(),
+    copyToClipboard: vi.fn(),
     onStatusUpdate: vi.fn((cb: (s: DictationStatus) => void) => {
       onStatusCb = cb;
       return () => {
@@ -134,8 +125,7 @@ describe("OverlayWindow", () => {
 
     expect(getLabel()).toBe("Ready");
     expectDotColorForPhase("idle");
-    expect(hasLevelBar()).toBe(false);
-    expect(hasStepBar()).toBe(false);
+    expect(hasProgressBar()).toBe(false);
     expect(hasTimer()).toBe(false);
   });
 
@@ -146,46 +136,63 @@ describe("OverlayWindow", () => {
     expectDotColorForPhase("recording");
   });
 
-  // ── Level bar ───────────────────────────────────────────────────────
-
-  it("shows level bar during recording", () => {
-    render(<OverlayWindow initialStatus={{ phase: "recording" }} />);
-
-    expect(hasLevelBar()).toBe(true);
-  });
-
-  it("shows level bar during transcribing", () => {
+  it("renders transcribing status with label", () => {
     render(<OverlayWindow initialStatus={{ phase: "transcribing" }} />);
 
-    expect(hasLevelBar()).toBe(true);
+    expect(getLabel()).toBe("Transcribing...");
+    expectDotColorForPhase("transcribing");
   });
 
-  it("shows level bar during polishing", () => {
+  it("renders polishing status with label", () => {
     render(<OverlayWindow initialStatus={{ phase: "polishing" }} />);
 
-    expect(hasLevelBar()).toBe(true);
+    expect(getLabel()).toBe("Polishing...");
+    expectDotColorForPhase("polishing");
   });
 
-  it("shows level bar during completed", () => {
+  it("renders completed status with label", async () => {
     render(<OverlayWindow initialStatus={{ phase: "completed" }} />);
 
-    expect(hasLevelBar()).toBe(true);
+    expect(getLabel()).toBe("Done");
+    expectDotColorForPhase("completed");
+    // Progress bar shows initially (fades out after 2s)
+    await waitFor(() => expect(hasProgressBar()).toBe(true));
   });
 
-  it("shows level bar during failed", () => {
+  // ── Progress bar ─────────────────────────────────────────────────────
+
+  it("shows progress bar during recording", () => {
+    render(<OverlayWindow initialStatus={{ phase: "recording" }} />);
+    expect(hasProgressBar()).toBe(true);
+  });
+
+  it("shows progress bar during transcribing", () => {
+    render(<OverlayWindow initialStatus={{ phase: "transcribing" }} />);
+    expect(hasProgressBar()).toBe(true);
+  });
+
+  it("shows progress bar during polishing", () => {
+    render(<OverlayWindow initialStatus={{ phase: "polishing" }} />);
+    expect(hasProgressBar()).toBe(true);
+  });
+
+  it("shows progress bar during completed", () => {
+    render(<OverlayWindow initialStatus={{ phase: "completed" }} />);
+    expect(hasProgressBar()).toBe(true);
+  });
+
+  it("shows progress bar during failed", () => {
     render(
       <OverlayWindow
         initialStatus={{ phase: "failed", error: "err" }}
       />,
     );
-
-    expect(hasLevelBar()).toBe(true);
+    expect(hasProgressBar()).toBe(true);
   });
 
-  it("hides level bar when idle", () => {
+  it("hides progress bar when idle", () => {
     render(<OverlayWindow />);
-
-    expect(hasLevelBar()).toBe(false);
+    expect(hasProgressBar()).toBe(false);
   });
 
   // ── Timer ───────────────────────────────────────────────────────────
@@ -248,112 +255,29 @@ describe("OverlayWindow", () => {
     vi.useRealTimers();
   });
 
-  // ── Step bar ────────────────────────────────────────────────────────
-
-  it("shows step bar during recording with correct states", () => {
-    render(<OverlayWindow initialStatus={{ phase: "recording" }} />);
-
-    expect(hasStepBar()).toBe(true);
-    expect(getStepState("recording")).toBe("current");
-    expect(getStepState("transcribing")).toBe("pending");
-    expect(getStepState("polishing")).toBe("pending");
-    expect(getStepState("completed")).toBe("pending");
-  });
-
-  it("shows correct step states for transcribing", () => {
-    render(<OverlayWindow initialStatus={{ phase: "transcribing" }} />);
-
-    expect(getStepState("recording")).toBe("completed");
-    expect(getStepState("transcribing")).toBe("current");
-    expect(getStepState("polishing")).toBe("pending");
-    expect(getStepState("completed")).toBe("pending");
-  });
-
-  it("shows correct step states for polishing", () => {
-    render(<OverlayWindow initialStatus={{ phase: "polishing" }} />);
-
-    expect(getStepState("recording")).toBe("completed");
-    expect(getStepState("transcribing")).toBe("completed");
-    expect(getStepState("polishing")).toBe("current");
-    expect(getStepState("completed")).toBe("pending");
-  });
-
-  it("shows all steps completed for completed phase", () => {
-    render(<OverlayWindow initialStatus={{ phase: "completed" }} />);
-
-    expect(getStepState("recording")).toBe("completed");
-    expect(getStepState("transcribing")).toBe("completed");
-    expect(getStepState("polishing")).toBe("completed");
-    expect(getStepState("completed")).toBe("completed");
-  });
-
-  it("shows last step current for failed phase", () => {
-    render(
-      <OverlayWindow
-        initialStatus={{ phase: "failed", error: "err" }}
-      />,
-    );
-
-    expect(getStepState("recording")).toBe("completed");
-    expect(getStepState("transcribing")).toBe("completed");
-    expect(getStepState("polishing")).toBe("completed");
-    expect(getStepState("completed")).toBe("current");
-  });
-
-  it("hides step bar when idle", () => {
-    render(<OverlayWindow />);
-    expect(hasStepBar()).toBe(false);
-  });
-
-  it("step bar reacts to phase transitions", () => {
-    render(<OverlayWindow />);
-
-    expect(hasStepBar()).toBe(false);
-
-    act(() => {
-      onStatusCb!({ phase: "recording" });
-    });
-    expect(hasStepBar()).toBe(true);
-    expect(getStepState("recording")).toBe("current");
-
-    act(() => {
-      onStatusCb!({ phase: "transcribing" });
-    });
-    expect(getStepState("recording")).toBe("completed");
-    expect(getStepState("transcribing")).toBe("current");
-
-    act(() => {
-      onStatusCb!({ phase: "completed" });
-    });
-    expect(getStepState("recording")).toBe("completed");
-    expect(getStepState("transcribing")).toBe("completed");
-    expect(getStepState("polishing")).toBe("completed");
-    expect(getStepState("completed")).toBe("completed");
-  });
-
   // ── Mic level updates ───────────────────────────────────────────────
 
-  it("level updates when onMicrophoneLevel fires", () => {
+  it("level updates affect progress bar width during recording", () => {
     render(<OverlayWindow initialStatus={{ phase: "recording" }} />);
 
-    expect(hasLevelBar()).toBe(true);
-    expect(getLevelBarWidth()).toBe("0%");
+    expect(hasProgressBar()).toBe(true);
+    expect(getProgressWidth()).toBe("0%");
 
     // Fire level update
     act(() => {
       onLevelCb!(0.5);
     });
-    expect(getLevelBarWidth()).toBe("50%");
+    expect(getProgressWidth()).toBe("50%");
 
     act(() => {
       onLevelCb!(1.0);
     });
-    expect(getLevelBarWidth()).toBe("100%");
+    expect(getProgressWidth()).toBe("100%");
 
     act(() => {
       onLevelCb!(0.0);
     });
-    expect(getLevelBarWidth()).toBe("0%");
+    expect(getProgressWidth()).toBe("0%");
   });
 
   // ── Status transitions ──────────────────────────────────────────────
@@ -369,7 +293,7 @@ describe("OverlayWindow", () => {
     });
     await waitFor(() => expect(getLabel()).toBe("Recording..."));
     expectDotColorForPhase("recording");
-    expect(hasLevelBar()).toBe(true);
+    expect(hasProgressBar()).toBe(true);
     expect(hasTimer()).toBe(true);
 
     // transcribing
@@ -378,10 +302,8 @@ describe("OverlayWindow", () => {
     });
     await waitFor(() => expect(getLabel()).toBe("Transcribing..."));
     expectDotColorForPhase("transcribing");
-    expect(hasLevelBar()).toBe(true);
+    expect(hasProgressBar()).toBe(true);
     expect(hasTimer()).toBe(false);
-    expect(getStepState("recording")).toBe("completed");
-    expect(getStepState("transcribing")).toBe("current");
 
     // polishing
     act(() => {
@@ -389,7 +311,7 @@ describe("OverlayWindow", () => {
     });
     await waitFor(() => expect(getLabel()).toBe("Polishing..."));
     expectDotColorForPhase("polishing");
-    expect(hasLevelBar()).toBe(true);
+    expect(hasProgressBar()).toBe(true);
 
     // failed
     act(() => {
@@ -400,15 +322,14 @@ describe("OverlayWindow", () => {
     });
     await waitFor(() => expect(getLabel()).toBe("Failed"));
     expectDotColorForPhase("failed");
-    expect(hasLevelBar()).toBe(true);
+    expect(hasProgressBar()).toBe(true);
 
     // back to idle
     act(() => {
       onStatusCb!({ phase: "idle" });
     });
     await waitFor(() => expect(getLabel()).toBe("Ready"));
-    expect(hasLevelBar()).toBe(false);
-    expect(hasStepBar()).toBe(false);
+    expect(hasProgressBar()).toBe(false);
   });
 
   // ── Cleanup ─────────────────────────────────────────────────────────
@@ -426,6 +347,7 @@ describe("OverlayWindow", () => {
       onToggleDictation: vi.fn(),
       getHotkey: vi.fn(),
       setHotkey: vi.fn(),
+      copyToClipboard: vi.fn(),
       onStatusUpdate: vi.fn((cb: (s: DictationStatus) => void) => {
         registeredStatusCb = cb;
         return () => {

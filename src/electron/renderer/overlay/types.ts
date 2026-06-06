@@ -9,6 +9,7 @@ export type DictationStatus =
 export interface VoiceAPIEventMap {
   statusUpdate: (status: DictationStatus) => void;
   microphoneLevel: (level: number) => void;
+  silenceCountdown: (remainingMs: number) => void;
 }
 
 export interface DictationResult {
