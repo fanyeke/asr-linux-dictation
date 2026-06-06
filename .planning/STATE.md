@@ -8,7 +8,7 @@ last_activity: 2026-06-06
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 2
+  total_plans: 3
   completed_plans: 2
   percent: 50
 ---
@@ -17,7 +17,7 @@ progress:
 
 ## Current Phase
 
-**Phase 7 — History & Overlay** ✅ completed
+**Phase 8 — Overlay Polish + Onboarding** 🔄 in progress
 
 ## Completed Phases
 
@@ -44,7 +44,7 @@ progress:
 
 ## Current Position
 
-Phase: 8 — Onboarding Wizard (next)
-Plan: —
-Status: Pending
+Phase: 8 — Overlay Polish + Onboarding
+Plan: 08-PLAN.md — 4 waves, 24 tasks
+Status: Plan ready — awaiting approval
 Last activity: 2026-06-06 — Phase 7 completed
