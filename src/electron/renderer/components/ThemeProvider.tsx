@@ -149,6 +149,24 @@ export function ThemeProvider({
     return () => mq.removeEventListener("change", handler);
   }, [theme]);
 
+  // ── Reduced motion support ─────────────────────────────────────
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const root = document.documentElement;
+
+    const updateAttribute = () => {
+      if (mq.matches) {
+        root.setAttribute("data-reduced-motion", "true");
+      } else {
+        root.removeAttribute("data-reduced-motion");
+      }
+    };
+
+    updateAttribute();
+    mq.addEventListener("change", updateAttribute);
+    return () => mq.removeEventListener("change", updateAttribute);
+  }, []);
+
   const setTheme = useCallback(
     (newTheme: Theme) => {
       setThemeState(newTheme);
