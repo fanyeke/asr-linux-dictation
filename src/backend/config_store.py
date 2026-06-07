@@ -28,6 +28,7 @@ class UserConfig:
     asr_language: str = "auto"
     vad_enabled: bool = True
     onboarding_completed: bool = False
+    theme: str = "light"
 
     def to_dict(self) -> dict:
         return {
@@ -43,6 +44,7 @@ class UserConfig:
             "asr_language": self.asr_language,
             "vad_enabled": self.vad_enabled,
             "onboarding_completed": self.onboarding_completed,
+            "theme": self.theme,
         }
 
     @classmethod
@@ -61,6 +63,7 @@ class UserConfig:
             asr_language=data.get("asr_language", cls.asr_language),
             vad_enabled=data.get("vad_enabled", cls.vad_enabled),
             onboarding_completed=data.get("onboarding_completed", cls.onboarding_completed),
+            theme=data.get("theme", cls.theme),
         )
 
 
@@ -74,7 +77,7 @@ async def load_user_config() -> UserConfig:
     async with sqlite_async.connect(_db_path()) as db:
         cursor = await db.execute(
             "SELECT api_key, asr_api_key, asr_base_url, asr_model, "
-            "llm_api_key, llm_enabled, llm_base_url, llm_model, hotkey, ui_language, asr_language, vad_enabled, onboarding_completed "
+            "llm_api_key, llm_enabled, llm_base_url, llm_model, hotkey, ui_language, asr_language, vad_enabled, onboarding_completed, theme "
             "FROM user_config WHERE id = 1"
         )
         row = await cursor.fetchone()
@@ -95,6 +98,7 @@ async def load_user_config() -> UserConfig:
                 asr_language=row[10] or UserConfig.asr_language,
                 vad_enabled=bool(row[11]) if row[11] is not None else UserConfig.vad_enabled,
                 onboarding_completed=bool(row[12]) if row[12] is not None else UserConfig.onboarding_completed,
+                theme=row[13] or UserConfig.theme,
             )
 
         asr_secret = await load_secret(ASR_SECRET_NAME)
@@ -134,6 +138,7 @@ async def save_user_config(config: UserConfig) -> None:
                 asr_language = ?,
                 vad_enabled = ?,
                 onboarding_completed = ?,
+                theme = ?,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = 1
             """,
@@ -151,6 +156,7 @@ async def save_user_config(config: UserConfig) -> None:
                 config.asr_language,
                 1 if config.vad_enabled else 0,
                 1 if config.onboarding_completed else 0,
+                config.theme,
             ),
         )
         await db.commit()

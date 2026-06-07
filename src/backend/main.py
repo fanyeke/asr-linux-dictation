@@ -270,6 +270,7 @@ async def get_config(
         "asr_language": cfg.asr_language,
         "vad_enabled": cfg.vad_enabled,
         "onboarding_completed": cfg.onboarding_completed,
+        "theme": cfg.theme,
         "silence_threshold": Settings().silence_threshold,
         "silence_duration_ms": Settings().silence_duration_ms,
     }
@@ -314,6 +315,14 @@ async def set_config(
         cfg.vad_enabled = bool(data["vad_enabled"])
     if "onboarding_completed" in data:
         cfg.onboarding_completed = bool(data["onboarding_completed"])
+    if "theme" in data:
+        theme = data["theme"]
+        if theme not in ("light", "dark", "system"):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid theme '{theme}'. Must be 'light', 'dark', or 'system'.",
+            )
+        cfg.theme = theme
 
     _user_config = cfg
     await save_user_config(cfg)
@@ -332,6 +341,7 @@ async def set_config(
         "asr_language": cfg.asr_language,
         "vad_enabled": cfg.vad_enabled,
         "onboarding_completed": cfg.onboarding_completed,
+        "theme": cfg.theme,
     }
 
 
