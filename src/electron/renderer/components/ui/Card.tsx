@@ -29,7 +29,7 @@ export function Card({
   return (
     <div
       className={cn(
-        "bg-white border border-gray-200 rounded-lg shadow-card",
+        "bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-card",
         paddingStyles[padding],
         isInteractive &&
           "hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200",

@@ -141,7 +141,7 @@ export function HistoryPage({
             if (e.target === dialogRef.current) setShowExportDialog(false);
           }}
         >
-          <div className="bg-white rounded-xl shadow-xl p-6 min-w-[300px]">
+          <div className="bg-[var(--card)] rounded-xl shadow-xl p-6 min-w-[300px]">
             <h3 className="text-lg font-semibold text-dark-900 mb-4">
               {t("export_title")}
             </h3>

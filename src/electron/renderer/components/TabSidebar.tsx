@@ -113,7 +113,7 @@ export function TabSidebar({
       {/* Mobile bottom nav (<640px) */}
       <nav
         data-testid="tab-sidebar-mobile"
-        className="flex sm:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-gray-200 z-50"
+        className="flex sm:hidden fixed bottom-0 left-0 right-0 h-16 bg-[var(--card)] border-t border-[var(--border)] z-50"
       >
         {tabs.map((tab) => (
           <TabButton

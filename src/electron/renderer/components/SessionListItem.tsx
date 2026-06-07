@@ -167,7 +167,7 @@ export function SessionListItem({
                       <span className="text-yellow-500">●</span> changed
                     </span>
                   </div>
-                  <div className="text-sm bg-white p-3 rounded border border-gray-200 leading-relaxed whitespace-pre-wrap break-words">
+                  <div className="text-sm bg-[var(--card)] p-3 rounded border border-[var(--border)] leading-relaxed whitespace-pre-wrap break-words">
                     {diffSegments.map((seg, i) => {
                       let cls = "";
                       if (seg.type === "added") cls = "text-green-700 bg-green-50";
@@ -190,7 +190,7 @@ export function SessionListItem({
                         <Badge variant="info" size="sm">ASR</Badge>
                         <span className="text-[11px] text-gray-500">{t("result_raw")}</span>
                       </div>
-                      <pre className="font-mono text-sm bg-gray-50 p-3 rounded whitespace-pre-wrap break-words m-0">
+                      <pre className="font-mono text-sm bg-[var(--muted)] p-3 rounded whitespace-pre-wrap break-words m-0">
                         {session.raw_text}
                       </pre>
                     </div>
