@@ -174,6 +174,14 @@ const translations: Record<Language, Record<string, string>> = {
     onboarding_trial_desc: "按下按钮开始录音，说一句话后停止，查看完整流程",
     onboarding_trial_failed: "试录失败，请检查配置后重试",
     onboarding_rerun: "重新引导",
+
+    // Theme
+    appearance: "外观",
+    theme_light: "浅色",
+    theme_dark: "深色",
+    theme_system: "跟随系统",
+    theme_pref_hint: "选择你偏好的主题",
+
     profiles_title: "场景管理",
     profiles_empty: "暂无场景",
     profiles_empty_desc: "预设场景将在首次启动时自动创建",
@@ -380,6 +388,14 @@ const translations: Record<Language, Record<string, string>> = {
     onboarding_trial_desc: "Press start, speak a phrase, then stop to test the full pipeline",
     onboarding_trial_failed: "Trial failed. Check your configuration.",
     onboarding_rerun: "Re-run Setup",
+
+    // Theme
+    appearance: "Appearance",
+    theme_light: "Light",
+    theme_dark: "Dark",
+    theme_system: "System",
+    theme_pref_hint: "Choose your theme preference",
+
     profiles_title: "Scene Profiles",
     profiles_empty: "No profiles yet",
     profiles_empty_desc: "Built-in profiles are created on first launch",
