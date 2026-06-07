@@ -5,7 +5,9 @@ import "@testing-library/jest-dom";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { SettingsPage } from "../SettingsPage.js";
+import { ThemeProvider } from "../ThemeProvider.js";
 import type { BackendConfig } from "../../settings/types.js";
+import type { ReactNode } from "react";
 
 const mockBackendConfig: BackendConfig = {
   url: "http://127.0.0.1:42003",
@@ -36,6 +38,10 @@ const defaultFetch = vi.fn((url: string) => {
   return mockResponse(true, { message: "ok" });
 });
 
+function renderWithTheme(ui: ReactNode) {
+  return render(<ThemeProvider>{ui}</ThemeProvider>);
+}
+
 const mockVoiceAPI = {
   getBackendConfig: vi.fn().mockResolvedValue(mockBackendConfig),
   getHotkey: vi.fn().mockResolvedValue("Alt+="),
@@ -52,6 +58,17 @@ const mockVoiceAPI = {
 describe("SettingsPage", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", defaultFetch);
+    // Mock matchMedia for jsdom compatibility
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    });
     // Patch voiceAPI on the existing window
     Object.assign(window, { voiceAPI: mockVoiceAPI });
   });
@@ -64,7 +81,7 @@ describe("SettingsPage", () => {
 
   // 1. Renders the title
   it("renders the settings title", async () => {
-    render(
+    renderWithTheme(
       <SettingsPage
         backendConfig={mockBackendConfig}
         onToast={vi.fn()}
@@ -78,7 +95,7 @@ describe("SettingsPage", () => {
 
   // 2. Renders all section cards
   it("renders all section headings", async () => {
-    render(
+    renderWithTheme(
       <SettingsPage
         backendConfig={mockBackendConfig}
         onToast={vi.fn()}
@@ -95,7 +112,7 @@ describe("SettingsPage", () => {
 
   // 3. Shows empty state for prompts
   it("shows empty state when no prompts exist", async () => {
-    render(
+    renderWithTheme(
       <SettingsPage
         backendConfig={mockBackendConfig}
         onToast={vi.fn()}
@@ -111,7 +128,7 @@ describe("SettingsPage", () => {
 
   // 4. Shows empty state for dictionary
   it("shows empty state when no dictionary entries exist", async () => {
-    render(
+    renderWithTheme(
       <SettingsPage
         backendConfig={mockBackendConfig}
         onToast={vi.fn()}
@@ -127,7 +144,7 @@ describe("SettingsPage", () => {
 
   // 5. Shows input fields
   it("renders API key inputs", async () => {
-    render(
+    renderWithTheme(
       <SettingsPage
         backendConfig={mockBackendConfig}
         onToast={vi.fn()}
@@ -142,7 +159,7 @@ describe("SettingsPage", () => {
 
   // 6. Shows save and test buttons
   it("renders action buttons", async () => {
-    render(
+    renderWithTheme(
       <SettingsPage
         backendConfig={mockBackendConfig}
         onToast={vi.fn()}
@@ -157,7 +174,7 @@ describe("SettingsPage", () => {
 
   // 7. Shows diagnostics info
   it("renders diagnostics with backend URL and token", async () => {
-    render(
+    renderWithTheme(
       <SettingsPage
         backendConfig={mockBackendConfig}
         onToast={vi.fn()}
@@ -173,7 +190,7 @@ describe("SettingsPage", () => {
 
   // 8. Shows Open Logs button
   it("renders Open Logs button in diagnostics", async () => {
-    render(
+    renderWithTheme(
       <SettingsPage
         backendConfig={mockBackendConfig}
         onToast={vi.fn()}
@@ -187,7 +204,7 @@ describe("SettingsPage", () => {
 
   // 9. Shows Export Diagnostics button
   it("renders Export Diagnostics button", async () => {
-    render(
+    renderWithTheme(
       <SettingsPage
         backendConfig={mockBackendConfig}
         onToast={vi.fn()}
@@ -201,7 +218,7 @@ describe("SettingsPage", () => {
 
   // 10. Shows connection badges
   it("displays connection badges", async () => {
-    render(
+    renderWithTheme(
       <SettingsPage
         backendConfig={mockBackendConfig}
         onToast={vi.fn()}
@@ -216,7 +233,7 @@ describe("SettingsPage", () => {
 
   // 11. Shows normal page when no backend config (loading resolves quickly)
   it("renders settings page even without backend config", async () => {
-    render(
+    renderWithTheme(
       <SettingsPage
         backendConfig={null}
         onToast={vi.fn()}

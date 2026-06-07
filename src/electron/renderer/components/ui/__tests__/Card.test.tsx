@@ -112,9 +112,9 @@ describe("Card", () => {
   it("has default card styles", () => {
     render(<Card>Styled card</Card>);
     const card = screen.getByText("Styled card");
-    expect(card).toHaveClass("bg-white");
+    expect(card).toHaveClass("bg-[var(--card)]");
     expect(card).toHaveClass("border");
-    expect(card).toHaveClass("border-gray-200");
+    expect(card).toHaveClass("border-[var(--border)]");
     expect(card).toHaveClass("rounded-lg");
     expect(card).toHaveClass("shadow-card");
   });
