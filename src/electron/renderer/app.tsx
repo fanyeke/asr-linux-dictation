@@ -18,6 +18,7 @@ import { HistoryPage } from "./components/HistoryPage.js";
 import { SettingsPage } from "./components/SettingsPage.js";
 import { DashboardPage } from "./components/DashboardPage.js";
 import { OnboardingWizard } from "./components/OnboardingWizard.js";
+import { ThemeProvider } from "./components/ThemeProvider.js";
 
 function getVoiceAPI(): VoiceAPI {
   return window.voiceAPI!;
@@ -360,7 +361,8 @@ function App(): JSX.Element {
   }
 
   return (
-    <I18nProvider value={i18n}>
+    <ThemeProvider>
+      <I18nProvider value={i18n}>
       <div
         style={{
           display: "flex",
@@ -452,7 +454,8 @@ function App(): JSX.Element {
         <Toast message={toast} />
 
       </div>
-    </I18nProvider>
+      </I18nProvider>
+    </ThemeProvider>
   );
 }
 
