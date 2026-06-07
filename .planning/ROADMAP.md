@@ -1,212 +1,149 @@
-# Roadmap — v1.2 Speed & Reliability
+# Roadmap — v1.3 UI/UX Refinement
 
-7 phases | requirements mapped | 6 completed, 1 in progress
+5 phases | requirements mapped
 
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|------------------|
-| 6 | Core Config & UX | ASR language selection, VAD auto-stop with settings UI, level polling optimization | ASR-01..05, VAD-01..07, OVL-01..02 | 15 |
-| 7 | History & Overlay | Copy/export history, dictionary match stats, continuous progress bar | HST-01..06, DIC-01..04, OVL-03..06 | 13 |
-| 8 | Overlay Polish + Onboarding | True 0→100% progress bar, fix broadcast timing, 4-step onboarding wizard | ONB-01..08, overlay fixes | 10 |
-| 9 | Scene Profiles | Profile DB/CRUD, 5 presets, settings UI, pipeline integration, quick-switch | PRO-01..07 | 7 |
-| 12 | Clipboard save/restore | Save/restore clipboard during injection, fallback on failure | CLP-01..03 | 3 ✅ |
-| 13 | Pseudo-streaming ASR | Ring buffer recording, slice & ASR during recording, real-time overlay, merge | STR-01..06 | 6 🚧 |
-| 14 | Connection warmup | Warmup ASR/LLM connections on recording start to reduce latency | WUP-01..03 | 3 ✅ |
+| 15 | Theme System | Warm light + deep dark themes with CSS variables and smooth transitions | THEME-01..06 | 6 ✅ |
+| 16 | Layout Restructure | Top tab bar, dual-pane layout, sidebar removal | LAYOUT-01..05 | 5 |
+| 17 | Overlay Orb | Floating orb overlay with 4-state animation cycle | OVERLAY-01..08 | 8 |
+| 18 | Animation & Components | Page transitions, staggered lists, refined record button, waveform | ANIM-01..05, COMP-01..02 | 7 |
+| 19 | Dashboard & Polish | Animated counters, chart drawing, empty states, dictation page polish | DASH-01..04, COMP-03..05 | 7 |
 
 ---
 
-## Phase 6: Core Config & UX
+## Phase 15: Theme System
 
-**Goal:** Low-hanging UX improvements — ASR language dropdown, VAD user controls, level polling optimization.
+**Goal:** Implement warm light theme and deep blue-gray dark theme with CSS variables, persistence, and smooth transitions.
 
-**Requirements:** ASR-01, ASR-02, ASR-03, ASR-04, ASR-05, VAD-01, VAD-02, VAD-03, VAD-04, VAD-05, VAD-06, VAD-07, OVL-01, OVL-02
-
-**Success criteria:**
-1. User can select zh/en/auto ASR language from Settings dropdown — persisted across restarts
-2. Tray menu shows current language with quick-switch submenu
-3. User can enable/disable VAD and adjust threshold/duration from Settings
-4. VAD toggle respected by AudioRecorder — existing silence detection works
-5. VAD countdown shown in overlay during active silence detection
-6. Level polling rate benchmarked and optimized (target 60–80ms)
-7. WebSocket push evaluated for mic level (performance comparison documented)
-8. All new code has TDD tests and structured timing logs
-
-**Logging instrumentation:**
-- `vad_state`: log VAD start/stop with threshold, duration, silence_start/silence_end timestamps
-- `level_polling`: log polling interval, response times per request
-- `language_switch`: log language change events with timestamp and source (settings/tray)
-
----
-
-## Phase 7: History & Overlay
-
-**Goal:** Make history actionable (copy/export), transparent (dictionary stats), and visually polished (progress bar).
-
-**Requirements:** HST-01, HST-02, HST-03, HST-04, HST-05, HST-06, DIC-01, DIC-02, DIC-03, DIC-04, OVL-03, OVL-04, OVL-05, OVL-06
+**Requirements:** THEME-01, THEME-02, THEME-03, THEME-04, THEME-05, THEME-06
 
 **Success criteria:**
-1. Each history item has a copy button that copies polished_text and shows toast
-2. History page has export button with txt/md format dialog
-3. Each dictionary entry shows match frequency badge ("最近N次触发M次" / "未触发")
-4. Overlay step dots replaced with continuous progress bar
-5. Progress bar shows per-phase color and pulse animation
-6. VAD countdown renders as gray tail fill on progress bar
-7. Completed state shows green bar for 2s then fade out
-8. All new code has TDD tests and structured timing logs
+1. Light theme renders with `#f6f7f9` background, white cards, subtle shadows — no visual regressions
+2. Dark theme renders with `#0f172a` background, `#1e293b` cards, `#818cf8` primary — complete remapping
+3. Theme switch takes 300ms with all CSS variables transitioning simultaneously + subtle scale breathing
+4. Theme preference persists across app restarts via `UserConfig` backend table
+5. `prefers-reduced-motion` disables all transition animations (instant switch)
+6. All existing shadcn/ui components respect new theme variables without modification
 
 **Logging instrumentation:**
-- `dict_stats`: log per-session dictionary match counts, entry IDs
-- `history_export`: log export format, count, file size
-- `overlay_progress`: log phase transition timestamps (for animation smoothness analysis)
-
----
-
-## Phase 8: Overlay Polish + Onboarding
-
-**Goal:** Fix overlay progress bar to true 0→100% continuous animation, fix phase broadcast timing, build first-run onboarding wizard.
-
-**Requirements:** ONB-01..08 + overlay fixes (broadcast timing, continuous progress)
-
-**Success criteria:**
-- [ ] Broadcast `transcribing` BEFORE ASR, `polishing` BEFORE LLM (not after)
-- [ ] Progress bar smoothly animates 0→100% across pipeline (simulated, not segmented)
-- [ ] Recording: 0-35% with mic wave overlay
-- [ ] Transcribing: 35-65% smooth advance + pulse
-- [ ] Polishing: 65-90% smooth advance + pulse
-- [ ] Completed: 100% green, 2s, fade out
-- [ ] Failed: freeze current position + red flash
-- [ ] Fresh install → modal wizard appears on first launch
-- [ ] Step 1: system deps detected with green/red badges, fix instructions shown
-- [ ] Step 2: ASR URL + key input with test-connection button using probe audio
-- [ ] Step 3: LLM URL + key + model with test-connection button
-- [ ] Step 4: trial recording runs full pipeline, shows result in wizard
-- [ ] Prev/next/skip navigation works, skip defers to later
-- [ ] After completion, `onboarding_completed` flag persisted; Settings has "重新引导" link
-- [ ] All new code has TDD tests and structured timing logs
-
-**Logging instrumentation:**
-- `phase_broadcast`: log broadcast timing (before/after API call)
-- `onboarding_start/complete`: log step timestamps, completion status
-- `dep_check`: log each dep result (found/missing) per check
-- `probe_asr/llm`: log probe timing, success/failure, error category
-
----
-
-## Phase 9: Scene Profiles
-
-**Goal:** Preset scene system with CRUD, pipeline integration, and quick-switch.
-
-**Requirements:** PRO-01, PRO-02, PRO-03, PRO-04, PRO-05, PRO-06, PRO-07
-
-**Success criteria:**
-1. `profiles` table created; 5 presets seeded on migration
-2. CRUD API operational (list/get/create/update/delete)
-3. Settings → 场景管理 panel shows profiles with active selection
-4. Dictation pipeline uses active profile's prompt and dictionary association
-5. User can duplicate a preset and customize
-6. Tray menu or hotkey can switch active profile
-7. All new code has TDD tests and structured timing logs
-
-**Logging instrumentation:**
-- `profile_switch`: log profile id, name, source (settings/tray/hotkey)
-- `profile_pipeline`: log which profile and prompt_template used per session
-- `profile_crud`: log all CRUD operations with affected profile id
-
----
-
-## Phase 12: Clipboard Save/Restore + Fallback — ✅ Done
-
-**Goal:** Save current clipboard content before injection, restore after successful paste; leave text in clipboard on failure.
-
-**Requirements:** CLP-01, CLP-02, CLP-03
-
-**Success criteria:**
-1. `TextInjector.inject()` saves clipboard content before setting injected text
-2. `TextInjector.inject()` restores original clipboard after successful paste
-3. On paste failure or focus change, original clipboard is NOT restored — injected text stays as fallback
-4. `InjectionResult.clipboard_saved` correctly reflects whether save succeeded
-5. `ClipboardManager.inject_with_fallback()` is used instead of hand-written flow
-6. All new code has TDD tests and structured timing logs
-
-**Logging instrumentation:**
-- `clipboard_save`: log whether clipboard was saved, content preview (truncated)
-- `clipboard_restore`: log restore attempt outcome
-- `clipboard_fallback`: log when text is left as fallback
+- `theme_switch`: log old→new theme, transition duration, source (settings/system/default)
+- `theme_load`: log loaded theme on startup, source (persisted/system-default)
 
 **TDD plan:**
-1. Write `test_inject_saves_and_restores_clipboard` — mock `inject_with_fallback`, verify it's called
-2. Write `test_inject_with_fallback_flow` — verify save + paste + restore sequence
-3. Write `test_inject_failure_does_not_restore` — verify clipboard NOT restored on failure
-4. Write `test_focus_loss_fallback` — verify FocusLostError path leaves text
-5. Update existing tests that mock clipboard methods to instead mock `inject_with_fallback`
+1. `test_light_theme_renders` — verify CSS variables match spec colors
+2. `test_dark_theme_renders` — verify dark variable mapping
+3. `test_theme_persistence` — mock `UserConfig`, verify save/load cycle
+4. `test_prefers_reduced_motion` — mock media query, verify instant switch
+5. `test_theme_load_on_startup` — verify correct theme applied before first paint
 
 ---
 
-## Phase 13: Pseudo-Streaming ASR
+## Phase 16: Layout Restructure
 
-**Goal:** Show partial ASR results in overlay during recording. Merge at end for full polish.
+**Goal:** Replace sidebar with top tab bar, implement dual-pane layout with collapsible right info panel.
 
-**Requirements:** STR-01, STR-02, STR-03, STR-04, STR-05, STR-06
-
-**Success criteria:**
-1. AudioRecorder captures PCM to an in-memory ring buffer instead of file only
-2. During recording, a background task slices 3s chunks (1s overlap) from the ring buffer
-3. Each slice is sent to ASR asynchronously; partial results stored in a list
-4. Partial results are broadcast via WebSocket as `partial_transcript` events
-5. After recording stops, all partial results are merged using longest-suffix matching
-6. Merged full transcript is sent to LLM polish normally
-7. If a partial ASR fails, it's silently skipped (overlap covers gaps)
-8. Overlay shows accumulating partial text in a semi-transparent preview area
-9. All new code has TDD tests and structured timing logs
-
-**Logging instrumentation:**
-- `streaming_chunk`: log slice size, overlap, ASR duration, result length
-- `streaming_merge`: log merge method, input chunks, output length
-- `partial_asr_failed`: log when a chunk ASR fails (silently skipped)
-
-**Delivered so far:**
-- ✅ `RingBuffer` with unit tests (PCM write, slice read, overlap, edge cases)
-- ✅ `TranscriptMerger` with unit tests (longest-suffix, CJK-aware, edge cases)
-- ✅ `pcm_to_wav()` helper for slice WAV wrapping
-- ✅ Streaming orchestrator integration tests (`test_streaming_orchestrator.py`)
-- ✅ Empty/silent/overflow handling for ring buffer
-
-**Remaining work:**
-- 🔲 Background slice scheduling in AudioRecorder during recording
-- 🔲 Concurrent ASR calls for each slice
-- 🔲 WebSocket `partial_transcript` event broadcast
-- 🔲 Overlay partial text preview area
-- 🔲 DictationOrchestrator streaming integration
-- 🔲 Merge partial results → polish flow
-- 🔲 Tests for slice timing, concurrent ASR, partial broadcast
-
-**TDD plan (remaining items):**
-1. `AudioRecorder` pipe mode tests: reads from subprocess stdout
-2. `SliceScheduler` tests: timing, slice extraction, concurrent ASR calls
-3. `DictationOrchestrator` streaming tests: partial results → merge → polish flow
-4. WebSocket broadcast tests for `partial_transcript` events
-
----
-
-## Phase 14: Connection Warmup — ✅ Done
-
-**Goal:** Eliminate TCP+TLS handshake latency by warming ASR/LLM connections on recording start.
-
-**Requirements:** WUP-01, WUP-02, WUP-03
+**Requirements:** LAYOUT-01, LAYOUT-02, LAYOUT-03, LAYOUT-04, LAYOUT-05
 
 **Success criteria:**
-1. `ASRClient.warmup()` method issues a minimal probe to ASR endpoint to establish connections
-2. `PolishClient.warmup()` method issues a minimal probe to LLM endpoint
-3. Both warmup methods are called after `recorder.start()` in `/dictation/start`
-4. Warmup is fire-and-forget: failures are logged but never block or crash the pipeline
-5. Warmup runs in background without delaying the response to the client
-6. All new code has TDD tests and structured timing logs
+1. Sidebar component removed; no 72px dark sidebar visible anywhere
+2. Top tab bar (32px) shows Dashboard · 听写 · 历史 · 设置 with active state (indigo underline + bold)
+3. Tab switching has 200ms cross-fade transition
+4. Main content area + 240px right panel visible by default; panel shows session count, success rate, latency
+5. Right panel collapsible with smooth horizontal收缩 animation; toggle button in top-right
+6. Routing updated from sidebar-based to tab-based; all existing routes work
 
 **Logging instrumentation:**
-- `connection_warmup`: log start/complete for asr/llm with duration
-- `connection_warmup_failed`: log failure without blocking pipeline
+- `tab_switch`: log from→to tab, transition duration
+- `panel_toggle`: log expand/collapse action
 
 **TDD plan:**
-1. `test_asr_client_warmup` — verify probe request sent, connection established
-2. `test_polish_client_warmup` — verify minimal probe to LLM endpoint
-3. `test_warmup_failure_does_not_block` — network error during warmup = logged but not raised
-4. `test_warmup_called_on_dictation_start` — verify route handler calls warmup after start
+1. `test_top_bar_renders_tabs` — verify 4 tabs render with correct labels
+2. `test_tab_switch_triggers_route_change` — verify navigation works
+3. `test_right_panel_shows_metrics` — verify panel displays data
+4. `test_panel_collapsible` — verify toggle button works, animation completes
+5. `test_sidebar_absent` — verify old sidebar component not in DOM
+
+---
+
+## Phase 17: Overlay Orb
+
+**Goal:** Replace bottom bar overlay with floating orb, implement complete 4-state animation cycle.
+
+**Requirements:** OVERLAY-01, OVERLAY-02, OVERLAY-03, OVERLAY-04, OVERLAY-05, OVERLAY-06, OVERLAY-07, OVERLAY-08
+
+**Success criteria:**
+1. 16px orb visible bottom-right, does not interfere with desktop interaction (click-through)
+2. Idle→Recording: 200ms expansion to 40px, red pulse ring (1.5s period) begins
+3. Recording→Processing: 300ms transition, red→indigo via HSL, rotating ring (2s/rotation)
+4. Completed: green checkmark + soft flash, 2s display, then 400ms fade+shrink back to idle
+5. Failed: red X appears, stays until clicked; click opens main window to failed record
+6. All state transitions complete within 300ms; no jank or dropped frames
+7. Window options: `focusable: false`, `skipTaskbar: true`, no focus theft
+8. State changes announced to screen readers via ARIA live region
+
+**Logging instrumentation:**
+- `overlay_state_change`: log old→new state, transition duration
+- `overlay_orb_click`: log click action (open main window, retry, etc.)
+
+**TDD plan:**
+1. `test_orb_window_created` — verify Electron window with correct options
+2. `test_idle_to_recording_animation` — verify size, opacity, pulse ring
+3. `test_recording_to_processing_transition` — verify color interpolation, rotation
+4. `test_completed_sequence` — verify checkmark, flash, dismiss timing
+5. `test_failed_state_persistent` — verify red X stays, click opens main window
+6. `test_focus_not_stolen` — verify other windows retain focus during orb transitions
+
+---
+
+## Phase 18: Animation & Components
+
+**Goal:** Implement page transitions, staggered list animations, refined record button, and waveform visualization.
+
+**Requirements:** ANIM-01, ANIM-02, ANIM-03, ANIM-04, ANIM-05, COMP-01, COMP-02
+
+**Success criteria:**
+1. Tab switch: 200ms opacity + 8px horizontal slide (book-flip); exit left, enter from right
+2. List items: 50ms stagger, `translateY(12px)→0` + `opacity(0)→1`, 300ms easeOut
+3. Toast: slide from bottom-right, `cubic-bezier(0.22, 1, 0.36, 1)`, 300ms; stack 8px apart
+4. Record button: 48px, hover 2px glow, click `scale(0.92)` + elastic rebound
+5. Waveform: 14 bars, EMA smoothing, idle at 4px baseline, active during recording
+6. All animations use consistent easing functions; documented in code
+
+**Logging instrumentation:**
+- `page_transition`: log tab, duration, easing used
+- `list_render`: log item count, stagger interval
+
+**TDD plan:**
+1. `test_page_transition_animation` — verify AnimatePresence with correct variants
+2. `test_staggered_list_entrance` — verify interval and motion values
+3. `test_toast_stack_behavior` — verify stacking and push animation
+4. `test_record_button_interactions` — verify hover, active, recording states
+5. `test_waveform_ema_smoothing` — verify smoothing formula output
+
+---
+
+## Phase 19: Dashboard & Polish
+
+**Goal:** Polish Dashboard with animated counters and chart drawing, refine dictation page, and finalize empty states.
+
+**Requirements:** DASH-01, DASH-02, DASH-03, DASH-04, COMP-03, COMP-04, COMP-05
+
+**Success criteria:**
+1. Dashboard numbers animate from 0→target in 600ms easeOut on data load
+2. Trend chart lines draw from left to right via `strokeDashoffset` animation, 800ms
+3. Empty state shows floating icon + "Start your first dictation..." guidance
+4. Dictation page upper: status line with left border color transition (200ms)
+5. Recent 5 sessions: timestamp + 40-char preview + status icon; hover reveals actions
+6. All cards consistent: border-radius, shadow, hover states across themes
+
+**Logging instrumentation:**
+- `dashboard_number_animation`: log target values, duration
+- `chart_draw_animation`: log chart type, duration
+
+**TDD plan:**
+1. `test_number_counter_animation` — verify increment timing and final value
+2. `test_chart_line_draw` — verify strokeDashoffset animation
+3. `test_empty_state_renders` — verify placeholder and guidance text
+4. `test_dictation_status_transition` — verify border color change on state change
+5. `test_recent_sessions_list` — verify 5-item limit, hover actions
