@@ -17,6 +17,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import type { VoiceAPI } from "../overlay/types.js";
 
 export type Theme = "light" | "dark" | "system";
 
@@ -39,6 +40,11 @@ export interface ThemeProviderState {
 const ThemeProviderContext = createContext<ThemeProviderState | undefined>(
   undefined,
 );
+
+/** Access the voiceAPI theme methods, with fallback for environments without IPC. */
+function getThemeAPI() {
+  return (window as unknown as { voiceAPI?: VoiceAPI }).voiceAPI?.theme ?? null;
+}
 
 function getThemeFromStorage(storageKey: string, defaultTheme: Theme): Theme {
   try {
@@ -75,12 +81,57 @@ export function ThemeProvider({
   defaultTheme = "light",
   storageKey = "asr-linux-theme",
 }: ThemeProviderProps): JSX.Element {
-  const [theme, setThemeState] = useState<Theme>(() =>
-    getThemeFromStorage(storageKey, defaultTheme),
-  );
+  const [theme, setThemeState] = useState<Theme>(() => {
+    // First try localStorage for instant paint
+    return getThemeFromStorage(storageKey, defaultTheme);
+  });
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(() =>
     resolveTheme(theme),
   );
+
+  // On mount, load theme from backend via IPC (overrides localStorage)
+  useEffect(() => {
+    const api = getThemeAPI();
+    if (!api) return;
+    let cancelled = false;
+
+    api.get().then((backendTheme: string) => {
+      if (cancelled) return;
+      if (backendTheme === "light" || backendTheme === "dark" || backendTheme === "system") {
+        setThemeState(backendTheme);
+        setResolvedTheme(resolveTheme(backendTheme));
+        try {
+          localStorage.setItem(storageKey, backendTheme);
+        } catch {
+          // ignore
+        }
+      }
+    }).catch(() => {
+      // IPC not available, fall back to localStorage
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [storageKey]);
+
+  // Listen for theme changes broadcast from other windows
+  useEffect(() => {
+    const api = getThemeAPI();
+    if (!api?.onChange) return;
+    const unsub = api.onChange((newTheme: string) => {
+      if (newTheme === "light" || newTheme === "dark" || newTheme === "system") {
+        setThemeState(newTheme);
+        setResolvedTheme(resolveTheme(newTheme));
+        try {
+          localStorage.setItem(storageKey, newTheme);
+        } catch {
+          // ignore
+        }
+      }
+    });
+    return unsub;
+  }, [storageKey]);
 
   // Apply theme class whenever resolved theme changes
   useEffect(() => {
@@ -106,6 +157,13 @@ export function ThemeProvider({
         localStorage.setItem(storageKey, newTheme);
       } catch {
         // ignore storage errors
+      }
+      // Persist to backend via IPC
+      const api = getThemeAPI();
+      if (api?.set) {
+        api.set(newTheme).catch(() => {
+          // backend sync failure is non-critical
+        });
       }
     },
     [storageKey],

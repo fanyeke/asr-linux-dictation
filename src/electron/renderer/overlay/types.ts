@@ -35,6 +35,13 @@ export interface VoiceAPI {
   setHotkey: (hotkey: string) => Promise<string | null>;
   revealFile: (filePath: string) => Promise<void>;
   copyToClipboard: (text: string) => Promise<boolean>;
+
+  /** Theme management API. */
+  theme?: {
+    get: () => Promise<string>;
+    set: (theme: string) => Promise<boolean>;
+    onChange: (callback: (theme: string) => void) => () => void;
+  };
 }
 
 declare global {

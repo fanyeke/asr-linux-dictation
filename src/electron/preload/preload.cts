@@ -84,6 +84,20 @@ const api = {
 
   copyToClipboard: (text: string) =>
     ipcRenderer.invoke("copy-to-clipboard", text),
+
+  theme: {
+    get: () => ipcRenderer.invoke("theme:get"),
+    set: (theme: string) => ipcRenderer.invoke("theme:set", theme),
+    onChange: (callback: (theme: string) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, theme: string) => {
+        callback(theme);
+      };
+      ipcRenderer.on("theme:changed", handler);
+      return () => {
+        ipcRenderer.removeListener("theme:changed", handler);
+      };
+    },
+  },
 };
 
 contextBridge.exposeInMainWorld("voiceAPI", api);

@@ -53,4 +53,14 @@ export interface VoiceAPI {
 
   /** Reveals the given file in the system file manager (selects it). */
   revealFile: (filePath: string) => Promise<void>;
+
+  /** Theme management API. */
+  theme: {
+    /** Returns the persisted theme ("light", "dark", or "system"). */
+    get: () => Promise<string>;
+    /** Persists the theme and broadcasts to all windows. */
+    set: (theme: string) => Promise<boolean>;
+    /** Subscribe to theme changes from other windows. Returns cleanup fn. */
+    onChange: (callback: (theme: string) => void) => () => void;
+  };
 }

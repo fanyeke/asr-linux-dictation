@@ -14,6 +14,7 @@ import {
 import path from "path";
 import { fileURLToPath } from "url";
 import { BackendSupervisor } from "./backend-supervisor.js";
+import { themeManager } from "./theme-manager.js";
 import WebSocket from "ws";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -447,6 +448,9 @@ function registerIpcHandlers(): void {
     }
     shell.showItemInFolder(filePath);
   });
+
+  // Register theme IPC handlers
+  themeManager.registerIpcHandlers();
 }
 
 /**
@@ -638,6 +642,15 @@ app.whenReady().then(async () => {
     } catch (err) {
       console.error("Failed to load config:", err);
     }
+
+    // Initialize and load theme from backend
+    themeManager.init(info.url, info.token);
+    try {
+      await themeManager.load();
+    } catch (err) {
+      console.error("Failed to load theme:", err);
+    }
+
     // Load profiles for tray menu
     try {
       const profileRes = await fetch(`${info.url}/profiles`, {
