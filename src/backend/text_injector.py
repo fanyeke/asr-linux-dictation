@@ -6,11 +6,22 @@ simulating paste keystrokes.
 """
 
 import asyncio
+import os
 import re
 import subprocess
 from dataclasses import dataclass
 
 from backend.clipboard_manager import ClipboardManager, FocusLostError
+
+# ---------------------------------------------------------------------------
+# Desktop session detection
+# ---------------------------------------------------------------------------
+
+
+def _detect_desktop_session() -> str:
+    """Detect the current desktop session type from environment."""
+    return os.environ.get("XDG_SESSION_TYPE", "x11").lower()
+
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -141,9 +152,20 @@ class TextInjector:
                 If not provided a new one is created.
         """
         self._clipboard_manager = clipboard_manager or ClipboardManager()
+        self._session_type = _detect_desktop_session()
 
     async def inject(self, text: str) -> InjectionResult:
         """Inject *text* into the currently focused window.
+
+        Routes to Wayland or X11 injection depending on the detected
+        desktop session type.
+        """
+        if self._session_type == "wayland":
+            return await self._inject_wayland(text)
+        return await self._inject_x11(text)
+
+    async def _inject_x11(self, text: str) -> InjectionResult:
+        """X11 injection: clipboard paste via xdotool, xsel/xclip.
 
         Uses :meth:`ClipboardManager.inject_with_fallback` to save the
         current clipboard content before injection, set the new text,
@@ -294,3 +316,64 @@ class TextInjector:
             "xdotool", "key", "--window", window_id, key_combo,
         )
         return result.returncode == 0
+
+    # ------------------------------------------------------------------
+    # Wayland helpers
+    # ------------------------------------------------------------------
+
+    async def _inject_wayland(self, text: str) -> InjectionResult:
+        """Wayland injection: set clipboard with wl-copy, paste with wtype.
+
+        Falls back to leaving text on clipboard if wtype is unavailable.
+        """
+        # Set clipboard with wl-copy
+        try:
+            set_result = await _run_command("wl-copy", input_data=text.encode())
+            if set_result.returncode != 0:
+                return InjectionResult(
+                    success=False,
+                    method="clipboard_fallback",
+                    clipboard_saved=False,
+                    error="wl-copy failed — clipboard may not be available",
+                )
+        except (RuntimeError, FileNotFoundError):
+            return InjectionResult(
+                success=False,
+                method="failed",
+                clipboard_saved=False,
+                error="wl-copy not installed. Install with: sudo apt-get install wl-clipboard",
+            )
+
+        # Small delay for clipboard to be available to other clients
+        await asyncio.sleep(CLIPBOARD_READY_DELAY_SECONDS)
+
+        # Simulate Ctrl+V with wtype
+        try:
+            paste_result = await _run_command(
+                "wtype", "-M", "ctrl", "-P", "v", "-m", "ctrl",
+            )
+            if paste_result.returncode == 0:
+                return InjectionResult(
+                    success=True,
+                    method="paste",
+                    clipboard_saved=False,
+                    error=None,
+                )
+            # wtype ran but paste failed — text is on clipboard as fallback
+            return InjectionResult(
+                success=False,
+                method="clipboard_fallback",
+                clipboard_saved=False,
+                error="wtype paste failed — text left in Wayland clipboard",
+            )
+        except (RuntimeError, FileNotFoundError):
+            # wtype not installed — text is on clipboard as manual fallback
+            return InjectionResult(
+                success=False,
+                method="clipboard_fallback",
+                clipboard_saved=False,
+                error=(
+                    "wtype not installed. Install with: sudo apt-get install wtype. "
+                    "Text left in clipboard for manual paste."
+                ),
+            )

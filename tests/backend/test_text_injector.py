@@ -569,3 +569,140 @@ class TestTextInjector:
 
         is_term = await injector._is_terminal("500")
         assert is_term is False
+
+    # ------------------------------------------------------------------
+    # Wayland injection
+    # ------------------------------------------------------------------
+
+    async def test_wayland_inject_success(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Wayland path succeeds with wl-copy + wtype paste."""
+        monkeypatch.setattr(text_injector, "_detect_desktop_session", lambda: "wayland")
+        injector = TextInjector()
+
+        _commands: list[tuple] = []
+
+        async def run_mock(*args: str, input_data: bytes | None = None):
+            _commands.append((args, input_data))
+            from subprocess import CompletedProcess
+            return CompletedProcess(args, 0, b"", b"")
+
+        monkeypatch.setattr(text_injector, "_run_command", run_mock)
+
+        result = await injector.inject("hello wayland")
+
+        assert result.success is True
+        assert result.method == "paste"
+        # Verify commands: wl-copy then wtype
+        wl_copy_calls = [
+            c for c in _commands if c[0][0] == "wl-copy"
+        ]
+        wtype_calls = [
+            c for c in _commands if c[0][0] == "wtype"
+        ]
+        assert len(wl_copy_calls) == 1
+        assert wl_copy_calls[0][1] == b"hello wayland"
+        assert len(wtype_calls) == 1
+
+    async def test_wayland_wlcopy_fails(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """When wl-copy fails, returns clipboard_fallback."""
+        monkeypatch.setattr(text_injector, "_detect_desktop_session", lambda: "wayland")
+        injector = TextInjector()
+
+        async def run_mock(*args: str, input_data: bytes | None = None):
+            from subprocess import CompletedProcess
+            return CompletedProcess(args, 1, b"", b"error")
+
+        monkeypatch.setattr(text_injector, "_run_command", run_mock)
+
+        result = await injector.inject("fail text")
+
+        assert result.success is False
+        assert result.method == "clipboard_fallback"
+
+    async def test_wayland_wlcopy_not_installed(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """When wl-copy is not installed, returns failure with clear error."""
+        monkeypatch.setattr(text_injector, "_detect_desktop_session", lambda: "wayland")
+        injector = TextInjector()
+
+        async def run_mock(*args: str, input_data: bytes | None = None):
+            raise RuntimeError("wl-copy not found")
+
+        monkeypatch.setattr(text_injector, "_run_command", run_mock)
+
+        result = await injector.inject("no wlcopy")
+
+        assert result.success is False
+        assert result.method == "failed"
+        assert "wl-copy" in (result.error or "")
+
+    async def test_wayland_wtype_not_installed(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """When wtype is not installed but wl-copy works, uses clipboard fallback."""
+        monkeypatch.setattr(text_injector, "_detect_desktop_session", lambda: "wayland")
+
+        call_count = [0]
+
+        async def run_mock(*args: str, input_data: bytes | None = None):
+            call_count[0] += 1
+            from subprocess import CompletedProcess
+            if call_count[0] == 1:
+                # wl-copy succeeds
+                return CompletedProcess(args, 0, b"", b"")
+            # wtype fails
+            raise RuntimeError("wtype not found")
+
+        monkeypatch.setattr(text_injector, "_run_command", run_mock)
+        injector = TextInjector()
+
+        result = await injector.inject("text")
+
+        # wl-copy worked, so text is on clipboard as fallback
+        assert result.success is False
+        assert result.method == "clipboard_fallback"
+
+    async def test_wayland_x11_unchanged(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """X11 path is unchanged when session is x11."""
+        monkeypatch.setattr(text_injector, "_detect_desktop_session", lambda: "x11")
+        injector = TextInjector()
+
+        # Mock the X11 path
+        async def _get_active(self: TextInjector) -> str | None:
+            return "12345"
+
+        async def _is_terminal(self: TextInjector, window_id: str) -> bool:
+            return False
+
+        async def _paste(self: TextInjector, window_id: str, is_terminal: bool) -> bool:
+            return True
+
+        monkeypatch.setattr(TextInjector, "_get_active_window", _get_active)
+        monkeypatch.setattr(TextInjector, "_is_terminal", _is_terminal)
+        monkeypatch.setattr(TextInjector, "_paste", _paste)
+
+        async def _mock_fallback(text: str, inject_func) -> dict:
+            await inject_func(text)
+            return {"success": True, "method": "paste", "clipboard_saved": True}
+
+        monkeypatch.setattr(
+            injector._clipboard_manager, "inject_with_fallback", _mock_fallback,
+        )
+        async def _set_cb(text: str) -> bool:
+            return True
+
+        monkeypatch.setattr(
+            injector._clipboard_manager, "set_clipboard_for_paste", _set_cb,
+        )
+
+        result = await injector.inject("x11 text")
+
+        assert result.success is True
+        assert result.method == "paste"
