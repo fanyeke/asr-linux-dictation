@@ -12,6 +12,7 @@ import subprocess
 from dataclasses import dataclass
 
 from backend.clipboard_manager import ClipboardManager, FocusLostError
+from backend.platform_interfaces import BaseTextInjector
 
 # ---------------------------------------------------------------------------
 # Desktop session detection
@@ -137,7 +138,7 @@ async def _run_command(
 # ---------------------------------------------------------------------------
 
 
-class TextInjector:
+class TextInjector(BaseTextInjector):
     """Inject text into the focused X11 window using clipboard and paste.
 
     Uses ``xsel`` or ``xclip`` to manipulate the X11 clipboard and ``xdotool`` to

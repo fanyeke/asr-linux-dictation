@@ -13,6 +13,7 @@ import uuid
 from pathlib import Path
 
 from backend.config import Settings
+from backend.platform_interfaces import BaseAudioRecorder
 from backend.ring_buffer import RingBuffer
 
 logger = logging.getLogger(__name__)
@@ -23,7 +24,7 @@ MAX_RECORDING_SECONDS: int = 300  # 5 minutes
 _WAV_BITS_PER_SAMPLE = 16
 
 
-class AudioRecorder:
+class AudioRecorder(BaseAudioRecorder):
     """Record microphone audio using arecord (ALSA) with pipe mode.
 
     Pipe mode launches arecord with stdout as the output target and
