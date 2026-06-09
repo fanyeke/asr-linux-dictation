@@ -55,6 +55,114 @@ def strip_fillers(text: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Language-aware instruction builders
+# ---------------------------------------------------------------------------
+
+
+_LANGUAGE_LABELS: dict[str, str] = {
+    "zh": "Chinese",
+    "en": "English",
+    "mixed": "Chinese/English mixed",
+    "unknown": "auto-detected",
+}
+
+
+def _build_instruction(detected_language: str | None = None) -> str:
+    """Return the polish instruction appropriate for the detected language."""
+    lang = detected_language or "zh"
+
+    if lang == "en":
+        return (
+            "You are an ASR text cleanup specialist. Your task is to make minimal "
+            "corrections to the speech-recognized text. Do ONLY the following:\n"
+            "1. Remove filler words (um, uh, like, you know) when non-essential\n"
+            "2. Remove meaningless repetition\n"
+            "3. Add punctuation (commas, periods, question marks)\n"
+            "4. Fix obvious typos\n\n"
+            "Strictly forbidden:\n"
+            "- Do NOT rewrite, rephrase, or formalize\n"
+            "- Do NOT change the original meaning\n"
+            "- Do NOT change word order\n"
+            "- Output length must be close to input\n"
+            "- Return ONLY the corrected text, no explanations"
+        )
+
+    if lang == "mixed":
+        return (
+            "You are an ASR text cleanup specialist. The text contains a mix of "
+            "Chinese and English. Make minimal corrections while preserving both "
+            "languages exactly as spoken:\n"
+            "1. Remove filler words in both languages\n"
+            "2. Remove meaningless repetition\n"
+            "3. Add appropriate punctuation\n"
+            "4. Fix obvious typos\n"
+            "5. Preserve code keywords and technical terms exactly\n\n"
+            "Strictly forbidden:\n"
+            "- Do NOT translate between Chinese and English\n"
+            "- Do NOT rewrite or formalize\n"
+            "- Do NOT change word order\n"
+            "- Return ONLY the corrected text, no explanations"
+        )
+
+    # Default: Chinese instruction
+    return (
+        "你是一个 ASR 文本清理专家。你的任务是对语音识别的原始文本做最小程度的修正。"
+        "只做以下操作，不要做其他任何修改：\n"
+        "1. 去除残余的语气词和口头禅（那个、就是说、对吧 等，仅在无实际语义时）\n"
+        "2. 去除无意义的重复（如'我觉得我觉得'→'我觉得'）\n"
+        "3. 添加标点符号（逗号、句号、问号）\n"
+        "4. 修正明显的错别字\n\n"
+        "严格禁止：\n"
+        "- 不要改写、重述或正式化表达\n"
+        "- 不要改变原意或增删信息\n"
+        "- 不要调整语序\n"
+        "- 输出长度必须与输入接近，不得大幅缩短\n"
+        "- 只返回修正后的纯文本，不要加任何解释"
+    )
+
+
+def _build_few_shot(detected_language: str | None = None) -> str:
+    """Return few-shot examples appropriate for the detected language."""
+    lang = detected_language or "zh"
+
+    if lang == "en":
+        return (
+            "Example 1:\n"
+            "Input: um I think this like solution is pretty good\n"
+            "Output: I think this solution is pretty good.\n\n"
+            "Example 2:\n"
+            "Input: can you check the um F12 bug for me\n"
+            "Output: Can you check the F12 bug for me?\n"
+        )
+
+    if lang == "mixed":
+        return (
+            "示例 1：\n"
+            "原文：我现在需要去 review 一下这个 PR\n"
+            "修正：我现在需要去 review 一下这个 PR。\n\n"
+            "示例 2：\n"
+            "原文：叫他们 run 一下那个 test suite\n"
+            "修正：叫他们 run 一下那个 test suite。\n"
+        )
+
+    # Default: Chinese few-shot
+    return (
+        "示例 1：\n"
+        "原文：呃我觉得这个方案那个挺好的\n"
+        "修正：我觉得这个方案挺好的。\n\n"
+        "示例 2：\n"
+        "原文：你现在帮我看一下那个就是那个 F12 的 bug\n"
+        "修正：你现在帮我看一下 F12 的 bug。\n\n"
+        "示例 3：\n"
+        "原文：回答一下你是谁\n"
+        "修正：回答一下你是谁\n\n"
+        "示例 4：\n"
+        "原文：然后那个润色似乎还是不能用就是说它没有真正做润色\n"
+        "修正：然后润色似乎还是不能用，它没有真正做润色。\n"
+    )
+
+
+# ---------------------------------------------------------------------------
 # Layer 2: LLM conservative cleanup prompt
 # ---------------------------------------------------------------------------
 
@@ -110,6 +218,7 @@ class PolishClient:
         prompt_template: str,
         dictionary_entries: list[dict] | None = None,
         timeout: float = 30.0,
+        detected_language: str | None = None,
     ) -> str:
         """Send a raw transcript to the LLM and return the polished text.
 
@@ -135,35 +244,9 @@ class PolishClient:
             return raw_text
 
         # Layer 2: LLM conservative cleanup — minimal intervention only
-        polish_instruction = (
-            "你是一个 ASR 文本清理专家。你的任务是对语音识别的原始文本做最小程度的修正。"
-            "只做以下操作，不要做其他任何修改：\n"
-            "1. 去除残余的语气词和口头禅（那个、就是说、对吧 等，仅在无实际语义时）\n"
-            "2. 去除无意义的重复（如'我觉得我觉得'→'我觉得'）\n"
-            "3. 添加标点符号（逗号、句号、问号）\n"
-            "4. 修正明显的错别字\n\n"
-            "严格禁止：\n"
-            "- 不要改写、重述或正式化表达\n"
-            "- 不要改变原意或增删信息\n"
-            "- 不要调整语序\n"
-            "- 输出长度必须与输入接近，不得大幅缩短\n"
-            "- 只返回修正后的纯文本，不要加任何解释"
-        )
+        polish_instruction = _build_instruction(detected_language)
 
-        few_shot = (
-            "示例 1：\n"
-            "原文：呃我觉得这个方案那个挺好的\n"
-            "修正：我觉得这个方案挺好的。\n\n"
-            "示例 2：\n"
-            "原文：你现在帮我看一下那个就是那个 F12 的 bug\n"
-            "修正：你现在帮我看一下 F12 的 bug。\n\n"
-            "示例 3：\n"
-            "原文：回答一下你是谁\n"
-            "修正：回答一下你是谁\n\n"
-            "示例 4：\n"
-            "原文：然后那个润色似乎还是不能用就是说它没有真正做润色\n"
-            "修正：然后润色似乎还是不能用，它没有真正做润色。\n"
-        )
+        few_shot = _build_few_shot(detected_language)
 
         # Build user prompt with dictionary terms inline
         user_content_parts: list[str] = [
