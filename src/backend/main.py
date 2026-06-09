@@ -1110,16 +1110,17 @@ async def _streaming_asr_loop(
     from backend.transcript_merger import TranscriptMerger
 
     global _partial_broadcast_task
-    merger = TranscriptMerger(min_overlap_chars=2)
+    merger = TranscriptMerger(min_overlap_chars=1)
     partials: list[str] = []
+    last_broadcast: str = ""
     try:
         while recorder.is_recording:
-            await asyncio.sleep(2.5)
+            await asyncio.sleep(1.0)
             ring = recorder.ring_buffer
             if ring is None:
                 continue
-            slice_data = ring.read_slice(duration_seconds=3.0, overlap_seconds=1.0)
-            if slice_data is None or len(slice_data) < 32000:  # less than ~1s
+            slice_data = ring.read_slice(duration_seconds=1.5, overlap_seconds=0.5)
+            if slice_data is None or len(slice_data) < 16000:  # less than ~0.5s
                 continue
             try:
                 # Wrap raw PCM in WAV so the ASR API can parse it
@@ -1129,7 +1130,9 @@ async def _streaming_asr_loop(
                     partials.append(partial.strip())
                     # Merge all partials so far for a stable display text
                     merged = merger.merge(partials)
-                    if merged:
+                    # Only broadcast when text actually changes
+                    if merged and merged != last_broadcast:
+                        last_broadcast = merged
                         await _broadcast_partial_transcript(merged)
             except Exception:
                 logger.warning("Streaming ASR slice failed (non-blocking)", exc_info=True)
