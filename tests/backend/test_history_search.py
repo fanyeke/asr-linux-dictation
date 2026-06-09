@@ -18,9 +18,9 @@ def setup(
     """Initialize DB and disable auth."""
     monkeypatch.setenv("ASR_LINUX_SECRET_TOKEN", "")
     monkeypatch.setenv("ASR_LINUX_DATA_DIR", str(tmp_path))
-    from backend.database import init_database
-
     import asyncio
+
+    from backend.database import init_database
 
     asyncio.run(init_database())
     monkeypatch.setattr(main, "_user_config", UserConfig())

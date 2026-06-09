@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 from httpx import AsyncClient
 
-from backend.database import get_db_path, init_database
 import backend.main as main
+from backend.database import init_database
 
 
 @pytest.fixture(autouse=True)

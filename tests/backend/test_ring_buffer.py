@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from backend.ring_buffer import RingBuffer, pcm_to_wav
 
 
@@ -69,7 +67,7 @@ class TestRingBuffer:
         # Second read: with overlap, should start (last_read_end - 1s) = 10s - 1s = 9s
         # But total is now 13s, so natural_start = 13 - 3 = 10s
         # overlap_start = 10 - 1 = 9s, so slice_start = min(10, 9) = 9s
-        # slice = 9s to 13s = 4s → but we cap at 3s of NEW data... 
+        # slice = 9s to 13s = 4s → but we cap at 3s of NEW data...
         slice2 = buf.read_slice(duration_seconds=3.0, overlap_seconds=1.0)
         assert slice2 is not None
         # reads from 9s to 13s (4s) - the read returns whatever is in that range

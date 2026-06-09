@@ -127,7 +127,7 @@ class TestStreamingOrchestratorIntegration:
         ring = RingBuffer(sample_rate=16000)
 
         # Simulate recording: write data in chunks like arecord would
-        for second in range(1, 8):
+        for _second in range(1, 8):
             ring.write(b"\x00\x01" * (16000 // 2))  # 0.5s at a time
 
         # Simulate scheduler: read slices at intervals
@@ -139,7 +139,7 @@ class TestStreamingOrchestratorIntegration:
             partials.append(await orchestrator.asr_client.transcribe(slice1))
 
         # Simulate more data
-        for second in range(8, 13):
+        for _second in range(8, 13):
             ring.write(b"\x00\x01" * (16000 // 2))
 
         # Second read
@@ -148,7 +148,7 @@ class TestStreamingOrchestratorIntegration:
             partials.append(await orchestrator.asr_client.transcribe(slice2))
 
         # More data
-        for second in range(13, 18):
+        for _second in range(13, 18):
             ring.write(b"\x00\x01" * (16000 // 2))
 
         # Third read

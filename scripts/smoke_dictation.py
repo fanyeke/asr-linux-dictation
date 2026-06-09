@@ -46,7 +46,7 @@ async def test_recorder() -> Path | None:
         print(f"Recording started: {session_id}")
 
         # Show levels for 5 seconds
-        for i in range(10):
+        for _i in range(10):
             await asyncio.sleep(0.5)
             level = await recorder.get_level()
             bar = "█" * int(level * 20)
@@ -196,7 +196,7 @@ async def main() -> int:
     print("=" * 50)
 
     tests = ["Recorder", "Injector", "ASR", "Polish"]
-    for name, ok in zip(tests, results):
+    for name, ok in zip(tests, results, strict=False):
         status = "✅ PASS" if ok else "❌ FAIL"
         print(f"  {name}: {status}")
 

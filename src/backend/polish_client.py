@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from typing import Any
 
@@ -11,7 +12,6 @@ import httpx
 from backend.polish_sanitizer import sanitize_polish_output
 from backend.retry_policy import RetryExhaustedError, RetryPolicy
 
-import logging
 logger = logging.getLogger(__name__)
 
 

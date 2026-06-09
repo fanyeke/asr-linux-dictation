@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+import shutil
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
@@ -18,38 +19,41 @@ from fastapi import (
     WebSocketDisconnect,
 )
 
+from backend import sqlite_async
 from backend.asr_client import ASRClient
 from backend.audio_recorder import AudioRecorder
 from backend.config import Settings
 from backend.config_store import UserConfig, load_user_config, save_user_config
-from backend.profile_manager import (
-    create_profile as create_profile_entry,
-    delete_profile as delete_profile_entry,
-    get_active_profile,
-    get_profile as get_profile_entry,
-    list_profiles,
-    set_active_profile,
-    update_profile as update_profile_entry,
-)
 from backend.database import get_db_path, init_database
 from backend.diagnostics import build_diagnostics_bundle
 from backend.dictation_orchestrator import DictationOrchestrator
-import shutil
-
-from backend import sqlite_async
-
 from backend.dictionary_manager import (
-    count_matches_in_text,
     create_entry,
     delete_entry,
     get_dictionary_stats_summary,
     list_entries,
-    record_dictionary_stats,
     update_entry,
 )
 from backend.history_store import get_session, list_sessions, search_sessions
 from backend.logging_config import configure_logging, get_logger
 from backend.polish_client import PolishClient
+from backend.profile_manager import (
+    create_profile as create_profile_entry,
+)
+from backend.profile_manager import (
+    delete_profile as delete_profile_entry,
+)
+from backend.profile_manager import (
+    get_active_profile,
+    list_profiles,
+    set_active_profile,
+)
+from backend.profile_manager import (
+    get_profile as get_profile_entry,
+)
+from backend.profile_manager import (
+    update_profile as update_profile_entry,
+)
 from backend.prompt_manager import list_prompts
 from backend.text_injector import TextInjector
 
@@ -356,17 +360,17 @@ async def health() -> dict:
 # ---------------------------------------------------------------------------
 
 
+_TIME_RANGE_MAP: dict[str, str] = {
+    "today": "created_at >= datetime('now', 'start of day')",
+    "24h": "created_at >= datetime('now', '-1 day')",
+    "7d": "created_at >= datetime('now', '-7 days')",
+    "30d": "created_at >= datetime('now', '-30 days')",
+}
+
+
 def _time_range_where(time_range: str) -> str:
-    """Return SQL WHERE clause for the given time range."""
-    if time_range == "today":
-        return "created_at >= datetime('now', 'start of day')"
-    elif time_range == "24h":
-        return "created_at >= datetime('now', '-1 day')"
-    elif time_range == "7d":
-        return "created_at >= datetime('now', '-7 days')"
-    elif time_range == "30d":
-        return "created_at >= datetime('now', '-30 days')"
-    return "1=1"
+    """Return SQL WHERE clause for the given time range (default: no filter)."""
+    return _TIME_RANGE_MAP.get(time_range, "1=1")
 
 
 async def _build_timeline(

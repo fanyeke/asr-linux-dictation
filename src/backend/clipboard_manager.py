@@ -70,10 +70,7 @@ async def _run_clipboard(
         RuntimeError: If the tool executable is not found.
     """
     if tool == "xsel":
-        if mode == "read":
-            args = ("xsel", "--output", "--clipboard")
-        else:
-            args = ("xsel", "--input", "--clipboard")
+        args = ("xsel", "--output", "--clipboard") if mode == "read" else ("xsel", "--input", "--clipboard")
     else:  # xclip
         if mode == "read":
             args = ("xclip", "-selection", "clipboard", "-o")

@@ -188,7 +188,7 @@ class RingBuffer:
         # Walk chunks to find the byte range
         chunks_to_read: list[bytes] = []
         offset = 0
-        bytes_needed = end - start
+        end - start
 
         for chunk in self._chunks:
             chunk_end = offset + len(chunk)

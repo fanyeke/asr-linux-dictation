@@ -77,7 +77,8 @@ async def load_user_config() -> UserConfig:
     async with sqlite_async.connect(_db_path()) as db:
         cursor = await db.execute(
             "SELECT api_key, asr_api_key, asr_base_url, asr_model, "
-            "llm_api_key, llm_enabled, llm_base_url, llm_model, hotkey, ui_language, asr_language, vad_enabled, onboarding_completed, theme "
+            "llm_api_key, llm_enabled, llm_base_url, llm_model, hotkey, "
+            "ui_language, asr_language, vad_enabled, onboarding_completed, theme "
             "FROM user_config WHERE id = 1"
         )
         row = await cursor.fetchone()

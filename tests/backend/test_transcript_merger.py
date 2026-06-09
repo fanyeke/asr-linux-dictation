@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from backend.transcript_merger import TranscriptMerger
 
 
@@ -187,8 +185,10 @@ class TestTranscriptMerger:
             "ababc",
             "abcde",
         ])
-        # "ababc" suffix of "abc" = 3 chars; "abc" is longest match
-        # Also check "abc" is the overlap, not "ab" (only 2 chars)
+        assert result == "ababcde"
+
+        # "abc" is the longest overlap (3 chars); also verify we don't
+        # truncate to a shorter overlap
         result2 = merger.merge([
             "abc123",
             "123xyz",

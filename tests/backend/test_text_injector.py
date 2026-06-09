@@ -9,7 +9,6 @@ import pytest
 from backend import text_injector
 from backend.text_injector import TEXT_INJECTOR_TERMINALS, TextInjector
 
-
 pytestmark = pytest.mark.asyncio
 
 
@@ -376,7 +375,7 @@ class TestTextInjector:
                 try:
                     await inject_func(t)
                 except RuntimeError:
-                    raise FocusLostError("Focus changed during injection")
+                    raise FocusLostError("Focus changed during injection") from None
             return await mock_original(text, _failing_func)
 
         monkeypatch.setattr(
@@ -442,7 +441,7 @@ class TestTextInjector:
         """When clipboard paste fails, the result
         indicates failure and the injected text stays in the clipboard.
         """
-        paste_calls = self._mock_paste_env(
+        self._mock_paste_env(
             monkeypatch, injector, paste_success=False,
         )
 

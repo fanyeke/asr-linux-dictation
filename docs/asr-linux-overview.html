@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASR Linux — AI 驱动·Linux 桌面语音输入</title>
+<meta name="author" content="fanyeke">
+<meta name="description" content="ASR Linux 项目全景：架构、技术栈、开发阶段与工程质量。热键录音 → 云端 ASR → LLM 润色 → 注入聚焦窗口。">
+<meta name="keywords" content="ASR Linux, 语音输入, Linux 桌面, Electron, FastAPI, 语音转文字, 产品介绍">
+<meta name="generator" content="Kami">
+
+<style>
+/* ===== kami design system ===== */
+:root {
+  --parchment: #f7f3eb;
+  --parchment-light: #faf8f3;
+  --ink: #1a1a2e;
+  --ink-blue: #1e3a5f;
+  --ink-blue-light: #2c5282;
+  --accent: #b8860b;
+  --accent-light: #d4a843;
+  --gray-100: #e8e4dc;
+  --gray-200: #c8c4bc;
+  --gray-300: #9a9690;
+  --gray-400: #6a6662;
+  --white: #fdfcfa;
+  --border: #ddd8d0;
+  --bg-table-alt: #f0ece4;
+
+  --serif: 'Charter', 'Georgia', 'Palatino', 'Times New Roman', serif;
+  --serif-cn: 'TsangerJinKai02', 'Source Han Serif SC', 'Noto Serif CJK SC', 'Songti SC', 'STSong', 'Georgia', serif;
+  --sans: var(--serif);
+  --mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', Consolas, monospace;
+}
+
+@font-face {
+  font-family: 'TsangerJinKai02';
+  src: local('TsangerJinKai02-W04'), local('TsangerJinKai02');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'TsangerJinKai02';
+  src: local('TsangerJinKai02-W05');
+  font-weight: 500;
+  font-style: normal;
+}
+@page { size: A4; margin: 0; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { font-size: 14.5px; }
+body {
+  font-family: var(--serif-cn);
+  color: var(--ink);
+  background: var(--parchment);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+.page {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 56px 64px;
+  background: var(--white);
+  box-shadow: 0 0 40px rgba(0,0,0,0.06);
+}
+
+/* ===== header ===== */
+.header {
+  margin-bottom: 36px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--ink-blue);
+}
+.header .eyebrow {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--ink-blue);
+  margin-bottom: 6px;
+  font-family: var(--serif);
+}
+.header .title {
+  font-size: 2.2rem;
+  font-weight: 500;
+  color: var(--ink-blue);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.header .subtitle {
+  font-size: 0.95rem;
+  color: var(--gray-400);
+  margin-top: 8px;
+  font-family: var(--serif);
+  line-height: 1.6;
+}
+
+/* ===== section ===== */
+.section { margin-bottom: 36px; }
+.section:last-child { margin-bottom: 0; }
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--ink-blue);
+  margin-bottom: 14px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-title .num {
+  font-size: 0.75rem;
+  color: var(--accent);
+  font-weight: 600;
+  font-family: var(--serif);
+  min-width: 28px;
+}
+.section-title .tag {
+  margin-left: auto;
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 2px 10px;
+  border-radius: 3px;
+  font-family: var(--serif);
+}
+.tag-green { background: #e8f5e9; color: #2e7d32; }
+.tag-blue { background: #e3f2fd; color: #1e3a5f; }
+.tag-amber { background: #fff8e1; color: #b8860b; }
+.tag-red { background: #ffebee; color: #c62828; }
+
+/* ===== body text ===== */
+p { margin-bottom: 0.8rem; color: var(--ink); font-size: 0.9rem; }
+p:last-child { margin-bottom: 0; }
+
+/* ===== tables ===== */
+table { width: 100%; border-collapse: collapse; margin: 12px 0 16px; font-size: 0.82rem; }
+th { text-align: left; padding: 7px 10px; font-weight: 600; color: var(--ink-blue); border-bottom: 1.5px solid var(--ink-blue); font-size: 0.75rem; letter-spacing: 0.3px; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+tr:last-child td { border-bottom: 1px solid var(--border); }
+tr:nth-child(even) td { background: var(--bg-table-alt); }
+
+/* ===== list ===== */
+ul, ol { margin: 8px 0 12px; padding-left: 22px; font-size: 0.9rem; }
+li { margin-bottom: 4px; }
+li:last-child { margin-bottom: 0; }
+
+/* ===== callout ===== */
+.callout {
+  margin: 14px 0;
+  padding: 12px 18px;
+  border-left: 3px solid var(--ink-blue);
+  background: #f0ece4;
+  font-size: 0.85rem;
+  color: var(--ink);
+  border-radius: 0 4px 4px 0;
+}
+.callout.gold { border-left-color: var(--accent); background: #faf6ee; }
+.callout.green { border-left-color: #2e7d32; background: #f1f8e9; }
+.callout.red { border-left-color: #c62828; background: #ffebee; }
+.callout p { margin: 4px 0; }
+
+/* ===== metric row ===== */
+.metrics { display: flex; gap: 16px; margin: 16px 0; }
+.metric {
+  flex: 1;
+  text-align: center;
+  padding: 16px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--parchment-light);
+}
+.metric .val {
+  font-size: 1.3rem;
+  font-weight: 500;
+  color: var(--ink-blue);
+  font-family: var(--serif);
+}
+.metric .lbl { font-size: 0.72rem; color: var(--gray-400); margin-top: 3px; line-height: 1.4; }
+
+/* ===== arch diagram (pure CSS) ===== */
+.arch { margin: 16px 0; }
+.arch-layer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  margin-bottom: 3px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: center;
+  letter-spacing: 0.2px;
+}
+.arch-layer.electron { background: #e3f2fd; color: #1e3a5f; border: 1px solid #bbdefb; }
+.arch-layer.main { background: #e8f0fe; color: #1e3a5f; border: 1px solid #d0dce9; }
+.arch-layer.backend { background: #f1f8e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+.arch-layer.sub { background: #f9f0f0; color: #6a1b1a; border: 1px solid #f0d0d0; font-size: 0.7rem; font-weight: 400; }
+.arch-layer.db { background: #fff8e1; color: #b8860b; border: 1px solid #ffe082; }
+.arch-arrow { text-align: center; font-size: 0.65rem; color: var(--gray-300); margin: 2px 0; letter-spacing: 1px; }
+
+/* ===== pipeline ===== */
+.pipeline { display: flex; align-items: stretch; gap: 0; margin: 16px 0; }
+.pipe-step {
+  flex: 1;
+  text-align: center;
+  padding: 10px 6px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: white;
+  position: relative;
+}
+.pipe-step:not(:last-child)::after {
+  content: '→';
+  position: absolute;
+  right: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gray-300);
+  font-size: 1rem;
+  font-weight: 400;
+  z-index: 1;
+}
+.pipe-step.rec { background: #f43f5e; }
+.pipe-step.asr { background: #6366f1; }
+.pipe-step.llm { background: #8b5cf6; }
+.pipe-step.inj { background: #10b981; }
+.pipe-step .icon { display: block; font-size: 1.1rem; margin-bottom: 2px; }
+
+/* ===== phase timeline ===== */
+.timeline { position: relative; margin: 16px 0; padding-left: 28px; }
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background: var(--border);
+}
+.tl-item { position: relative; margin-bottom: 14px; padding-left: 12px; }
+.tl-item:last-child { margin-bottom: 0; }
+.tl-item::before {
+  content: '';
+  position: absolute;
+  left: -24px;
+  top: 7px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--ink-blue);
+  background: var(--white);
+}
+.tl-item.done::before { background: #2e7d32; border-color: #2e7d32; }
+.tl-item.active::before { background: var(--accent); border-color: var(--accent); }
+.tl-item .tl-tag {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 3px;
+  margin-bottom: 2px;
+}
+.tl-item .tl-tag.done { background: #e8f5e9; color: #2e7d32; }
+.tl-item .tl-tag.active { background: #fff8e1; color: #b8860b; }
+.tl-item .tl-label { font-size: 0.85rem; font-weight: 500; color: var(--ink-blue); }
+.tl-item .tl-desc { font-size: 0.78rem; color: var(--gray-400); }
+
+/* ===== highlight ===== */
+.hl { color: var(--ink-blue); font-weight: 600; }
+.hl-green { color: #2e7d32; font-weight: 600; }
+.hl-red { color: #c62828; font-weight: 600; }
+.hl-amber { color: #b8860b; font-weight: 600; }
+
+.inline-tag {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+.inline-tag.done { background: #e8f5e9; color: #2e7d32; }
+.inline-tag.wip { background: #fff8e1; color: #b8860b; }
+.inline-tag.py { background: #e3f2fd; color: #1e3a5f; }
+.inline-tag.ts { background: #e8f0fe; color: #2c5282; }
+
+/* ===== stack cards ===== */
+.stack-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 12px 0; }
+.stack-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  background: var(--parchment-light);
+  text-align: center;
+}
+.stack-card .s-icon { font-size: 1.4rem; margin-bottom: 4px; }
+.stack-card .s-name { font-size: 0.8rem; font-weight: 500; color: var(--ink-blue); }
+.stack-card .s-desc { font-size: 0.68rem; color: var(--gray-400); margin-top: 2px; }
+
+/* ===== conclusion ===== */
+.conclusion {
+  margin-top: 36px;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #f0ece4, #e8e4dc);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.conclusion h3 { font-size: 1.1rem; color: var(--ink-blue); margin-bottom: 6px; font-weight: 500; }
+.conclusion p { font-size: 0.88rem; color: var(--gray-400); }
+
+/* ===== footer ===== */
+.footer {
+  margin-top: 40px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--gray-300);
+  font-family: var(--serif);
+}
+
+/* ===== utilities ===== */
+.text-sm { font-size: 0.78rem; }
+.text-muted { color: var(--gray-400); }
+.mt-12 { margin-top: 12px; }
+.mb-8 { margin-bottom: 8px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 10px 0; }
+
+/* ===== code ===== */
+code {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  background: #f0ece4;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+pre {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  background: #f0ece4;
+  padding: 12px 16px;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 10px 0;
+  border: 1px solid var(--border);
+  line-height: 1.5;
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+<!-- ==================== HEADER ==================== -->
+<div class="header">
+  <div class="eyebrow">v0.2.0 · MIT License · 2025–2026</div>
+  <h1 class="title">ASR Linux</h1>
+  <div class="subtitle">AI 驱动的 Linux 桌面语音输入工具。按热键，说话——你的话经过云端 ASR 识别、LLM 润色后，精准出现在当前聚焦的窗口里。</div>
+</div>
+
+<!-- ==================== 01 · 一句话 ==================== -->
+<div class="section">
+  <div class="section-title"><span class="num">01</span> 这是什么？</div>
+  <p>
+    <strong class="hl">ASR Linux</strong> 是一款为 Linux 桌面打造的 <strong class="hl">AI 语音输入</strong> 应用。它填补了 Linux 桌面生态中长期缺失的一环——像 Windows 上的语音输入那样，按下热键就能说话输入，而且利用 LLM 做润色，去掉口头禅、加标点、修正识别错误。
+  </p>
+  <p>
+    整个流程是：<strong class="hl">热键触发 → 录制音频 → 云端 ASR 识别 → LLM 润色 → 智能词典替换 → 注入当前窗口</strong>。全程 <span class="hl">隐私优先</span>，后端只绑定 <code>127.0.0.1</code>，API 密钥走 Linux Secret Service，日志自动脱敏。
+  </p>
+  <div class="pipeline">
+    <div class="pipe-step rec"><span class="icon">🎙️</span>录音</div>
+    <div class="pipe-step asr"><span class="icon">🤖</span>ASR</div>
+    <div class="pipe-step llm"><span class="icon">✨</span>LLM 润色</div>
+    <div class="pipe-step inj"><span class="icon">📋</span>注入窗口</div>
+  </div>
+</div>
+
+<!-- ==================== 02 · 技术栈 ==================== -->
+<div class="section">
+  <div class="section-title"><span class="num">02</span> 技术栈</div>
+  <div class="stack-grid">
+    <div class="stack-card">
+      <div class="s-icon">🖥️</div>
+      <div class="s-name">Electron 30</div>
+      <div class="s-desc">桌面壳 + 窗口管理</div>
+    </div>
+    <div class="stack-card">
+      <div class="s-icon">⚛️</div>
+      <div class="s-name">React 18</div>
+      <div class="s-desc">UI · Tailwind + Framer</div>
+    </div>
+    <div class="stack-card">
+      <div class="s-icon">🐍</div>
+      <div class="s-name">Python 3.11</div>
+      <div class="s-desc">FastAPI · Uvicorn</div>
+    </div>
+    <div class="stack-card">
+      <div class="s-icon">🗄️</div>
+      <div class="s-name">SQLite</div>
+      <div class="s-desc">持久化 · 零配置</div>
+    </div>
+    <div class="stack-card">
+      <div class="s-icon">🔌</div>
+      <div class="s-name">HTTP + WebSocket</div>
+      <div class="s-desc">前后端通信</div>
+    </div>
+    <div class="stack-card">
+      <div class="s-icon">📦</div>
+      <div class="s-name">Vite + uv</div>
+      <div class="s-desc">前端构建 + Python 包</div>
+    </div>
+    <div class="stack-card">
+      <div class="s-icon">🎨</div>
+      <div class="s-name">Tailwind 3.4</div>
+      <div class="s-desc">原子化 CSS</div>
+    </div>
+    <div class="stack-card">
+      <div class="s-icon">🅰️</div>
+      <div class="s-name">Space Grotesk</div>
+      <div class="s-desc">标题 / Inter / JetBrains Mono</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 03 · 架构总览 ==================== -->
+<div class="section">
+  <div class="section-title"><span class="num">03</span> 系统架构</div>
+  <p>双进程架构：<strong class="hl">Electron</strong> 负责桌面壳（窗口、托盘、热键），<strong class="hl">Python FastAPI</strong> 后端负责核心业务逻辑（录音、API 调用、持久化、文本注入）。</p>
+
+  <div class="arch">
+    <!-- Electron Renderer -->
+    <div class="arch-layer electron">Electron Renderer · React 18 + Tailwind + Framer Motion</div>
+    <div class="arch-arrow">⬇️  preload (contextBridge, IPC)  ⬇️</div>
+    <div class="arch-layer main">Electron Main Process · 窗口生命周期 / Tray / 全局热键</div>
+    <div class="arch-arrow">⬇️  BackendSupervisor (spawn/守护 Python 进程)  ⬇️</div>
+    <div style="display:flex; gap:3px; margin:3px 0;">
+      <div style="flex:1;" class="arch-layer sub">Settings 窗口<br><span style="font-size:0.65rem;color:var(--gray-400);">900×600</span></div>
+      <div style="flex:1;" class="arch-layer sub">Overlay 浮层<br><span style="font-size:0.65rem;color:var(--gray-400);">400×120 底部居中</span></div>
+      <div style="flex:1;" class="arch-layer sub">Tray 菜单<br><span style="font-size:0.65rem;color:var(--gray-400);">快速切换场景/语言</span></div>
+    </div>
+    <div class="arch-arrow">⬇️  HTTP localhost + WebSocket  ⬇️</div>
+    <div class="arch-layer backend">Python FastAPI Backend · 绑定 127.0.0.1 仅本地访问</div>
+    <div style="display:flex; gap:3px; margin:3px 0;">
+      <div style="flex:1;" class="arch-layer sub">🎙️ AudioRecorder<br><span style="font-size:0.65rem;color:var(--gray-400);">arecord pipe mode + RingBuffer</span></div>
+      <div style="flex:1;" class="arch-layer sub">🤖 ASRClient<br><span style="font-size:0.65rem;color:var(--gray-400);">Mimo API / OpenAI-compatible</span></div>
+      <div style="flex:1;" class="arch-layer sub">✨ PolishClient<br><span style="font-size:0.65rem;color:var(--gray-400);">LLM 润色</span></div>
+      <div style="flex:1;" class="arch-layer sub">📋 TextInjector<br><span style="font-size:0.65rem;color:var(--gray-400);">xdotool + clipboard 回退</span></div>
+    </div>
+    <div class="arch-layer sub" style="background:#f0ece4;border-color:var(--border);color:var(--ink);font-weight:500;">
+      DictationOrchestrator · 状态机 core → ASR → polish → inject → history → cleanup
+    </div>
+    <div class="arch-layer db">SQLite (history / prompts / dictionary / profiles / config) + Linux Secret Service</div>
+  </div>
+
+  <div class="callout gold mt-12">
+    <p><strong>设计原则：</strong>模块边界清晰——后端不碰 UI，Electron 不做 ASR/润色。通信只走 HTTP localhost + WebSocket，所有 API 密钥通过 Linux Secret Service 存储，日志自动脱敏。</p>
+  </div>
+</div>
+
+<!-- ==================== 04 · 后端模块 ==================== -->
+<div class="section">
+  <div class="section-title"><span class="num">04</span> 后端模块 <span class="tag tag-blue tag">13 核心 · 16 测试</span></div>
+  <p>Python 后端 <code>src/backend/</code> 共 22 个文件，核心模块按职责分层：</p>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:28%;">模块</th>
+        <th>职责</th>
+        <th style="width:18%;">关键设计</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>main.py</code></td>
+        <td>FastAPI 入口、路由、WebSocket、依赖注入</td>
+        <td>单例工厂 + config fingerprint 判活</td>
+      </tr>
+      <tr>
+        <td><code>dictation_orchestrator.py</code></td>
+        <td>口述状态机：协调 ASR→Polish→Inject→History</td>
+        <td>session_id 贯穿全流程，WebSocket 广播</td>
+      </tr>
+      <tr>
+        <td><code>audio_recorder.py</code></td>
+        <td>ALSA arecord 管道录音，RingBuffer PCM 捕获</td>
+        <td>pipe mode 支持流式 ASR</td>
+      </tr>
+      <tr>
+        <td><code>asr_client.py</code></td>
+        <td>Mimo ASR API 客户端（OpenAI 兼容）</td>
+        <td>指数退避重试，5 种错误分类</td>
+      </tr>
+      <tr>
+        <td><code>polish_client.py</code></td>
+        <td>LLM 润色客户端</td>
+        <td>prompt 渲染 + 词典注入 + 输出清洗</td>
+      </tr>
+      <tr>
+        <td><code>text_injector.py</code></td>
+        <td>X11 文本注入（xdotool）</td>
+        <td>剪贴板回退 + Terminal 兼容</td>
+      </tr>
+      <tr>
+        <td><code>clipboard_manager.py</code></td>
+        <td>剪贴板保存/恢复/回退</td>
+        <td>注入失败时文本留在剪贴板</td>
+      </tr>
+      <tr>
+        <td><code>history_store.py</code></td>
+        <td>会话历史 CRUD + 搜索/导出</td>
+        <td>成功删音频，失败保留</td>
+      </tr>
+      <tr>
+        <td><code>dictionary_manager.py</code></td>
+        <td>自定义词典 + 命中统计</td>
+        <td>enforcement 级别 (suggested/forced)</td>
+      </tr>
+      <tr>
+        <td><code>prompt_manager.py</code></td>
+        <td>Prompt 模板管理</td>
+        <td>版本化 + 场景绑定</td>
+      </tr>
+      <tr>
+        <td><code>profile_manager.py</code></td>
+        <td>场景配置（5 内置预设）</td>
+        <td>通用/编程/写作/会议/聊天</td>
+      </tr>
+      <tr>
+        <td><code>ring_buffer.py</code></td>
+        <td>PCM 环形缓冲区（流式 ASR）</td>
+        <td>支持重叠切片读取</td>
+      </tr>
+      <tr>
+        <td><code>transcript_merger.py</code></td>
+        <td>最长后缀匹配合并</td>
+        <td>CJK 感知合并</td>
+      </tr>
+      <tr>
+        <td><code>retry_policy.py</code></td>
+        <td>指数退避重试策略</td>
+        <td>可自定义判重条件</td>
+      </tr>
+      <tr>
+        <td><code>config.py / config_store.py</code></td>
+        <td>Pydantic 设置 + 用户配置持久化</td>
+        <td>DB 配置 &gt; 环境变量 &gt; 默认</td>
+      </tr>
+      <tr>
+        <td><code>logging_config.py</code></td>
+        <td>结构化 JSONL 日志</td>
+        <td>自动脱敏 + 轮转清理</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ==================== 05 · 前端结构 ==================== -->
+<div class="section">
+  <div class="section-title"><span class="num">05</span> 前端结构 <span class="tag tag-green tag">React 18 + 15 组件</span></div>
+  <p>Electron 前端 <code>src/electron/</code> 采用三层架构：</p>
+  <table>
+    <thead>
+      <tr>
+        <th>层</th>
+        <th>内容</th>
+        <th>职责</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Main</strong></td>
+        <td><code>main.ts</code> + <code>backend-supervisor.ts</code></td>
+        <td>窗口生命周期、Tray、全局热键、spawn 后端进程</td>
+      </tr>
+      <tr>
+        <td><strong>Preload</strong></td>
+        <td><code>preload.cjs</code></td>
+        <td>Type-safe IPC 桥接，不暴露 Node/Electron API</td>
+      </tr>
+      <tr>
+        <td><strong>Renderer</strong></td>
+        <td>4 个页面 + Overlay 浮层</td>
+        <td>用户界面、状态管理、WebSocket 订阅</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="mt-12">渲染进程页面与组件：</p>
+  <div class="grid-2">
+    <div>
+      <ul>
+        <li><strong class="hl">Dictate 页</strong> — 录音按钮 + 波形 + 阶段指示器</li>
+        <li><strong class="hl">History 页</strong> — 会话历史、搜索、导出 TXT/MD</li>
+        <li><strong class="hl">Settings 页</strong> — API 配置、热键、Prompt、词典、场景管理</li>
+        <li><strong class="hl">Dashboard 页</strong> — 统计卡片、延迟折线图、日使用量柱状图</li>
+      </ul>
+    </div>
+    <div>
+      <ul>
+        <li><strong class="hl">Overlay 浮层</strong> — 底部常驻、状态指示、进度条、录音计时</li>
+        <li><strong class="hl">OnboardingWizard</strong> — 4 步首次引导向导</li>
+        <li><strong class="hl">TabSidebar</strong> + <strong>Toast</strong> — 导航与通知</li>
+        <li><strong class="hl">ui/</strong> — Button、Card、Input 等原子组件封装</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 06 · 核心工作流 ==================== -->
+<div class="section">
+  <div class="section-title"><span class="num">06</span> 工作流详解</div>
+
+  <p>一次完整口述的全流程：</p>
+
+  <pre>
+┌─ 用户按热键 ───────────────────────────────┐
+│                                              │
+│  ① AudioRecorder.start() → arecord pipe     │
+│     ● 同时 fire-and-forget 预热 ASR/LLM 连接  │
+│     ● RingBuffer 累积 PCM 数据（流式 ASR 用）  │
+│     ● 可选 VAD 静音检测，overlay 显示倒计时    │
+│                                              │
+├─ 用户再次按热键 / VAD 自动停止 ──────────────┤
+│                                              │
+│  ② ASRClient.transcribe() → Mimo API         │
+│     ● base64 编码 WAV → multipart 请求       │
+│     ● 指数退避重试（timeout/429/5xx）        │
+│     ● 输出：原始文本                         │
+│                                              │
+│  ③ DictionaryManager 查询                    │
+│     ● 按当前场景配置过滤词典条目              │
+│     ● LLM prompt 注入词典映射                │
+│                                              │
+│  ④ PolishClient.polish() → LLM               │
+│     ● prompt_template + 原始文本 + 词典      │
+│     ● 去掉"嗯""那个"，加标点，修正识别        │
+│     ● 默认模型：opencode-go/deepseek-v4-flash │
+│                                              │
+│  ⑤ TextInjector.inject() → 聚焦窗口          │
+│     ● 保存当前剪贴板内容                     │
+│     ● xdotool type 注入 / 剪贴板粘贴         │
+│     ● 成功 → 恢复剪贴板；失败 → 保留文本    │
+│                                              │
+│  ⑥ HistoryStore 写入 + 音频清理              │
+│     ● 成功 → 删录音文件                      │
+│     ● 失败 → 保留录音 + 记录 error_type      │
+│                                              │
+└──────────────────────────────────────────────┘</pre>
+
+  <div class="callout">
+    <p><strong>关于流式 ASR (Phase 13 🚧)：</strong>目前是"录完再识别"的批处理模式。正在进行流式改造——录音期间后台切片（3s 切片，1s 重叠）并发 ASR，实时广播部分结果到 overlay 预览区，结束时长后缀合并送 LLM 润色。</p>
+  </div>
+</div>
+
+<!-- ==================== 07 · 开发阶段 ==================== -->
+<div class="section">
+  <div class="section-title"><span class="num">07</span> 开发里程碑 <span class="tag tag-green tag">11 ✅ · 1 🚧</span></div>
+
+  <p>当前里程碑 <strong class="hl">v1.2 Speed & Reliability</strong>，聚焦速度与可靠性：</p>
+
+  <div class="timeline">
+    <div class="tl-item done">
+      <span class="tl-tag done">Phase 0</span>
+      <div class="tl-label">项目骨架 · 工程规则 · 测试基础设施</div>
+      <div class="tl-desc">CLAUD.md · AGENTS.md · docs · pytest · vitest · 代码格式化</div>
+    </div>
+    <div class="tl-item done">
+      <span class="tl-tag done">Phase 1</span>
+      <div class="tl-label">Bug Fix Sprint</div>
+      <div class="tl-desc">Overlay sidebar · visibility · corner bleed · dictionary 修复</div>
+    </div>
+    <div class="tl-item done">
+      <span class="tl-tag done">Phase 2</span>
+      <div class="tl-label">Frontend 重构</div>
+      <div class="tl-desc">SettingsPage 拆分 · 死代码清理 · PhaseIndicator 优化</div>
+    </div>
+    <div class="tl-item done">
+      <span class="tl-tag done">Phase 6</span>
+      <div class="tl-label">核心配置 & UX</div>
+      <div class="tl-desc">ASR 语言选择 · VAD 静音检测开关 · 级别轮询优化</div>
+    </div>
+    <div class="tl-item done">
+      <span class="tl-tag done">Phase 7</span>
+      <div class="tl-label">历史记录 & 浮层美化</div>
+      <div class="tl-desc">复制/导出 · 词典统计 · 连续进度条</div>
+    </div>
+    <div class="tl-item done">
+      <span class="tl-tag done">Phase 8</span>
+      <div class="tl-label">Overlay 美化 + 引导向导</div>
+      <div class="tl-desc">真 0→100% 进度条 · 4 步 OnboardingWizard · 广播时序修复</div>
+    </div>
+    <div class="tl-item done">
+      <span class="tl-tag done">Phase 9</span>
+      <div class="tl-label">场景配置文件</div>
+      <div class="tl-desc">5 预设 · CRUD · 管道集成 · Tray 快速切换</div>
+    </div>
+    <div class="tl-item done">
+      <span class="tl-tag done">Phase 10</span>
+      <div class="tl-label">历史记录重设计</div>
+      <div class="tl-desc">预览 · diff 视图 · 搜索 API</div>
+    </div>
+    <div class="tl-item done">
+      <span class="tl-tag done">Phase 11</span>
+      <div class="tl-label">Dashboard + 统计</div>
+      <div class="tl-desc">延迟图表 · 统计 API · 时段选择器</div>
+    </div>
+    <div class="tl-item done">
+      <span class="tl-tag done">Phase 12</span>
+      <div class="tl-label">剪贴板保存/恢复/回退</div>
+      <div class="tl-desc">ClipboardManager · inject_with_fallback · 注入失败保留文本</div>
+    </div>
+    <div class="tl-item done">
+      <span class="tl-tag done">Phase 14</span>
+      <div class="tl-label">连接预热</div>
+      <div class="tl-desc">ASR/LLM 探针 · fire-and-forget · 录制开始时预热</div>
+    </div>
+    <div class="tl-item active">
+      <span class="tl-tag active">Phase 13 🚧</span>
+      <div class="tl-label">伪流式 ASR</div>
+      <div class="tl-desc">RingBuffer ✅ · TranscriptMerger ✅ · 切片调度 🚧 · 并发 ASR 🚧 · Overlay 预览 🚧</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 08 · 工程质量 ==================== -->
+<div class="section">
+  <div class="section-title"><span class="num">08</span> 工程质量</div>
+
+  <div class="metrics">
+    <div class="metric">
+      <div class="val">22</div>
+      <div class="lbl">后端模块文件<br><span class="text-muted" style="font-size:0.65rem;">含 13 核心</span></div>
+    </div>
+    <div class="metric">
+      <div class="val">19</div>
+      <div class="lbl">测试文件<br><span class="text-muted" style="font-size:0.65rem;">16 后端 + 3 前端</span></div>
+    </div>
+    <div class="metric">
+      <div class="val">TDD</div>
+      <div class="lbl">先测试后代码<br><span class="text-muted" style="font-size:0.65rem;">pytest + vitest</span></div>
+    </div>
+    <div class="metric">
+      <div class="val">10</div>
+      <div class="lbl">阶段完成<br><span class="text-muted" style="font-size:0.65rem;">1 进行中</span></div>
+    </div>
+  </div>
+
+  <p>工程实践一览：</p>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:22%;">实践</th>
+        <th>说明</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>TDD-first</strong></td>
+        <td>非 trivial 行为先写测试，再实现。Cloud API 默认 mock（respx），真实调用标记 <code>@pytest.mark.real_api</code></td>
+      </tr>
+      <tr>
+        <td><strong>结构化日志</strong></td>
+        <td>JSONL 格式，<code>session_id</code> 贯穿全流程，每个 API 调用记录 start/success/failure/duration</td>
+      </tr>
+      <tr>
+        <td><strong>脱敏规则</strong></td>
+        <td>不记录 API key、auth header、原始 base64 音频、完整成功转录文本</td>
+      </tr>
+      <tr>
+        <td><strong>模块边界</strong></td>
+        <td><code>docs/modules.md</code> 明确定义每个模块的职责与"不允许做的事"，评审时对照</td>
+      </tr>
+      <tr>
+        <td><strong>Git 规范</strong></td>
+        <td>分支命名 <code>phase-N-short-desc</code>，提交前缀 <code>phase-N:</code></td>
+      </tr>
+      <tr>
+        <td><strong>Linting</strong></td>
+        <td>Ruff（pyproject.toml 配置），行宽 100，Google docstring 风格</td>
+      </tr>
+      <tr>
+        <td><strong>打包</strong></td>
+        <td>AppImage + tar.gz，<code>electron-builder</code> + <code>uv sync</code></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ==================== 09 · 关键设计决策 ==================== -->
+<div class="section">
+  <div class="section-title"><span class="num">09</span> 设计决策</div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:26%;">决策</th>
+        <th>选择</th>
+        <th>理由</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>录音方式</td>
+        <td>arecord pipe mode</td>
+        <td>零额外依赖，ALSA 内建，pipe 支持流式处理</td>
+      </tr>
+      <tr>
+        <td>ASR 提供商</td>
+        <td>Mimo API（OpenAI 兼容）</td>
+        <td>可替换，环境变量切换 base_url</td>
+      </tr>
+      <tr>
+        <td>默认 LLM</td>
+        <td>opencode-go/deepseek-v4-flash</td>
+        <td>快且便宜，可替换</td>
+      </tr>
+      <tr>
+        <td>文本注入</td>
+        <td>xdotool type + 剪贴板回退</td>
+        <td>兼容性好，Terminal 也可用</td>
+      </tr>
+      <tr>
+        <td>API 密钥</td>
+        <td>Linux Secret Service</td>
+        <td>系统级加密存储，不在配置文件明文</td>
+      </tr>
+      <tr>
+        <td>词典匹配</td>
+        <td>全量传入 LLM，不做本地模糊匹配</td>
+        <td>简化实现，LLM 上下文理解更准确</td>
+      </tr>
+      <tr>
+        <td>场景管理</td>
+        <td>DB 多场景配置 + Tray 切换</td>
+        <td>用户按场景切换 prompt/词典，无需反复配置</td>
+      </tr>
+      <tr>
+        <td>架构边界</td>
+        <td>Electron 不碰 ASR/润色逻辑</td>
+        <td>模块清晰，后端可独立测试</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ==================== 10 · 项目结构 ==================== -->
+<div class="section">
+  <div class="section-title"><span class="num">10</span> 目录结构</div>
+
+  <pre>
+asr_linux/
+├── src/
+│   ├── backend/          # Python 后端 (22 文件)
+│   │   ├── main.py          # FastAPI 入口 + 路由
+│   │   ├── dictation_orchestrator.py  # 口述状态机
+│   │   ├── audio_recorder.py    # ALSA 录音
+│   │   ├── asr_client.py        # ASR API 客户端
+│   │   ├── polish_client.py     # LLM 润色客户端
+│   │   ├── text_injector.py     # 文本注入
+│   │   ├── clipboard_manager.py # 剪贴板管理
+│   │   ├── history_store.py     # 历史记录
+│   │   ├── dictionary_manager.py # 词典管理
+│   │   ├── prompt_manager.py    # Prompt 管理
+│   │   ├── profile_manager.py   # 场景配置
+│   │   ├── ring_buffer.py       # PCM 环形缓冲区
+│   │   ├── transcript_merger.py # 转录合并
+│   │   └── ... (config, database, logging, etc.)
+│   └── electron/
+│       ├── main/           # Electron 主进程
+│       ├── preload/        # IPC 桥接
+│       └── renderer/       # React UI (4 页 + Overlay)
+├── tests/
+│   ├── backend/            # 16 个测试文件
+│   └── electron/           # 3 个测试文件
+├── docs/                   # 9 个设计文档
+├── .planning/              # GSD 工作流 (ROADMAP/STATE/REQUIREMENTS)
+├── assets/                 # 图标
+├── scripts/                # 工具脚本
+├── pyproject.toml          # Python 配置
+├── package.json            # Node 配置
+└── CLAUDE.md               # AI 编码规则</pre>
+</div>
+
+<!-- ==================== CONCLUSION ==================== -->
+<div class="conclusion">
+  <h3>📊 项目状态总结</h3>
+  <p>
+    <strong>v0.2.0</strong> · 11 个阶段完成，1 个阶段进行中。后端 22 个模块全量就位，前端 4 页面 + Overlay 全量交付。当前聚焦 <strong>Phase 13 流式 ASR</strong> —— 录音期间实时显示部分识别结果，进一步提升用户体验。整个项目采用 <strong>TDD-first + 结构化日志 + 模块边界约束</strong> 的工程方法论，可测、可维护、可扩展。
+  </p>
+  <p style="margin-top:8px;color:var(--gray-400);">
+    核心工作流已稳：热键 → 录音 → ASR → LLM 润色 → 智能注入。接下来让它在录制中就开始"边听边出字"。
+  </p>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  ASR Linux · 构建于上海 · <span class="text-muted">文档生成于 Kami 纸</span>
+</div>
+
+</div>
+</body>
+</html>

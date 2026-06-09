@@ -18,9 +18,9 @@ def setup(
     """Initialize DB and disable auth for export tests."""
     monkeypatch.setenv("ASR_LINUX_SECRET_TOKEN", "")
     monkeypatch.setenv("ASR_LINUX_DATA_DIR", str(tmp_path))
-    from backend.database import init_database
-
     import asyncio
+
+    from backend.database import init_database
 
     asyncio.run(init_database())
     monkeypatch.setattr(main, "_user_config", UserConfig())
@@ -36,14 +36,14 @@ class TestHistoryExport:
     ) -> None:
         """Export returns txt format with timestamp and text per line."""
         # Seed data
-        s1 = await create_session("session-001")
+        await create_session("session-001")
         await update_session(
             "session-001",
             status="completed",
             raw_text="hello world",
             polished_text="Hello world.",
         )
-        s2 = await create_session("session-002")
+        await create_session("session-002")
         await update_session(
             "session-002",
             status="failed",
@@ -72,7 +72,7 @@ class TestHistoryExport:
         client: AsyncClient,
     ) -> None:
         """Export returns md format with structured fields."""
-        s1 = await create_session("session-003")
+        await create_session("session-003")
         await update_session(
             "session-003",
             status="completed",

@@ -65,7 +65,7 @@ def _pinyin_sequence_match(
     allowed = 0 if n == 1 else max_mismatches
     for i in range(t_len - n + 1):
         window = transcript_pinyin[i : i + n]
-        mismatches = sum(1 for a, b in zip(window, term_pinyin) if a != b)
+        mismatches = sum(1 for a, b in zip(window, term_pinyin, strict=False) if a != b)
         if mismatches <= allowed:
             return True
     return False

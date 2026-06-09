@@ -283,8 +283,8 @@ class TestDashboardStats:
         """Set up a fresh database with sample history records."""
         monkeypatch.setenv("ASR_LINUX_SECRET_TOKEN", "")
         monkeypatch.setenv("ASR_LINUX_DATA_DIR", str(tmp_path))
-        from backend.database import init_database, get_db_path
         from backend import sqlite_async
+        from backend.database import get_db_path, init_database
 
         await init_database()
         db_path = get_db_path()
@@ -304,7 +304,7 @@ class TestDashboardStats:
             from datetime import datetime, timedelta
 
             now = datetime.now()
-            for i, (sid, raw, polished, status, timing, asr, polish) in enumerate(records):
+            for _i, (sid, raw, polished, status, timing, asr, polish) in enumerate(records):
                 if sid.startswith("sess-y"):
                     # Guarantee yesterday: 36 hours ago
                     ts = now - timedelta(hours=36)
@@ -314,9 +314,10 @@ class TestDashboardStats:
                     ts = now
 
                 await db.execute(
-                    """INSERT INTO history (session_id, raw_text, polished_text, status, timing_ms, asr_ms, polish_ms, created_at)
+                    """INSERT INTO history
+                       (session_id, raw_text, polished_text, status, timing_ms, asr_ms, polish_ms, created_at)
                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                    (sid, raw, polished, status, timing, asr, polish, ts.isoformat()),
+                   (sid, raw, polished, status, timing, asr, polish, ts.isoformat()),
                 )
             await db.commit()
 
