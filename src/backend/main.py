@@ -20,7 +20,7 @@ from fastapi import (
 )
 
 from backend import autostart as autostart_module
-from backend import sqlite_async
+from backend import model_manager, sqlite_async
 from backend.asr_client import ASRClient
 from backend.audio_recorder import AudioRecorder
 from backend.config import Settings
@@ -36,6 +36,7 @@ from backend.dictionary_manager import (
     update_entry,
 )
 from backend.history_store import get_session, list_sessions, search_sessions
+from backend.local_asr_client import LocalASRClient
 from backend.logging_config import configure_logging, get_logger
 from backend.polish_client import PolishClient
 from backend.profile_manager import (
@@ -158,6 +159,8 @@ def get_orchestrator() -> DictationOrchestrator:
         active_llm_key,
         cfg.asr_base_url,
         cfg.asr_model,
+        cfg.asr_engine,
+        cfg.local_model_size,
         cfg.llm_enabled,
         cfg.llm_base_url,
         cfg.llm_model,
@@ -167,11 +170,24 @@ def get_orchestrator() -> DictationOrchestrator:
 
     # Recreate if this is the first call or any config changed
     if _orchestrator is None or config_fingerprint != old_fingerprint:
-        asr = ASRClient(
-            api_key=active_asr_key,
-            base_url=cfg.asr_base_url,
-            model=cfg.asr_model,
-        )
+        if cfg.asr_engine == "local":
+            model_path = model_manager.get_model_path(
+                cfg.local_model_size, Settings().data_dir
+            )
+            if model_path is None:
+                model_path = str(
+                    Settings().data_dir / "models" / f"ggml-{cfg.local_model_size}.bin"
+            )
+            asr: ASRClient | LocalASRClient = LocalASRClient(
+                model_path=model_path,
+                model_size=cfg.local_model_size,
+            )
+        else:
+            asr = ASRClient(
+                api_key=active_asr_key,
+                base_url=cfg.asr_base_url,
+                model=cfg.asr_model,
+            )
         polish = PolishClient(
             api_key=active_llm_key,
             base_url=cfg.llm_base_url,
@@ -276,6 +292,8 @@ async def get_config(
         "vad_enabled": cfg.vad_enabled,
         "onboarding_completed": cfg.onboarding_completed,
         "theme": cfg.theme,
+        "asr_engine": cfg.asr_engine,
+        "local_model_size": cfg.local_model_size,
         "silence_threshold": Settings().silence_threshold,
         "silence_duration_ms": Settings().silence_duration_ms,
     }
@@ -329,6 +347,11 @@ async def set_config(
             )
         cfg.theme = theme
 
+    if "asr_engine" in data:
+        cfg.asr_engine = data["asr_engine"] or cfg.asr_engine
+    if "local_model_size" in data:
+        cfg.local_model_size = data["local_model_size"] or cfg.local_model_size
+
     _user_config = cfg
     await save_user_config(cfg)
 
@@ -341,6 +364,8 @@ async def set_config(
         "llm_enabled": cfg.llm_enabled,
         "llm_base_url": cfg.llm_base_url,
         "llm_model": cfg.llm_model,
+        "asr_engine": cfg.asr_engine,
+        "local_model_size": cfg.local_model_size,
         "hotkey": cfg.hotkey,
         "ui_language": cfg.ui_language,
         "asr_language": cfg.asr_language,
@@ -348,6 +373,51 @@ async def set_config(
         "onboarding_completed": cfg.onboarding_completed,
         "theme": cfg.theme,
     }
+
+
+# ---------------------------------------------------------------------------
+# Model management routes
+# ---------------------------------------------------------------------------
+
+
+@app.get("/models")
+async def list_models(
+    _: Annotated[None, Depends(verify_token)],
+) -> dict:
+    """List available models and their download status."""
+    available = model_manager.list_available_models()
+    downloaded = model_manager.list_downloaded_models(Settings().data_dir)
+    return {
+        "available": available,
+        "downloaded": [m._asdict() for m in downloaded],
+    }
+
+
+@app.post("/models/download")
+async def download_model(
+    data: dict,
+    _: Annotated[None, Depends(verify_token)],
+) -> dict:
+    """Download a Whisper model."""
+    name = data.get("name", "")
+    try:
+        path = await model_manager.download_model(name, Settings().data_dir)
+        return {"status": "ok", "path": str(path)}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except RuntimeError as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+
+
+@app.post("/models/delete")
+async def delete_model(
+    data: dict,
+    _: Annotated[None, Depends(verify_token)],
+) -> dict:
+    """Delete a downloaded model."""
+    name = data.get("name", "")
+    deleted = model_manager.delete_model(name, Settings().data_dir)
+    return {"status": "deleted" if deleted else "not_found"}
 
 
 @app.get("/health")

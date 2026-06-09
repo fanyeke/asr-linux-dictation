@@ -19,6 +19,8 @@ class UserConfig:
     asr_api_key: str | None = None
     asr_base_url: str = "https://token-plan-cn.xiaomimimo.com/v1"
     asr_model: str = "mimo-v2.5-asr"
+    asr_engine: str = "cloud"  # "cloud" or "local"
+    local_model_size: str = "small"  # "tiny", "base", "small", "medium"
     llm_api_key: str | None = None
     llm_enabled: bool = True
     llm_base_url: str = "https://api.openai.com/v1"
@@ -35,6 +37,8 @@ class UserConfig:
             "asr_api_key": self.asr_api_key,
             "asr_base_url": self.asr_base_url,
             "asr_model": self.asr_model,
+            "asr_engine": self.asr_engine,
+            "local_model_size": self.local_model_size,
             "llm_api_key": self.llm_api_key,
             "llm_enabled": self.llm_enabled,
             "llm_base_url": self.llm_base_url,
@@ -54,6 +58,8 @@ class UserConfig:
             asr_api_key=data.get("asr_api_key") or legacy_key,
             asr_base_url=data.get("asr_base_url", cls.asr_base_url),
             asr_model=data.get("asr_model", cls.asr_model),
+            asr_engine=data.get("asr_engine", cls.asr_engine),
+            local_model_size=data.get("local_model_size", cls.local_model_size),
             llm_api_key=data.get("llm_api_key") or None,
             llm_enabled=data.get("llm_enabled", cls.llm_enabled),
             llm_base_url=data.get("llm_base_url", cls.llm_base_url),
@@ -78,7 +84,8 @@ async def load_user_config() -> UserConfig:
         cursor = await db.execute(
             "SELECT api_key, asr_api_key, asr_base_url, asr_model, "
             "llm_api_key, llm_enabled, llm_base_url, llm_model, hotkey, "
-            "ui_language, asr_language, vad_enabled, onboarding_completed, theme "
+            "ui_language, asr_language, vad_enabled, onboarding_completed, theme, "
+            "asr_engine, local_model_size "
             "FROM user_config WHERE id = 1"
         )
         row = await cursor.fetchone()
@@ -100,6 +107,8 @@ async def load_user_config() -> UserConfig:
                 vad_enabled=bool(row[11]) if row[11] is not None else UserConfig.vad_enabled,
                 onboarding_completed=bool(row[12]) if row[12] is not None else UserConfig.onboarding_completed,
                 theme=row[13] or UserConfig.theme,
+                asr_engine=row[14] or UserConfig.asr_engine,
+                local_model_size=row[15] or UserConfig.local_model_size,
             )
 
         asr_secret = await load_secret(ASR_SECRET_NAME)
@@ -140,6 +149,8 @@ async def save_user_config(config: UserConfig) -> None:
                 vad_enabled = ?,
                 onboarding_completed = ?,
                 theme = ?,
+                asr_engine = ?,
+                local_model_size = ?,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = 1
             """,
@@ -158,6 +169,8 @@ async def save_user_config(config: UserConfig) -> None:
                 1 if config.vad_enabled else 0,
                 1 if config.onboarding_completed else 0,
                 config.theme,
+                config.asr_engine,
+                config.local_model_size,
             ),
         )
         await db.commit()
