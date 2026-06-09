@@ -11,3 +11,5 @@ __pycache__/
 *.log
 squashfs-root/
 .codegraph/
+docs/面试/
+graphify-out/
