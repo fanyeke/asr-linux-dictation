@@ -267,4 +267,21 @@ async def init_database() -> None:
                 "ALTER TABLE user_config ADD COLUMN local_model_size TEXT DEFAULT 'small'"
             )
 
+        # Migration: add voice_commands table
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS voice_commands (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                keywords TEXT NOT NULL,
+                action_type TEXT NOT NULL,
+                action_params TEXT,
+                description TEXT,
+                enabled INTEGER DEFAULT 1,
+                builtin INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+
         await db.commit()

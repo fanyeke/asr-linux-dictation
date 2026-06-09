@@ -7,6 +7,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from backend.asr_client import ASRClient, ASRError
+from backend.voice_command import match_command, execute_command
 from backend.dictionary_manager import (
     count_matches_in_text,
     list_entries,
@@ -102,6 +103,29 @@ class DictationOrchestrator:
             )
 
         await update_session(session_id, raw_text=raw_text)
+
+        # ---- Voice Command Routing -------------------------------------------
+        keyword, cmd, _ = match_command(raw_text)
+        if cmd:
+            total_ms = int((time.monotonic() - pipeline_start) * 1000)
+            logger.info(
+                "voice_command_executed",
+                session_id=session_id,
+                command=keyword,
+            )
+            await execute_command(cmd)
+            await self._broadcast(
+                session_id, "completed",
+                raw_text=raw_text,
+                command=keyword,
+            )
+            return await update_session(
+                session_id,
+                status="completed",
+                raw_text=raw_text,
+                polished_text=raw_text,
+                timing_ms=total_ms,
+            )
 
         if self.polish_enabled:
             # ---- Prompt + Dictionary -------------------------------------------

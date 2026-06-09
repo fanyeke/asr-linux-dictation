@@ -420,6 +420,15 @@ async def delete_model(
     return {"status": "deleted" if deleted else "not_found"}
 
 
+@app.get("/voice-commands")
+async def list_voice_commands(
+    _: Annotated[None, Depends(verify_token)],
+) -> dict:
+    """List available voice commands."""
+    from backend.voice_command import BUILTIN_COMMANDS
+    return {"commands": BUILTIN_COMMANDS}
+
+
 @app.get("/health")
 async def health() -> dict:
     """Health check endpoint."""
