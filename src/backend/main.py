@@ -58,6 +58,12 @@ from backend.profile_manager import (
 )
 from backend.prompt_manager import list_prompts
 from backend.text_injector import TextInjector
+from backend.voice_shortcuts import (
+    create_shortcut,
+    delete_shortcut,
+    list_shortcuts,
+    update_shortcut,
+)
 
 # Store active WebSocket connections
 _ws_connections: list[WebSocket] = []
@@ -428,6 +434,71 @@ async def list_voice_commands(
     from backend.voice_command import BUILTIN_COMMANDS
 
     return {"commands": BUILTIN_COMMANDS}
+
+
+@app.get("/voice-shortcuts")
+async def get_voice_shortcuts(
+    _: Annotated[None, Depends(verify_token)],
+) -> list[dict]:
+    """List all user-defined voice shortcuts."""
+    return await list_shortcuts()
+
+
+@app.post("/voice-shortcuts")
+async def create_voice_shortcut(
+    data: dict,
+    _: Annotated[None, Depends(verify_token)],
+) -> dict:
+    """Create a new voice shortcut.
+
+    Request body:
+        ``{"keywords": ["trigger"], "action_type": "shell", "action_params": {"command": "..."}, "description": "..."}``
+    """
+    keywords = data.get("keywords", [])
+    action_type = data.get("action_type", "")
+    if not keywords or not action_type:
+        raise HTTPException(status_code=400, detail="keywords and action_type are required")
+    try:
+        return await create_shortcut(
+            keywords=keywords,
+            action_type=action_type,
+            action_params=data.get("action_params"),
+            description=data.get("description", ""),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@app.put("/voice-shortcuts/{shortcut_id}")
+async def update_voice_shortcut(
+    shortcut_id: int,
+    data: dict,
+    _: Annotated[None, Depends(verify_token)],
+) -> dict:
+    """Update an existing voice shortcut."""
+    result = await update_shortcut(
+        shortcut_id,
+        keywords=data.get("keywords"),
+        action_type=data.get("action_type"),
+        action_params=data.get("action_params"),
+        description=data.get("description"),
+        enabled=data.get("enabled"),
+    )
+    if result is None:
+        raise HTTPException(status_code=404, detail="Shortcut not found or is built-in")
+    return result
+
+
+@app.delete("/voice-shortcuts/{shortcut_id}")
+async def delete_voice_shortcut(
+    shortcut_id: int,
+    _: Annotated[None, Depends(verify_token)],
+) -> dict:
+    """Delete a voice shortcut."""
+    deleted = await delete_shortcut(shortcut_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Shortcut not found or is built-in")
+    return {"status": "deleted"}
 
 
 @app.get("/health")

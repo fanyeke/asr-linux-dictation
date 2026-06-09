@@ -173,7 +173,7 @@ async def execute_command(command: dict) -> dict:
     action_type = command["action_type"]
     params = command.get("action_params", {})
 
-    if action_type not in ("keyboard", "keyboard_seq", "launch"):
+    if action_type not in ("keyboard", "keyboard_seq", "launch", "shell", "http"):
         raise ValueError(f"Unknown action_type: {action_type}")
 
     try:
@@ -197,6 +197,49 @@ async def execute_command(command: dict) -> dict:
             )
             await proc.wait()
             return {"success": True, "message": f"Launched: {cmd}"}
+
+        elif action_type == "shell":
+            shell_cmd = params.get("command", "")
+            if not shell_cmd:
+                return {"success": False, "message": "Shell command is empty"}
+            proc = await asyncio.create_subprocess_shell(
+                shell_cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=params.get("timeout", 30))
+            if proc.returncode == 0:
+                stdout_text = stdout.decode("utf-8", errors="replace")
+                return {
+                    "success": True,
+                    "message": "Shell command succeeded",
+                    "stdout": stdout_text,
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": f"Shell command exited with code {proc.returncode}",
+                    "stderr": stderr.decode("utf-8", errors="replace"),
+                }
+
+        elif action_type == "http":
+            import httpx
+
+            method = params.get("method", "GET").upper()
+            url = params.get("url", "")
+            if not url:
+                return {"success": False, "message": "URL is required for HTTP action"}
+            headers = params.get("headers", {})
+            body = params.get("body")
+            timeout = params.get("timeout", 10)
+
+            async with httpx.AsyncClient(timeout=httpx.Timeout(float(timeout))) as client:
+                response = await client.request(method, url, headers=headers, json=body)
+            return {
+                "success": 200 <= response.status_code < 300,
+                "message": f"HTTP {method} {url} → {response.status_code}",
+                "status_code": response.status_code,
+            }
 
     except Exception as exc:
         logger.error("command_execution_failed: action_type=%s, error=%s", action_type, str(exc))

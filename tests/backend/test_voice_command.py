@@ -177,3 +177,53 @@ class TestExecuteCommand:
 
         assert result["success"] is False
         assert "xdotool" in result["message"]
+
+    @pytest.mark.asyncio
+    async def test_shell_action_success(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Shell command that succeeds returns success and stdout."""
+        import asyncio
+
+        async def mock_create_subprocess_shell(*args, **kwargs):
+            proc = await asyncio.create_subprocess_exec(
+                "echo",
+                "hello",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            return proc
+
+        monkeypatch.setattr("asyncio.create_subprocess_shell", mock_create_subprocess_shell)
+
+        result = await execute_command(
+            {
+                "action_type": "shell",
+                "action_params": {"command": "echo hello", "timeout": 5},
+            }
+        )
+
+        assert result["success"] is True
+        assert "Shell command succeeded" in result["message"]
+
+    @pytest.mark.asyncio
+    async def test_shell_action_empty_command(self) -> None:
+        """Shell command with empty command returns failure."""
+        result = await execute_command(
+            {
+                "action_type": "shell",
+                "action_params": {},
+            }
+        )
+        assert result["success"] is False
+        assert "empty" in result["message"]
+
+    @pytest.mark.asyncio
+    async def test_http_action_missing_url(self) -> None:
+        """HTTP action without url returns failure."""
+        result = await execute_command(
+            {
+                "action_type": "http",
+                "action_params": {"method": "GET"},
+            }
+        )
+        assert result["success"] is False
+        assert "URL" in result["message"]

@@ -384,3 +384,137 @@ class TestDashboardStats:
         """Invalid range parameter returns 422."""
         response = await client.get("/dashboard/stats?range=invalid")
         assert response.status_code == 422
+
+
+class TestVoiceShortcutsAPI:
+    """Tests for voice-shortcuts API routes."""
+
+    @pytest.fixture(autouse=True)
+    async def _setup_db(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Set up a fresh database with no token."""
+        monkeypatch.setenv("ASR_LINUX_SECRET_TOKEN", "")
+        monkeypatch.setenv("ASR_LINUX_DATA_DIR", str(tmp_path))
+        from backend.database import init_database
+
+        await init_database()
+
+    @pytest.mark.asyncio
+    async def test_list_voice_shortcuts_empty(self, client: AsyncClient) -> None:
+        """GET /voice-shortcuts returns empty list initially."""
+        response = await client.get("/voice-shortcuts")
+        assert response.status_code == 200
+        assert response.json() == []
+
+    @pytest.mark.asyncio
+    async def test_create_voice_shortcut(self, client: AsyncClient) -> None:
+        """POST /voice-shortcuts creates and returns a shortcut."""
+        response = await client.post(
+            "/voice-shortcuts",
+            json={
+                "keywords": ["提交代码"],
+                "action_type": "shell",
+                "action_params": {"command": "git push"},
+                "description": "一键推送",
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["keywords"] == ["提交代码"]
+        assert data["action_type"] == "shell"
+        assert data["action_params"]["command"] == "git push"
+        assert data["id"] > 0
+
+    @pytest.mark.asyncio
+    async def test_create_shortcut_no_keywords(self, client: AsyncClient) -> None:
+        """POST /voice-shortcuts without keywords returns 400."""
+        response = await client.post(
+            "/voice-shortcuts",
+            json={"action_type": "shell"},
+        )
+        assert response.status_code == 400
+
+    @pytest.mark.asyncio
+    async def test_create_and_list_shortcuts(self, client: AsyncClient) -> None:
+        """After creation, GET returns the new shortcut in the list."""
+        await client.post(
+            "/voice-shortcuts",
+            json={
+                "keywords": ["cmd1"],
+                "action_type": "shell",
+                "action_params": {"command": "echo 1"},
+            },
+        )
+        await client.post(
+            "/voice-shortcuts",
+            json={
+                "keywords": ["cmd2"],
+                "action_type": "http",
+                "action_params": {"url": "http://localhost:8080/test"},
+            },
+        )
+        response = await client.get("/voice-shortcuts")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 2
+
+    @pytest.mark.asyncio
+    async def test_update_voice_shortcut(self, client: AsyncClient) -> None:
+        """PUT /voice-shortcuts/{id} updates the shortcut."""
+        created = await client.post(
+            "/voice-shortcuts",
+            json={
+                "keywords": ["old"],
+                "action_type": "shell",
+                "action_params": {"command": "echo old"},
+            },
+        )
+        sid = created.json()["id"]
+
+        response = await client.put(
+            f"/voice-shortcuts/{sid}",
+            json={"keywords": ["new"], "enabled": False},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["keywords"] == ["new"]
+        assert data["enabled"] is False
+
+    @pytest.mark.asyncio
+    async def test_update_shortcut_not_found(self, client: AsyncClient) -> None:
+        """PUT /voice-shortcuts/9999 returns 404."""
+        response = await client.put(
+            "/voice-shortcuts/9999",
+            json={"keywords": ["ghost"]},
+        )
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_delete_voice_shortcut(self, client: AsyncClient) -> None:
+        """DELETE /voice-shortcuts/{id} deletes the shortcut."""
+        created = await client.post(
+            "/voice-shortcuts",
+            json={
+                "keywords": ["delete-me"],
+                "action_type": "shell",
+                "action_params": {"command": "echo bye"},
+            },
+        )
+        sid = created.json()["id"]
+
+        delete_resp = await client.delete(f"/voice-shortcuts/{sid}")
+        assert delete_resp.status_code == 200
+        assert delete_resp.json()["status"] == "deleted"
+
+        # List should now be empty
+        list_resp = await client.get("/voice-shortcuts")
+        assert list_resp.json() == []
+
+    @pytest.mark.asyncio
+    async def test_delete_shortcut_not_found(self, client: AsyncClient) -> None:
+        """DELETE /voice-shortcuts/9999 returns 404."""
+        response = await client.delete("/voice-shortcuts/9999")
+        assert response.status_code == 404

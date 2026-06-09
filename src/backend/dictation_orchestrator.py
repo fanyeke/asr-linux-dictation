@@ -16,7 +16,8 @@ from backend.history_store import create_session, get_session, update_session
 from backend.logging_config import get_logger
 from backend.polish_client import PolishClient
 from backend.profile_manager import get_active_profile
-from backend.voice_command import execute_command, match_command
+from backend.voice_command import BUILTIN_COMMANDS, execute_command, match_command
+from backend.voice_shortcuts import load_user_commands
 
 logger = get_logger(__name__)
 
@@ -103,7 +104,11 @@ class DictationOrchestrator:
         await update_session(session_id, raw_text=raw_text)
 
         # ---- Voice Command Routing -------------------------------------------
-        keyword, cmd, _ = match_command(raw_text)
+        # Merge built-in and user-defined commands
+        user_commands = await load_user_commands()
+        all_commands = BUILTIN_COMMANDS + user_commands
+
+        keyword, cmd, _ = match_command(raw_text, all_commands)
         if cmd:
             total_ms = int((time.monotonic() - pipeline_start) * 1000)
             logger.info(
