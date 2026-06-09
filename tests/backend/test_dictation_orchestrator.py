@@ -151,6 +151,7 @@ class TestDictationOrchestrator:
             "hello world",
             "{text}",
             dictionary_entries=[],
+            detected_language="en",
         )
 
     # ----------------------------------------------------------------

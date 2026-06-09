@@ -7,7 +7,6 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from backend.asr_client import ASRClient, ASRError
-from backend.voice_command import match_command, execute_command
 from backend.dictionary_manager import (
     count_matches_in_text,
     list_entries,
@@ -17,6 +16,7 @@ from backend.history_store import create_session, get_session, update_session
 from backend.logging_config import get_logger
 from backend.polish_client import PolishClient
 from backend.profile_manager import get_active_profile
+from backend.voice_command import execute_command, match_command
 
 logger = get_logger(__name__)
 
@@ -127,6 +127,11 @@ class DictationOrchestrator:
                 timing_ms=total_ms,
             )
 
+        # ---- Language Detection -------------------------------------------
+        from backend.language_detector import detect_language
+        detected_lang = detect_language(raw_text)
+        logger.info("language_detected", session_id=session_id, language=detected_lang)
+
         if self.polish_enabled:
             # ---- Prompt + Dictionary -------------------------------------------
             active_profile = await get_active_profile()
@@ -163,7 +168,9 @@ class DictationOrchestrator:
             try:
                 polish_start = time.monotonic()
                 polished = await self.polish_client.polish(
-                    raw_text, prompt_template, dictionary_entries=mapped,
+                    raw_text, prompt_template,
+                    dictionary_entries=mapped,
+                    detected_language=detected_lang,
                 )
                 polish_ms = int((time.monotonic() - polish_start) * 1000)
                 logger.info("polish_completed", session_id=session_id,
@@ -262,6 +269,11 @@ class DictationOrchestrator:
         await update_session(session_id, status="transcribing", raw_text=raw_text)
         await self._broadcast(session_id, "transcribing", raw_text=raw_text)
 
+        # ---- Language Detection -------------------------------------------
+        from backend.language_detector import detect_language
+        detected_lang = detect_language(raw_text)
+        logger.info("language_detected", session_id=session_id, language=detected_lang)
+
         if self.polish_enabled:
             # ---- Prompt + Dictionary -------------------------------------------
             active_profile = await get_active_profile()
@@ -297,7 +309,9 @@ class DictationOrchestrator:
             try:
                 polish_start = time.monotonic()
                 polished = await self.polish_client.polish(
-                    raw_text, prompt_template, dictionary_entries=mapped,
+                    raw_text, prompt_template,
+                    dictionary_entries=mapped,
+                    detected_language=detected_lang,
                 )
                 polish_ms = int((time.monotonic() - polish_start) * 1000)
                 logger.info(
