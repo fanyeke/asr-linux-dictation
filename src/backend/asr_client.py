@@ -56,6 +56,7 @@ class ASRClient:
         self.model = model
         self._client = httpx.AsyncClient(timeout=httpx.Timeout(30.0))
         self._retry_policy = retry_policy or RetryPolicy()
+        self.supports_streaming: bool = False
 
     async def warmup(self) -> None:
         """Pre-warm the HTTP connection pool to the ASR API server.

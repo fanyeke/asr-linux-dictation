@@ -1180,9 +1180,10 @@ async def start_dictation(
     if _partial_broadcast_task is None:
         try:
             orch = get_orchestrator()
-            _partial_broadcast_task = asyncio.create_task(
-                _streaming_asr_loop(recorder, orch.asr_client),
-            )
+            if orch.asr_client.supports_streaming:
+                _partial_broadcast_task = asyncio.create_task(
+                    _streaming_asr_loop(recorder, orch.asr_client),
+                )
         except Exception:
             logger.debug("Failed to start streaming ASR loop (non-blocking)")
 

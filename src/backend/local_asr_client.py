@@ -59,6 +59,7 @@ class LocalASRClient:
         self._model_path = model_path
         self._model_size = model_size
         self._cli_path = _find_whisper_cli()
+        self.supports_streaming: bool = False  # Enable when --step streaming implemented
 
     async def warmup(self) -> None:
         """Pre-warm: just log that we're using local ASR (no-op)."""
