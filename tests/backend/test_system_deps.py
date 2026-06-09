@@ -34,6 +34,7 @@ class TestSystemDeps:
         assert "xsel" in names or "xclip" in names
         assert "wtype" in names
         assert "wl-copy" in names
+        assert "whisper-cli" in names
 
     @pytest.mark.asyncio
     async def test_deps_each_have_found_field(self, client: AsyncClient) -> None:

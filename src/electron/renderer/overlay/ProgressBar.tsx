@@ -139,9 +139,9 @@ export function ProgressBar({
       {partialText && (
         <div
           data-testid="partial-text"
-          className="mt-1 text-xs text-white/70 truncate max-w-full"
+          className="mt-1 text-xs text-white/70 max-w-full overflow-hidden whitespace-nowrap text-right"
         >
-          {partialText}
+          {partialText.length > 70 ? "…" + partialText.slice(-70) : partialText}
         </div>
       )}
     </div>

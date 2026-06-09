@@ -575,7 +575,7 @@ async def system_deps(
     Returns a list of ``{"name": str, "found": bool}`` for each
     required command-line tool.
     """
-    deps = ["arecord", "xdotool", "xsel", "xclip", "xprop", "wtype", "wl-copy"]
+    deps = ["arecord", "xdotool", "xsel", "xclip", "xprop", "wtype", "wl-copy", "whisper-cli"]
     results: list[dict] = []
     for dep in deps:
         found = shutil.which(dep) is not None
