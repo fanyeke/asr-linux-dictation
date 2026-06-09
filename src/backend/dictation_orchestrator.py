@@ -15,7 +15,7 @@ from backend.dictionary_manager import (
 from backend.history_store import create_session, get_session, update_session
 from backend.logging_config import get_logger
 from backend.polish_client import PolishClient
-from backend.profile_manager import get_active_profile
+from backend.profile_manager import get_active_profile, list_profiles
 from backend.voice_command import BUILTIN_COMMANDS, execute_command, match_command
 from backend.voice_shortcuts import load_user_commands
 
@@ -140,6 +140,21 @@ class DictationOrchestrator:
         if self.polish_enabled:
             # ---- Prompt + Dictionary -------------------------------------------
             active_profile = await get_active_profile()
+
+            # Auto-select profile based on focused window
+            if active_profile:
+                from backend.window_detector import detect_profile_for_focused_window
+
+                all_profiles = await list_profiles()
+                window_match = await detect_profile_for_focused_window(all_profiles)
+                if window_match and window_match["id"] != active_profile["id"]:
+                    logger.info(
+                        "auto_profile_switched",
+                        from_profile=active_profile["name"],
+                        to_profile=window_match["name"],
+                    )
+                    active_profile = window_match
+
             prompt_template = active_profile["prompt_template"] if active_profile else DEFAULT_PROMPT_TEMPLATE
 
             # Filter dictionary entries if profile specifies ids
@@ -280,6 +295,21 @@ class DictationOrchestrator:
         if self.polish_enabled:
             # ---- Prompt + Dictionary -------------------------------------------
             active_profile = await get_active_profile()
+
+            # Auto-select profile based on focused window
+            if active_profile:
+                from backend.window_detector import detect_profile_for_focused_window
+
+                all_profiles = await list_profiles()
+                window_match = await detect_profile_for_focused_window(all_profiles)
+                if window_match and window_match["id"] != active_profile["id"]:
+                    logger.info(
+                        "auto_profile_switched",
+                        from_profile=active_profile["name"],
+                        to_profile=window_match["name"],
+                    )
+                    active_profile = window_match
+
             prompt_template = active_profile["prompt_template"] if active_profile else DEFAULT_PROMPT_TEMPLATE
 
             entries = await list_entries()

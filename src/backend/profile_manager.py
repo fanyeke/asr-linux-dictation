@@ -73,7 +73,7 @@ BUILTIN_PROFILES: list[dict] = [
 
 
 def _row_to_dict(row: sqlite_async.Row) -> dict:
-    return {
+    result = {
         "id": row["id"],
         "name": row["name"],
         "prompt_template": row["prompt_template"],
@@ -82,6 +82,14 @@ def _row_to_dict(row: sqlite_async.Row) -> dict:
         "is_active": bool(row["is_active"]),
         "builtin": bool(row["builtin"]),
     }
+    # window_match columns may not exist if DB hasn't been migrated
+    try:
+        result["window_match"] = row["window_match"] or ""
+        result["window_match_field"] = row["window_match_field"] or "wm_class"
+    except (KeyError, IndexError):
+        result["window_match"] = ""
+        result["window_match_field"] = "wm_class"
+    return result
 
 
 async def seed_profiles() -> None:
@@ -100,6 +108,43 @@ async def seed_profiles() -> None:
             )
         # Activate the first profile
         await db.execute("UPDATE profiles SET is_active = 1 WHERE id = 1")
+        await db.commit()
+
+
+async def seed_window_matches() -> None:
+    """Update existing built-in profiles with window_match patterns.
+
+    Idempotent — only updates built-in profiles that have an empty
+    ``window_match`` field.
+    """
+    db_path = get_db_path()
+    async with sqlite_async.connect(db_path) as db:
+        # Update 编程 profile with code-editor patterns
+        cursor = await db.execute(
+            "SELECT id FROM profiles WHERE name = '编程' AND builtin = 1 "
+            "AND (window_match IS NULL OR window_match = '')"
+        )
+        row = await cursor.fetchone()
+        if row:
+            await db.execute(
+                "UPDATE profiles SET "
+                "window_match = 'code,code-oss,vscodium,jetbrains-*,sublime_text,neovide,vim,nvim,emacs*', "
+                "window_match_field = 'wm_class' WHERE id = ?",
+                (row[0],),
+            )
+
+        # Update 通用 profile as default fallback
+        cursor = await db.execute(
+            "SELECT id FROM profiles WHERE name = '通用' AND builtin = 1 "
+            "AND (window_match IS NULL OR window_match = '')"
+        )
+        row = await cursor.fetchone()
+        if row:
+            await db.execute(
+                "UPDATE profiles SET window_match = '', window_match_field = 'wm_class' WHERE id = ?",
+                (row[0],),
+            )
+
         await db.commit()
 
 
@@ -128,14 +173,18 @@ async def create_profile(
     prompt_template: str,
     dictionary_ids: str | None = None,
     asr_language: str = "auto",
+    window_match: str = "",
+    window_match_field: str = "wm_class",
 ) -> dict:
     """Create a new profile."""
     db_path = get_db_path()
     async with sqlite_async.connect(db_path) as db:
         db.row_factory = sqlite_async.Row
         cursor = await db.execute(
-            "INSERT INTO profiles (name, prompt_template, dictionary_ids, asr_language) VALUES (?, ?, ?, ?)",
-            (name, prompt_template, dictionary_ids, asr_language),
+            "INSERT INTO profiles (name, prompt_template, dictionary_ids, "
+            "asr_language, window_match, window_match_field) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (name, prompt_template, dictionary_ids, asr_language, window_match, window_match_field),
         )
         await db.commit()
         new_id = cursor.lastrowid
@@ -149,13 +198,15 @@ async def update_profile(
     prompt_template: str | None = None,
     dictionary_ids: str | None = None,
     asr_language: str | None = None,
+    window_match: str | None = None,
+    window_match_field: str | None = None,
 ) -> dict | None:
     """Update an existing profile. Returns None if not found."""
     db_path = get_db_path()
     async with sqlite_async.connect(db_path) as db:
         db.row_factory = sqlite_async.Row
 
-        # Check existence and builtin
+        # Check existence
         cursor = await db.execute("SELECT * FROM profiles WHERE id = ?", (profile_id,))
         existing = await cursor.fetchone()
         if not existing:
@@ -170,6 +221,10 @@ async def update_profile(
             updates["dictionary_ids"] = dictionary_ids
         if asr_language is not None:
             updates["asr_language"] = asr_language
+        if window_match is not None:
+            updates["window_match"] = window_match
+        if window_match_field is not None:
+            updates["window_match_field"] = window_match_field
 
         if updates:
             set_clause = ", ".join(f"{k} = ?" for k in updates)

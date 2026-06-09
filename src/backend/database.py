@@ -253,4 +253,12 @@ async def init_database() -> None:
             """
         )
 
+        # Migration: add window_match and window_match_field to profiles
+        cursor = await db.execute("PRAGMA table_info(profiles)")
+        profile_columns = [row[1] for row in await cursor.fetchall()]
+        if "window_match" not in profile_columns:
+            await db.execute("ALTER TABLE profiles ADD COLUMN window_match TEXT DEFAULT ''")
+        if "window_match_field" not in profile_columns:
+            await db.execute("ALTER TABLE profiles ADD COLUMN window_match_field TEXT DEFAULT 'wm_class'")
+
         await db.commit()

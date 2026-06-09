@@ -265,6 +265,11 @@ async def lifespan(app: FastAPI):
     from backend.profile_manager import seed_profiles
 
     await seed_profiles()
+    if not hasattr(app, "_window_matches_seeded"):
+        from backend.profile_manager import seed_window_matches as _seed_window_matches
+
+        await _seed_window_matches()
+        app._window_matches_seeded = True  # type: ignore[attr-defined]
     _user_config = await load_user_config()
     yield
 
@@ -947,6 +952,8 @@ async def profiles_create(
         prompt_template=data["prompt_template"],
         dictionary_ids=data.get("dictionary_ids"),
         asr_language=data.get("asr_language", "auto"),
+        window_match=data.get("window_match", ""),
+        window_match_field=data.get("window_match_field", "wm_class"),
     )
 
 
@@ -975,6 +982,8 @@ async def profiles_update(
         prompt_template=data.get("prompt_template"),
         dictionary_ids=data.get("dictionary_ids"),
         asr_language=data.get("asr_language"),
+        window_match=data.get("window_match"),
+        window_match_field=data.get("window_match_field"),
     )
     if profile is None:
         raise HTTPException(status_code=404, detail="Profile not found")
