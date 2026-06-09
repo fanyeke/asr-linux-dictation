@@ -261,4 +261,22 @@ async def init_database() -> None:
         if "window_match_field" not in profile_columns:
             await db.execute("ALTER TABLE profiles ADD COLUMN window_match_field TEXT DEFAULT 'wm_class'")
 
+        # Migration: add vocab_recommendations table (Phase 19)
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS vocab_recommendations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                raw_term TEXT NOT NULL,
+                polished_term TEXT NOT NULL,
+                frequency INTEGER DEFAULT 0,
+                confidence REAL DEFAULT 0.0,
+                edit_distance INTEGER DEFAULT 0,
+                status TEXT DEFAULT 'pending',
+                notes TEXT DEFAULT '',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+
         await db.commit()

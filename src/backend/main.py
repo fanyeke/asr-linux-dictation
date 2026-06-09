@@ -506,6 +506,69 @@ async def delete_voice_shortcut(
     return {"status": "deleted"}
 
 
+@app.get("/vocab/recommendations")
+async def get_vocab_recommendations(
+    _: Annotated[None, Depends(verify_token)],
+    status: str | None = None,
+) -> list[dict]:
+    """List vocabulary learning recommendations.
+
+    Query params:
+        status: Filter by status — ``"pending"``, ``"accepted"``,
+            ``"ignored"``, or omit for all.
+    """
+    from backend.vocab_learner import list_recommendations
+
+    return await list_recommendations(status=status)
+
+
+@app.post("/vocab/recommendations/scan")
+async def scan_vocab_recommendations(
+    _: Annotated[None, Depends(verify_token)],
+) -> dict:
+    """Scan history and generate new vocabulary recommendations."""
+    from backend.vocab_learner import generate_recommendations
+
+    new_recs = await generate_recommendations()
+    return {"generated": len(new_recs), "recommendations": new_recs}
+
+
+@app.post("/vocab/recommendations/{rec_id}/accept")
+async def accept_vocab_recommendation(
+    rec_id: int,
+    data: dict,
+    _: Annotated[None, Depends(verify_token)],
+) -> dict:
+    """Accept a recommendation and add it to the dictionary.
+
+    Request body (optional):
+        ``{"enforcement_level": "forced"}`` (default: ``"suggested"``)
+    """
+    from backend.vocab_learner import accept_recommendation
+
+    entry = await accept_recommendation(
+        rec_id,
+        enforcement_level=data.get("enforcement_level", "suggested"),
+    )
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Recommendation not found or already processed")
+    return entry
+
+
+@app.post("/vocab/recommendations/{rec_id}/ignore")
+async def ignore_vocab_recommendation(
+    rec_id: int,
+    _: Annotated[None, Depends(verify_token)],
+) -> dict:
+    """Ignore a vocabulary recommendation."""
+    from backend.vocab_learner import ignore_recommendation
+
+    deleted = await ignore_recommendation(rec_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Recommendation not found or already processed")
+    return {"status": "ignored"}
+
+
 @app.get("/health")
 async def health() -> dict:
     """Health check endpoint."""
