@@ -255,4 +255,16 @@ async def init_database() -> None:
         if "polish_ms" not in hist_columns:
             await db.execute("ALTER TABLE history ADD COLUMN polish_ms INTEGER")
 
+        # Migration: add asr_engine and local_model_size to user_config (Whisper local ASR)
+        cursor = await db.execute("PRAGMA table_info(user_config)")
+        config_columns = [row[1] for row in await cursor.fetchall()]
+        if "asr_engine" not in config_columns:
+            await db.execute(
+                "ALTER TABLE user_config ADD COLUMN asr_engine TEXT DEFAULT 'cloud'"
+            )
+        if "local_model_size" not in config_columns:
+            await db.execute(
+                "ALTER TABLE user_config ADD COLUMN local_model_size TEXT DEFAULT 'small'"
+            )
+
         await db.commit()
