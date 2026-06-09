@@ -19,6 +19,7 @@ from fastapi import (
     WebSocketDisconnect,
 )
 
+from backend import autostart as autostart_module
 from backend import sqlite_async
 from backend.asr_client import ASRClient
 from backend.audio_recorder import AudioRecorder
@@ -1211,3 +1212,31 @@ async def broadcast_event(
             _ws_connections.remove(ws)
 
     return {"status": "broadcasted", "clients": len(_ws_connections)}
+
+
+# ---------------------------------------------------------------------------
+# Autostart routes
+# ---------------------------------------------------------------------------
+
+
+@app.get("/autostart")
+async def get_autostart_status(
+    _: Annotated[None, Depends(verify_token)],
+) -> dict:
+    """Check whether autostart is enabled."""
+    return {"enabled": autostart_module.is_enabled()}
+
+
+@app.post("/autostart")
+async def set_autostart(
+    data: dict,
+    _: Annotated[None, Depends(verify_token)],
+) -> dict:
+    """Enable or disable autostart.
+
+    Request body:
+        ``{"enabled": true}`` or ``{"enabled": false}``
+    """
+    enabled = data.get("enabled", False)
+    success = autostart_module.install() if enabled else autostart_module.remove()
+    return {"enabled": autostart_module.is_enabled(), "success": success}

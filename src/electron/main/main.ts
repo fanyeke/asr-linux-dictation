@@ -38,6 +38,12 @@ let _trayAsrLanguage = "auto";
 /** Cached profile list for the tray submenu. */
 let _trayProfiles: Array<{ id: number; name: string; is_active: boolean }> = [];
 
+/** Whether the app was started in background (hidden) mode. */
+const _startHidden = process.argv.includes("--hidden") || process.argv.includes("--autostart");
+
+/** Cached autostart enabled state for the tray menu. */
+let _autostartEnabled = false;
+
 /**
  * Creates the main settings window (900x600).
  */
@@ -512,9 +518,32 @@ function buildTrayMenu(): Electron.Menu {
         if (settingsWindow && !settingsWindow.isDestroyed()) {
           settingsWindow.show();
           settingsWindow.focus();
+        } else {
+          createSettingsWindow();
         }
       },
     },
+    {
+      label: _autostartEnabled ? "✓ Launch at Login" : "  Launch at Login",
+      click: async () => {
+        const info = supervisor.info;
+        if (!info) return;
+        try {
+          const res = await fetch(`${info.url}/autostart`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-token": info.token },
+            body: JSON.stringify({ enabled: !_autostartEnabled }),
+          });
+          if (res.ok) {
+            _autostartEnabled = !_autostartEnabled;
+            tray?.setContextMenu(buildTrayMenu());
+          }
+        } catch (err) {
+          console.error("Failed to toggle autostart:", err);
+        }
+      },
+    },
+    { type: "separator" },
     {
       label: "ASR Language",
       submenu: buildLanguageSubmenu(),
@@ -619,7 +648,9 @@ app.whenReady().then(async () => {
   }
 
   registerIpcHandlers();
-  createSettingsWindow();
+  if (!_startHidden) {
+    createSettingsWindow();
+  }
   createOverlayWindow();
   createTray();
 
@@ -661,6 +692,19 @@ app.whenReady().then(async () => {
       }
     } catch (err) {
       console.error("Failed to load profiles:", err);
+    }
+
+    // Load autostart status for tray menu
+    try {
+      const autoRes = await fetch(`${info.url}/autostart`, {
+        headers: { "x-token": info.token },
+      });
+      if (autoRes.ok) {
+        const autoData = await autoRes.json() as { enabled: boolean };
+        _autostartEnabled = autoData.enabled;
+      }
+    } catch (err) {
+      console.error("Failed to load autostart status:", err);
     }
   }
   registerHotkey(preferredHotkey);
