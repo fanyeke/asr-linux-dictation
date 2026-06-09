@@ -280,10 +280,7 @@ class TestPinyinHelpers:
 
     def test_pinyin_sequence_match_subsequence(self) -> None:
         """Match at any position in the transcript."""
-        assert (
-            _pinyin_sequence_match(["wo", "jue", "de", "gui", "ze", "hen", "hao"], ["gui", "ze"])
-            is True
-        )
+        assert _pinyin_sequence_match(["wo", "jue", "de", "gui", "ze", "hen", "hao"], ["gui", "ze"]) is True
 
 
 class TestDictionaryStats:
@@ -339,12 +336,18 @@ class TestDictionaryStats:
         # Create a dictionary entry first so the JOIN works
         entry = await create_entry(canonical_term="ASR")
 
-        await record_dictionary_stats("session-1", [
-            {"entry_id": entry["id"], "canonical_term": "ASR", "count": 2},
-        ])
-        await record_dictionary_stats("session-2", [
-            {"entry_id": entry["id"], "canonical_term": "ASR", "count": 1},
-        ])
+        await record_dictionary_stats(
+            "session-1",
+            [
+                {"entry_id": entry["id"], "canonical_term": "ASR", "count": 2},
+            ],
+        )
+        await record_dictionary_stats(
+            "session-2",
+            [
+                {"entry_id": entry["id"], "canonical_term": "ASR", "count": 1},
+            ],
+        )
 
         summary = await get_dictionary_stats_summary(limit_sessions=10)
         assert len(summary) >= 1

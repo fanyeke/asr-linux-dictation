@@ -71,7 +71,9 @@ class TestTextInjector:
             return {"success": success, "method": method, "clipboard_saved": clipboard_saved}
 
         monkeypatch.setattr(
-            injector._clipboard_manager, "inject_with_fallback", _mock,
+            injector._clipboard_manager,
+            "inject_with_fallback",
+            _mock,
         )
         return calls
 
@@ -148,8 +150,7 @@ class TestTextInjector:
     # Happy path – normal window (refactored to use inject_with_fallback)
     # ------------------------------------------------------------------
 
-    async def test_inject_normal_window(self, injector: TextInjector,
-                                        monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_inject_normal_window(self, injector: TextInjector, monkeypatch: pytest.MonkeyPatch) -> None:
         """Successful clipboard-paste into a normal (non-terminal) window.
 
         Verifies:
@@ -211,7 +212,9 @@ class TestTextInjector:
             return {"success": True, "method": "paste", "clipboard_saved": True}
 
         monkeypatch.setattr(
-            injector._clipboard_manager, "inject_with_fallback", _mock_fallback,
+            injector._clipboard_manager,
+            "inject_with_fallback",
+            _mock_fallback,
         )
 
         result = await injector.inject("hello world")
@@ -267,14 +270,19 @@ class TestTextInjector:
                 }
 
         monkeypatch.setattr(
-            injector._clipboard_manager, "inject_with_fallback", _mock_fallback,
+            injector._clipboard_manager,
+            "inject_with_fallback",
+            _mock_fallback,
         )
+
         # Also need set_clipboard_for_paste to succeed
         async def _set_cb(text: str) -> bool:
             return True
 
         monkeypatch.setattr(
-            injector._clipboard_manager, "set_clipboard_for_paste", _set_cb,
+            injector._clipboard_manager,
+            "set_clipboard_for_paste",
+            _set_cb,
         )
 
         result = await injector.inject("new text")
@@ -289,8 +297,7 @@ class TestTextInjector:
     # Terminal window – uses ctrl+shift+v
     # ------------------------------------------------------------------
 
-    async def test_inject_terminal_window(self, injector: TextInjector,
-                                          monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_inject_terminal_window(self, injector: TextInjector, monkeypatch: pytest.MonkeyPatch) -> None:
         """Terminal windows receive ``ctrl+shift+v`` instead of ``ctrl+v``."""
         paste_calls: list[tuple] = []
 
@@ -314,13 +321,18 @@ class TestTextInjector:
             return {"success": True, "method": "paste", "clipboard_saved": True}
 
         monkeypatch.setattr(
-            injector._clipboard_manager, "inject_with_fallback", _mock_fallback,
+            injector._clipboard_manager,
+            "inject_with_fallback",
+            _mock_fallback,
         )
+
         async def _set_cb(text: str) -> bool:
             return True
 
         monkeypatch.setattr(
-            injector._clipboard_manager, "set_clipboard_for_paste", _set_cb,
+            injector._clipboard_manager,
+            "set_clipboard_for_paste",
+            _set_cb,
         )
 
         result = await injector.inject("some code")
@@ -333,8 +345,7 @@ class TestTextInjector:
     # Focus lost – clipboard fallback
     # ------------------------------------------------------------------
 
-    async def test_focus_lost_fallback(self, injector: TextInjector,
-                                       monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_focus_lost_fallback(self, injector: TextInjector, monkeypatch: pytest.MonkeyPatch) -> None:
         """When the active window changes during injection,
         inject_with_fallback handles it by leaving text in clipboard.
         """
@@ -364,7 +375,9 @@ class TestTextInjector:
             return True
 
         monkeypatch.setattr(
-            injector._clipboard_manager, "set_clipboard_for_paste", _set_cb,
+            injector._clipboard_manager,
+            "set_clipboard_for_paste",
+            _set_cb,
         )
         # Mock inject_with_fallback to simulate FocusLostError path
         mock_original = injector._clipboard_manager.inject_with_fallback
@@ -376,10 +389,13 @@ class TestTextInjector:
                     await inject_func(t)
                 except RuntimeError:
                     raise FocusLostError("Focus changed during injection") from None
+
             return await mock_original(text, _failing_func)
 
         monkeypatch.setattr(
-            injector._clipboard_manager, "inject_with_fallback", _mock_fallback,
+            injector._clipboard_manager,
+            "inject_with_fallback",
+            _mock_fallback,
         )
 
         result = await injector.inject("fallback text")
@@ -392,8 +408,7 @@ class TestTextInjector:
     # Clipboard save and restore (via inject_with_fallback)
     # ------------------------------------------------------------------
 
-    async def test_clipboard_save_restore(self, injector: TextInjector,
-                                          monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_clipboard_save_restore(self, injector: TextInjector, monkeypatch: pytest.MonkeyPatch) -> None:
         """Successful paste reports clipboard_saved=True via inject_with_fallback."""
         paste_calls = self._mock_paste_env(monkeypatch, injector)
 
@@ -414,8 +429,11 @@ class TestTextInjector:
         """When clipboard save fails, clipboard_saved=False is reported."""
         # Mock inject_with_fallback to return clipboard_saved=False
         self._mock_inject_with_fallback(
-            monkeypatch, injector,
-            success=True, method="paste", clipboard_saved=False,
+            monkeypatch,
+            injector,
+            success=True,
+            method="paste",
+            clipboard_saved=False,
         )
 
         async def _get_active(self: TextInjector) -> str | None:
@@ -436,13 +454,14 @@ class TestTextInjector:
     # Injection failure (paste command fails)
     # ------------------------------------------------------------------
 
-    async def test_inject_failure(self, injector: TextInjector,
-                                  monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_inject_failure(self, injector: TextInjector, monkeypatch: pytest.MonkeyPatch) -> None:
         """When clipboard paste fails, the result
         indicates failure and the injected text stays in the clipboard.
         """
         self._mock_paste_env(
-            monkeypatch, injector, paste_success=False,
+            monkeypatch,
+            injector,
+            paste_success=False,
         )
 
         # Mock inject_with_fallback to call inject_func and catch RuntimeError
@@ -458,7 +477,9 @@ class TestTextInjector:
                 }
 
         monkeypatch.setattr(
-            injector._clipboard_manager, "inject_with_fallback", _mock_fallback,
+            injector._clipboard_manager,
+            "inject_with_fallback",
+            _mock_fallback,
         )
 
         result = await injector.inject("fail text")
@@ -471,11 +492,11 @@ class TestTextInjector:
     # No focused window
     # ------------------------------------------------------------------
 
-    async def test_focus_window_not_found(self, injector: TextInjector,
-                                          monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_focus_window_not_found(self, injector: TextInjector, monkeypatch: pytest.MonkeyPatch) -> None:
         """When no window is focused, injection fails early without
         modifying the clipboard.
         """
+
         async def _get_active(self: TextInjector) -> str | None:
             return None
 
@@ -514,8 +535,7 @@ class TestTextInjector:
         }
         assert expected == TEXT_INJECTOR_TERMINALS
 
-    async def test_is_terminal_matches(self, injector: TextInjector,
-                                       monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_is_terminal_matches(self, injector: TextInjector, monkeypatch: pytest.MonkeyPatch) -> None:
         """``_is_terminal`` returns ``True`` for known terminal
         WM_CLASS values parsed from ``xprop`` output.
         """
@@ -524,47 +544,55 @@ class TestTextInjector:
         async def _run_mock(*args: str, input_data: bytes | None = None) -> Any:
             _run_called.append(args)
             from subprocess import CompletedProcess
+
             return CompletedProcess(
-                args, 0,
+                args,
+                0,
                 b'WM_CLASS(STRING) = "gnome-terminal", "Gnome-terminal"\n',
                 b"",
             )
 
         monkeypatch.setattr(
-            "backend.text_injector._run_command", _run_mock,
+            "backend.text_injector._run_command",
+            _run_mock,
         )
 
         is_term = await injector._is_terminal("500")
         assert is_term is True
         assert _run_called == [("xprop", "-id", "500", "WM_CLASS")]
 
-    async def test_is_terminal_non_terminal(self, injector: TextInjector,
-                                            monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_is_terminal_non_terminal(self, injector: TextInjector, monkeypatch: pytest.MonkeyPatch) -> None:
         """``_is_terminal`` returns ``False`` for non-terminal windows."""
+
         async def _run_mock(*args: str, input_data: bytes | None = None) -> Any:
             from subprocess import CompletedProcess
+
             return CompletedProcess(
-                args, 0,
+                args,
+                0,
                 b'WM_CLASS(STRING) = "google-chrome", "Google-chrome"\n',
                 b"",
             )
 
         monkeypatch.setattr(
-            "backend.text_injector._run_command", _run_mock,
+            "backend.text_injector._run_command",
+            _run_mock,
         )
 
         is_term = await injector._is_terminal("500")
         assert is_term is False
 
-    async def test_is_terminal_failed_xprop(self, injector: TextInjector,
-                                            monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_is_terminal_failed_xprop(self, injector: TextInjector, monkeypatch: pytest.MonkeyPatch) -> None:
         """``_is_terminal`` returns ``False`` when xprop fails."""
+
         async def _run_mock(*args: str, input_data: bytes | None = None) -> Any:
             from subprocess import CompletedProcess
+
             return CompletedProcess(args, 1, b"", b"error")
 
         monkeypatch.setattr(
-            "backend.text_injector._run_command", _run_mock,
+            "backend.text_injector._run_command",
+            _run_mock,
         )
 
         is_term = await injector._is_terminal("500")
@@ -574,9 +602,7 @@ class TestTextInjector:
     # Wayland injection
     # ------------------------------------------------------------------
 
-    async def test_wayland_inject_success(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_wayland_inject_success(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Wayland path succeeds with wl-copy + wtype paste."""
         monkeypatch.setattr(text_injector, "_detect_desktop_session", lambda: "wayland")
         injector = TextInjector()
@@ -586,6 +612,7 @@ class TestTextInjector:
         async def run_mock(*args: str, input_data: bytes | None = None):
             _commands.append((args, input_data))
             from subprocess import CompletedProcess
+
             return CompletedProcess(args, 0, b"", b"")
 
         monkeypatch.setattr(text_injector, "_run_command", run_mock)
@@ -595,25 +622,20 @@ class TestTextInjector:
         assert result.success is True
         assert result.method == "paste"
         # Verify commands: wl-copy then wtype
-        wl_copy_calls = [
-            c for c in _commands if c[0][0] == "wl-copy"
-        ]
-        wtype_calls = [
-            c for c in _commands if c[0][0] == "wtype"
-        ]
+        wl_copy_calls = [c for c in _commands if c[0][0] == "wl-copy"]
+        wtype_calls = [c for c in _commands if c[0][0] == "wtype"]
         assert len(wl_copy_calls) == 1
         assert wl_copy_calls[0][1] == b"hello wayland"
         assert len(wtype_calls) == 1
 
-    async def test_wayland_wlcopy_fails(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_wayland_wlcopy_fails(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """When wl-copy fails, returns clipboard_fallback."""
         monkeypatch.setattr(text_injector, "_detect_desktop_session", lambda: "wayland")
         injector = TextInjector()
 
         async def run_mock(*args: str, input_data: bytes | None = None):
             from subprocess import CompletedProcess
+
             return CompletedProcess(args, 1, b"", b"error")
 
         monkeypatch.setattr(text_injector, "_run_command", run_mock)
@@ -623,9 +645,7 @@ class TestTextInjector:
         assert result.success is False
         assert result.method == "clipboard_fallback"
 
-    async def test_wayland_wlcopy_not_installed(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_wayland_wlcopy_not_installed(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """When wl-copy is not installed, returns failure with clear error."""
         monkeypatch.setattr(text_injector, "_detect_desktop_session", lambda: "wayland")
         injector = TextInjector()
@@ -641,9 +661,7 @@ class TestTextInjector:
         assert result.method == "failed"
         assert "wl-copy" in (result.error or "")
 
-    async def test_wayland_wtype_not_installed(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_wayland_wtype_not_installed(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """When wtype is not installed but wl-copy works, uses clipboard fallback."""
         monkeypatch.setattr(text_injector, "_detect_desktop_session", lambda: "wayland")
 
@@ -652,6 +670,7 @@ class TestTextInjector:
         async def run_mock(*args: str, input_data: bytes | None = None):
             call_count[0] += 1
             from subprocess import CompletedProcess
+
             if call_count[0] == 1:
                 # wl-copy succeeds
                 return CompletedProcess(args, 0, b"", b"")
@@ -667,9 +686,7 @@ class TestTextInjector:
         assert result.success is False
         assert result.method == "clipboard_fallback"
 
-    async def test_wayland_x11_unchanged(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_wayland_x11_unchanged(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """X11 path is unchanged when session is x11."""
         monkeypatch.setattr(text_injector, "_detect_desktop_session", lambda: "x11")
         injector = TextInjector()
@@ -693,13 +710,18 @@ class TestTextInjector:
             return {"success": True, "method": "paste", "clipboard_saved": True}
 
         monkeypatch.setattr(
-            injector._clipboard_manager, "inject_with_fallback", _mock_fallback,
+            injector._clipboard_manager,
+            "inject_with_fallback",
+            _mock_fallback,
         )
+
         async def _set_cb(text: str) -> bool:
             return True
 
         monkeypatch.setattr(
-            injector._clipboard_manager, "set_clipboard_for_paste", _set_cb,
+            injector._clipboard_manager,
+            "set_clipboard_for_paste",
+            _set_cb,
         )
 
         result = await injector.inject("x11 text")

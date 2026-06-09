@@ -27,23 +27,25 @@ def _detect_desktop_session() -> str:
 # Constants
 # ---------------------------------------------------------------------------
 
-TEXT_INJECTOR_TERMINALS: frozenset[str] = frozenset({
-    "gnome-terminal",
-    "konsole",
-    "xterm",
-    "rxvt",
-    "alacritty",
-    "kitty",
-    "terminator",
-    "tilix",
-    "st",
-    "lxterminal",
-    "qterminal",
-    "mate-terminal",
-    "xfce4-terminal",
-    "deepin-terminal",
-    "hyper",
-})
+TEXT_INJECTOR_TERMINALS: frozenset[str] = frozenset(
+    {
+        "gnome-terminal",
+        "konsole",
+        "xterm",
+        "rxvt",
+        "alacritty",
+        "kitty",
+        "terminator",
+        "tilix",
+        "st",
+        "lxterminal",
+        "qterminal",
+        "mate-terminal",
+        "xfce4-terminal",
+        "deepin-terminal",
+        "hyper",
+    }
+)
 
 _WM_CLASS_RE = re.compile(r'"([^"]+)"')
 CLIPBOARD_READY_DELAY_SECONDS: float = 0.15
@@ -106,8 +108,7 @@ async def _run_command(
     except FileNotFoundError as exc:
         cmd = args[0] if args else "unknown"
         raise RuntimeError(
-            f"Required tool '{cmd}' is not installed. "
-            f"Install it with: sudo apt-get install -y {cmd}"
+            f"Required tool '{cmd}' is not installed. Install it with: sudo apt-get install -y {cmd}"
         ) from exc
     try:
         stdout, stderr = await asyncio.wait_for(
@@ -124,7 +125,10 @@ async def _run_command(
             stderr or b"desktop command timed out",
         )
     return subprocess.CompletedProcess(
-        args, proc.returncode or 0, stdout, stderr,
+        args,
+        proc.returncode or 0,
+        stdout,
+        stderr,
     )
 
 
@@ -218,7 +222,8 @@ class TextInjector:
                 raise RuntimeError("Paste command failed")
 
         result = await self._clipboard_manager.inject_with_fallback(
-            text, _do_paste,
+            text,
+            _do_paste,
         )
 
         # Translate inject_with_fallback result dict to InjectionResult.
@@ -294,7 +299,13 @@ class TextInjector:
             ``True`` if typing was attempted successfully.
         """
         result = await _run_command(
-            "xdotool", "type", "--window", window_id, "--delay", "1", text,
+            "xdotool",
+            "type",
+            "--window",
+            window_id,
+            "--delay",
+            "1",
+            text,
         )
         return result.returncode == 0
 
@@ -313,7 +324,11 @@ class TextInjector:
         """
         key_combo = "ctrl+shift+v" if is_terminal else "ctrl+v"
         result = await _run_command(
-            "xdotool", "key", "--window", window_id, key_combo,
+            "xdotool",
+            "key",
+            "--window",
+            window_id,
+            key_combo,
         )
         return result.returncode == 0
 
@@ -350,7 +365,13 @@ class TextInjector:
         # Simulate Ctrl+V with wtype
         try:
             paste_result = await _run_command(
-                "wtype", "-M", "ctrl", "-P", "v", "-m", "ctrl",
+                "wtype",
+                "-M",
+                "ctrl",
+                "-P",
+                "v",
+                "-m",
+                "ctrl",
             )
             if paste_result.returncode == 0:
                 return InjectionResult(

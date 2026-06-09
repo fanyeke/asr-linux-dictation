@@ -79,9 +79,7 @@ def configure_logging(
     ]
 
     structlog.configure(
-        processors=shared_processors + [
-            structlog.processors.JSONRenderer(ensure_ascii=False)
-        ],
+        processors=shared_processors + [structlog.processors.JSONRenderer(ensure_ascii=False)],
         context_class=dict,
         logger_factory=structlog.stdlib.LoggerFactory(),
         wrapper_class=structlog.stdlib.BoundLogger,

@@ -25,9 +25,9 @@ logger = logging.getLogger(__name__)
 # Standalone filler interjections, optionally followed by punctuation/space.
 # Matches at start of string, after whitespace/punctuation, or at end of string.
 _FILLER_PATTERN = re.compile(
-    r"(?:^|(?<=[\s，,。！!？?、]))"   # boundary before
+    r"(?:^|(?<=[\s，,。！!？?、]))"  # boundary before
     r"[嗯呃啊哦噢唔]+"
-    r"(?:[，,。！!？?、\s]*)",        # trailing punctuation/space
+    r"(?:[，,。！!？?、\s]*)",  # trailing punctuation/space
 )
 
 # Trailing fillers at end of string (no trailing punctuation needed).
@@ -166,6 +166,7 @@ def _build_few_shot(detected_language: str | None = None) -> str:
 # Layer 2: LLM conservative cleanup prompt
 # ---------------------------------------------------------------------------
 
+
 class PolishError(Exception):
     """Custom exception for polish client errors."""
 
@@ -257,22 +258,24 @@ class PolishClient:
 
         if dictionary_entries:
             entries_text = _format_dictionary(dictionary_entries)
-            user_content_parts.extend([
-                "",
-                entries_text,
-            ])
+            user_content_parts.extend(
+                [
+                    "",
+                    entries_text,
+                ]
+            )
 
-        user_content_parts.extend([
-            "",
-            f"原文：{preprocessed}",
-            "修正：",
-        ])
+        user_content_parts.extend(
+            [
+                "",
+                f"原文：{preprocessed}",
+                "修正：",
+            ]
+        )
 
         user_content = "\n".join(user_content_parts)
 
-        messages: list[dict[str, str]] = [
-            {"role": "user", "content": user_content}
-        ]
+        messages: list[dict[str, str]] = [{"role": "user", "content": user_content}]
 
         body: dict[str, Any] = {
             "model": self._model,
@@ -297,9 +300,7 @@ class PolishClient:
                     timeout=timeout,
                 )
             except httpx.TimeoutException:
-                raise PolishError(
-                    "API request timed out", error_category="timeout"
-                ) from None
+                raise PolishError("API request timed out", error_category="timeout") from None
 
             status = response.status_code
 
@@ -309,9 +310,7 @@ class PolishClient:
                     error_category="auth",
                 )
             if status == 429:
-                raise PolishError(
-                    "Rate limit exceeded", error_category="rate_limit"
-                )
+                raise PolishError("Rate limit exceeded", error_category="rate_limit")
             if 500 <= status < 600:
                 raise PolishError(
                     f"API server error: HTTP {status}",
@@ -332,9 +331,7 @@ class PolishClient:
             return content
 
         try:
-            result = await self._retry_policy.execute(
-                _do_request, is_retryable=_polish_is_retryable
-            )
+            result = await self._retry_policy.execute(_do_request, is_retryable=_polish_is_retryable)
         except RetryExhaustedError as exc:
             if exc.last_exception is not None:
                 raise exc.last_exception from exc

@@ -24,9 +24,7 @@ async def create_prompt(name: str, template: str) -> dict:
             (name, template),
         )
         await db.commit()
-        row = await db.execute(
-            "SELECT * FROM prompts WHERE id = ?", (cursor.lastrowid,)
-        )
+        row = await db.execute("SELECT * FROM prompts WHERE id = ?", (cursor.lastrowid,))
         return _row_to_dict(await row.fetchone())
 
 
@@ -58,8 +56,7 @@ async def update_prompt(prompt_id: int, name: str, template: str) -> dict:
     async with sqlite_async.connect(db_path) as db:
         db.row_factory = sqlite_async.Row
         await db.execute(
-            "UPDATE prompts SET name = ?, template = ?, updated_at = CURRENT_TIMESTAMP"
-            " WHERE id = ?",
+            "UPDATE prompts SET name = ?, template = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
             (name, template, prompt_id),
         )
         await db.commit()
@@ -84,9 +81,7 @@ async def set_active_prompt(prompt_id: int) -> None:
     db_path = get_db_path()
     async with sqlite_async.connect(db_path) as db:
         await db.execute("UPDATE prompts SET is_active = 0")
-        await db.execute(
-            "UPDATE prompts SET is_active = 1 WHERE id = ?", (prompt_id,)
-        )
+        await db.execute("UPDATE prompts SET is_active = 1 WHERE id = ?", (prompt_id,))
         await db.commit()
 
 
@@ -95,9 +90,7 @@ async def get_active_prompt() -> dict | None:
     db_path = get_db_path()
     async with sqlite_async.connect(db_path) as db:
         db.row_factory = sqlite_async.Row
-        cursor = await db.execute(
-            "SELECT * FROM prompts WHERE is_active = 1 LIMIT 1"
-        )
+        cursor = await db.execute("SELECT * FROM prompts WHERE is_active = 1 LIMIT 1")
         row = await cursor.fetchone()
         if row is None:
             return None

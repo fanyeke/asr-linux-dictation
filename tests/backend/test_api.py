@@ -67,9 +67,7 @@ class TestTokenProtection:
     """Test token-based route protection."""
 
     @pytest.mark.asyncio
-    async def test_protected_route_without_token(
-        self, client: AsyncClient, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_protected_route_without_token(self, client: AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:
         """Protected routes reject requests without token."""
         monkeypatch.setenv("ASR_LINUX_SECRET_TOKEN", "test-secret-123")
         response = await client.get("/protected")
@@ -88,9 +86,7 @@ class TestTokenProtection:
         assert response.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_protected_route_with_valid_token(
-        self, client: AsyncClient, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_protected_route_with_valid_token(self, client: AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:
         """Protected routes accept requests with valid token."""
         monkeypatch.setenv("ASR_LINUX_SECRET_TOKEN", "test-secret-123")
         response = await client.get(
@@ -317,7 +313,7 @@ class TestDashboardStats:
                     """INSERT INTO history
                        (session_id, raw_text, polished_text, status, timing_ms, asr_ms, polish_ms, created_at)
                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                   (sid, raw, polished, status, timing, asr, polish, ts.isoformat()),
+                    (sid, raw, polished, status, timing, asr, polish, ts.isoformat()),
                 )
             await db.commit()
 

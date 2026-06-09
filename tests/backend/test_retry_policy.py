@@ -66,9 +66,7 @@ class TestRetryPolicy:
             call_count += 1
             raise RuntimeError("503 Service Unavailable")
 
-        with patch("asyncio.sleep", AsyncMock()), pytest.raises(
-            RetryExhaustedError
-        ) as exc_info:
+        with patch("asyncio.sleep", AsyncMock()), pytest.raises(RetryExhaustedError) as exc_info:
             await policy.execute(always_fails)
 
         assert call_count == 3  # initial + 2 retries = 3 total
@@ -135,7 +133,7 @@ class TestRetryPolicy:
         # Each delay should be larger than the previous
         for i in range(1, len(recorded_delays)):
             assert recorded_delays[i] >= recorded_delays[i - 1], (
-                f"Delay {recorded_delays[i]} should be >= previous {recorded_delays[i-1]}"
+                f"Delay {recorded_delays[i]} should be >= previous {recorded_delays[i - 1]}"
             )
 
     # ------------------------------------------------------------------

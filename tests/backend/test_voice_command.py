@@ -67,12 +67,20 @@ class TestMatchCommand:
     def test_all_keywords_start_with_same_prefix(self) -> None:
         """Multiple keywords sharing a prefix resolve correctly."""
         commands = [
-            {"keywords": ["打开"], "action_type": "launch",
-             "action_params": {"cmd": "default"},
-             "description": "", "builtin": True},
-            {"keywords": ["打开浏览器"], "action_type": "launch",
-             "action_params": {"cmd": "browser"},
-             "description": "", "builtin": True},
+            {
+                "keywords": ["打开"],
+                "action_type": "launch",
+                "action_params": {"cmd": "default"},
+                "description": "",
+                "builtin": True,
+            },
+            {
+                "keywords": ["打开浏览器"],
+                "action_type": "launch",
+                "action_params": {"cmd": "browser"},
+                "description": "",
+                "builtin": True,
+            },
         ]
         keyword, cmd, remaining = match_command("打开浏览器", commands)
         assert keyword == "打开浏览器"
@@ -91,19 +99,23 @@ class TestExecuteCommand:
     async def test_keyboard_action_with_mock(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Keyboard command calls xdotool with correct keys."""
         from backend import voice_command
+
         call_args: list[tuple] = []
 
         async def mock_run_xdotool(*args: str):
             call_args.append(args)
             from subprocess import CompletedProcess
+
             return CompletedProcess(("xdotool", *args), 0, b"", b"")
 
         monkeypatch.setattr(voice_command, "_run_xdotool", mock_run_xdotool)
 
-        result = await execute_command({
-            "action_type": "keyboard",
-            "action_params": {"keys": "ctrl+s"},
-        })
+        result = await execute_command(
+            {
+                "action_type": "keyboard",
+                "action_params": {"keys": "ctrl+s"},
+            }
+        )
 
         assert result["success"] is True
         assert call_args == [("key", "ctrl+s")]
@@ -112,19 +124,23 @@ class TestExecuteCommand:
     async def test_keyboard_seq_action(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Keyboard sequence sends multiple keys in order."""
         from backend import voice_command
+
         call_args: list[tuple] = []
 
         async def mock_run_xdotool(*args: str):
             call_args.append(args)
             from subprocess import CompletedProcess
+
             return CompletedProcess(("xdotool", *args), 0, b"", b"")
 
         monkeypatch.setattr(voice_command, "_run_xdotool", mock_run_xdotool)
 
-        result = await execute_command({
-            "action_type": "keyboard_seq",
-            "action_params": {"keys": ["ctrl+shift+Left", "BackSpace"]},
-        })
+        result = await execute_command(
+            {
+                "action_type": "keyboard_seq",
+                "action_params": {"keys": ["ctrl+shift+Left", "BackSpace"]},
+            }
+        )
 
         assert result["success"] is True
         assert len(call_args) == 2
@@ -135,10 +151,12 @@ class TestExecuteCommand:
     async def test_unknown_action_type(self) -> None:
         """Unknown action type raises ValueError."""
         with pytest.raises(ValueError, match="unknown_type"):
-            await execute_command({
-                "action_type": "unknown_type",
-                "action_params": {},
-            })
+            await execute_command(
+                {
+                    "action_type": "unknown_type",
+                    "action_params": {},
+                }
+            )
 
     @pytest.mark.asyncio
     async def test_xdotool_not_found_handled(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -150,10 +168,12 @@ class TestExecuteCommand:
 
         monkeypatch.setattr(voice_command, "_run_xdotool", mock_run)
 
-        result = await execute_command({
-            "action_type": "keyboard",
-            "action_params": {"keys": "Return"},
-        })
+        result = await execute_command(
+            {
+                "action_type": "keyboard",
+                "action_params": {"keys": "Return"},
+            }
+        )
 
         assert result["success"] is False
         assert "xdotool" in result["message"]

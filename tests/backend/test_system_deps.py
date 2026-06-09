@@ -1,6 +1,5 @@
 """Tests for system dependency checking."""
 
-
 import pytest
 from httpx import AsyncClient
 

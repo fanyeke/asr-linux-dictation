@@ -221,6 +221,7 @@ class TestPcmToWav:
         # fmt chunk: 16 bytes starting at offset 12 (after "fmt ")
         fmt_chunk = wav[20:36]
         import struct
+
         audio_format, channels, sample_rate, _, _, bits = struct.unpack("<HHIIHH", fmt_chunk)
         assert audio_format == 1  # PCM
         assert channels == 1
@@ -247,6 +248,7 @@ class TestPcmToWav:
         pcm = b"\x00\x00" * 32000  # 1 second at 32000 Hz
         wav = pcm_to_wav(pcm, sample_rate=32000)
         import struct
+
         fmt_chunk = wav[20:36]
         _, _, sample_rate, _, _, _ = struct.unpack("<HHIIHH", fmt_chunk)
         assert sample_rate == 32000

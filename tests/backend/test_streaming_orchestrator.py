@@ -49,8 +49,8 @@ class TestStreamingOrchestratorIntegration:
     ) -> None:
         """Streaming flow: write data → slice → ASR → merge → result."""
         asr_mock.transcribe.side_effect = [
-            "今天天气真",     # first slice result
-            "天气真不错",     # second slice result (overlapping)
+            "今天天气真",  # first slice result
+            "天气真不错",  # second slice result (overlapping)
         ]
 
         ring = RingBuffer(sample_rate=16000)

@@ -67,9 +67,7 @@ class TestSanitizePolishOutput:
 
     def test_removes_explanation_english(self) -> None:
         """Strips text after 'Explanation:' marker."""
-        result = sanitize_polish_output(
-            "This is the polished text. Explanation: I corrected the grammar."
-        )
+        result = sanitize_polish_output("This is the polished text. Explanation: I corrected the grammar.")
         assert result == "This is the polished text."
 
     def test_removes_explanation_chinese(self) -> None:
@@ -113,7 +111,7 @@ class TestSanitizePolishOutput:
 
     def test_mixed_greeting_fence_and_explanation(self) -> None:
         """Handles greeting + fences + explanation in one pass."""
-        text = '你好```\n这是润色结果\n```解释：修正了语法'
+        text = "你好```\n这是润色结果\n```解释：修正了语法"
         result = sanitize_polish_output(text)
         assert result == "这是润色结果"
 

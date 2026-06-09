@@ -43,12 +43,8 @@ class Settings(BaseSettings):
     audio_sample_rate: int = Field(default=16000, ge=8000, le=48000)
     audio_channels: int = Field(default=1, ge=1, le=2)
     audio_device: str | None = None
-    audio_format: str = Field(
-        default="S16_LE", pattern=r"^(S16_LE|S24_LE|S32_LE)$"
-    )
-    silence_threshold: float = Field(
-        default=0.005, ge=0.0, le=1.0
-    )
+    audio_format: str = Field(default="S16_LE", pattern=r"^(S16_LE|S24_LE|S32_LE)$")
+    silence_threshold: float = Field(default=0.005, ge=0.0, le=1.0)
     silence_duration_ms: int = Field(default=2000, ge=0)
 
     # ASR language setting (e.g. "zh", "en", "auto")
@@ -63,15 +59,9 @@ settings = Settings()
 
 def has_asr_key() -> bool:
     """Return True if an ASR API key is available from settings or the environment."""
-    return (
-        settings.mimo_api_key is not None
-        or bool(os.environ.get("ASR_LINUX_MIMO_API_KEY"))
-    )
+    return settings.mimo_api_key is not None or bool(os.environ.get("ASR_LINUX_MIMO_API_KEY"))
 
 
 def has_llm_key() -> bool:
     """Return True if an LLM API key is available from the environment."""
-    return bool(
-        os.environ.get("ASR_LINUX_LLM_API_KEY")
-        or os.environ.get("OPENAI_API_KEY")
-    )
+    return bool(os.environ.get("ASR_LINUX_LLM_API_KEY") or os.environ.get("OPENAI_API_KEY"))

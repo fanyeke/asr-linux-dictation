@@ -108,9 +108,7 @@ async def list_profiles() -> list[dict]:
     db_path = get_db_path()
     async with sqlite_async.connect(db_path) as db:
         db.row_factory = sqlite_async.Row
-        cursor = await db.execute(
-            "SELECT * FROM profiles ORDER BY id"
-        )
+        cursor = await db.execute("SELECT * FROM profiles ORDER BY id")
         rows = await cursor.fetchall()
         return [_row_to_dict(r) for r in rows]
 
@@ -120,9 +118,7 @@ async def get_profile(profile_id: int) -> dict | None:
     db_path = get_db_path()
     async with sqlite_async.connect(db_path) as db:
         db.row_factory = sqlite_async.Row
-        cursor = await db.execute(
-            "SELECT * FROM profiles WHERE id = ?", (profile_id,)
-        )
+        cursor = await db.execute("SELECT * FROM profiles WHERE id = ?", (profile_id,))
         row = await cursor.fetchone()
         return _row_to_dict(row) if row else None
 
@@ -138,8 +134,7 @@ async def create_profile(
     async with sqlite_async.connect(db_path) as db:
         db.row_factory = sqlite_async.Row
         cursor = await db.execute(
-            "INSERT INTO profiles (name, prompt_template, dictionary_ids, asr_language) "
-            "VALUES (?, ?, ?, ?)",
+            "INSERT INTO profiles (name, prompt_template, dictionary_ids, asr_language) VALUES (?, ?, ?, ?)",
             (name, prompt_template, dictionary_ids, asr_language),
         )
         await db.commit()
@@ -161,9 +156,7 @@ async def update_profile(
         db.row_factory = sqlite_async.Row
 
         # Check existence and builtin
-        cursor = await db.execute(
-            "SELECT * FROM profiles WHERE id = ?", (profile_id,)
-        )
+        cursor = await db.execute("SELECT * FROM profiles WHERE id = ?", (profile_id,))
         existing = await cursor.fetchone()
         if not existing:
             return None
@@ -196,9 +189,7 @@ async def delete_profile(profile_id: int) -> bool:
     """Delete a profile. Built-in profiles cannot be deleted."""
     db_path = get_db_path()
     async with sqlite_async.connect(db_path) as db:
-        cursor = await db.execute(
-            "SELECT builtin FROM profiles WHERE id = ?", (profile_id,)
-        )
+        cursor = await db.execute("SELECT builtin FROM profiles WHERE id = ?", (profile_id,))
         row = await cursor.fetchone()
         if not row:
             return False
@@ -214,17 +205,13 @@ async def set_active_profile(profile_id: int) -> dict | None:
     db_path = get_db_path()
     async with sqlite_async.connect(db_path) as db:
         db.row_factory = sqlite_async.Row
-        cursor = await db.execute(
-            "SELECT * FROM profiles WHERE id = ?", (profile_id,)
-        )
+        cursor = await db.execute("SELECT * FROM profiles WHERE id = ?", (profile_id,))
         row = await cursor.fetchone()
         if not row:
             return None
         # Deactivate all, then activate this one
         await db.execute("UPDATE profiles SET is_active = 0")
-        await db.execute(
-            "UPDATE profiles SET is_active = 1 WHERE id = ?", (profile_id,)
-        )
+        await db.execute("UPDATE profiles SET is_active = 1 WHERE id = ?", (profile_id,))
         await db.commit()
         return _row_to_dict(row)
 
@@ -234,8 +221,6 @@ async def get_active_profile() -> dict | None:
     db_path = get_db_path()
     async with sqlite_async.connect(db_path) as db:
         db.row_factory = sqlite_async.Row
-        cursor = await db.execute(
-            "SELECT * FROM profiles WHERE is_active = 1 LIMIT 1"
-        )
+        cursor = await db.execute("SELECT * FROM profiles WHERE is_active = 1 LIMIT 1")
         row = await cursor.fetchone()
         return _row_to_dict(row) if row else None

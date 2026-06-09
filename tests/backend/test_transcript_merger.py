@@ -36,38 +36,46 @@ class TestTranscriptMerger:
     def test_merge_with_overlap(self) -> None:
         """Overlapping suffix/prefix is detected and merged."""
         merger = TranscriptMerger()
-        result = merger.merge([
-            "今天天气真",
-            "天气真不错",
-        ])
+        result = merger.merge(
+            [
+                "今天天气真",
+                "天气真不错",
+            ]
+        )
         assert result == "今天天气真不错"
 
     def test_merge_with_overlap_english(self) -> None:
         """English text with overlapping words."""
         merger = TranscriptMerger()
-        result = merger.merge([
-            "hello world this is",
-            "world this is a test",
-        ])
+        result = merger.merge(
+            [
+                "hello world this is",
+                "world this is a test",
+            ]
+        )
         assert result == "hello world this is a test"
 
     def test_merge_no_overlap(self) -> None:
         """Texts with no overlap are directly concatenated."""
         merger = TranscriptMerger()
-        result = merger.merge([
-            "first sentence",
-            "second sentence",
-        ])
+        result = merger.merge(
+            [
+                "first sentence",
+                "second sentence",
+            ]
+        )
         # With no overlap found, join with space
         assert result == "first sentence second sentence"
 
     def test_merge_full_overlap(self) -> None:
         """A later chunk that is entirely contained in the earlier one is skipped."""
         merger = TranscriptMerger()
-        result = merger.merge([
-            "今天天气真不错",
-            "天气真不错",
-        ])
+        result = merger.merge(
+            [
+                "今天天气真不错",
+                "天气真不错",
+            ]
+        )
         # "天气真不错" is a suffix of "今天天气真不错"
         assert result == "今天天气真不错"
 
@@ -78,20 +86,24 @@ class TestTranscriptMerger:
     def test_merge_chinese_partial(self) -> None:
         """Chinese character-level overlap detection."""
         merger = TranscriptMerger()
-        result = merger.merge([
-            "我觉得这个方案挺好的",
-            "这个方案挺好的我们可",
-        ])
+        result = merger.merge(
+            [
+                "我觉得这个方案挺好的",
+                "这个方案挺好的我们可",
+            ]
+        )
         # "这个方案挺好的" is the overlap
         assert result == "我觉得这个方案挺好的我们可"
 
     def test_merge_chinese_no_overlap_space(self) -> None:
         """Chinese texts without overlap are joined without space (CJK adjacent)."""
         merger = TranscriptMerger()
-        result = merger.merge([
-            "今天天气",
-            "我们去散步",
-        ])
+        result = merger.merge(
+            [
+                "今天天气",
+                "我们去散步",
+            ]
+        )
         assert result == "今天天气我们去散步"
 
     # ------------------------------------------------------------------
@@ -101,21 +113,25 @@ class TestTranscriptMerger:
     def test_merge_multiple_chunks(self) -> None:
         """Multiple overlapping chunks are merged sequentially."""
         merger = TranscriptMerger()
-        result = merger.merge([
-            "今天",
-            "今天天气",
-            "今天天气真",
-            "今天天气真不错",
-        ])
+        result = merger.merge(
+            [
+                "今天",
+                "今天天气",
+                "今天天气真",
+                "今天天气真不错",
+            ]
+        )
         assert result == "今天天气真不错"
 
     def test_merge_with_punctuation_overlap(self) -> None:
         """Overlap detection works with punctuation."""
         merger = TranscriptMerger()
-        result = merger.merge([
-            "Hello, world. This",
-            "world. This is great!",
-        ])
+        result = merger.merge(
+            [
+                "Hello, world. This",
+                "world. This is great!",
+            ]
+        )
         assert result == "Hello, world. This is great!"
 
     # ------------------------------------------------------------------
@@ -167,10 +183,12 @@ class TestTranscriptMerger:
     def test_custom_min_overlap(self) -> None:
         """Custom minimum overlap length."""
         merger = TranscriptMerger(min_overlap_chars=4)
-        result = merger.merge([
-            "hello world this",
-            "world this is a test",
-        ])
+        result = merger.merge(
+            [
+                "hello world this",
+                "world this is a test",
+            ]
+        )
         # "world this" is 11 chars, will be found as overlap
         assert result == "hello world this is a test"
 
@@ -181,27 +199,33 @@ class TestTranscriptMerger:
     def test_longest_suffix_used(self) -> None:
         """When multiple overlap lengths are possible, longest wins."""
         merger = TranscriptMerger()
-        result = merger.merge([
-            "ababc",
-            "abcde",
-        ])
+        result = merger.merge(
+            [
+                "ababc",
+                "abcde",
+            ]
+        )
         assert result == "ababcde"
 
         # "abc" is the longest overlap (3 chars); also verify we don't
         # truncate to a shorter overlap
-        result2 = merger.merge([
-            "abc123",
-            "123xyz",
-        ])
+        result2 = merger.merge(
+            [
+                "abc123",
+                "123xyz",
+            ]
+        )
         assert result2 == "abc123xyz"
 
     def test_overlap_suffix_longer_than_half(self) -> None:
         """When overlap is more than half the new text length."""
         merger = TranscriptMerger()
-        result = merger.merge([
-            "这是一个比较长的句子用于测试重叠",
-            "长的句子用于测试重叠检测功能",
-        ])
+        result = merger.merge(
+            [
+                "这是一个比较长的句子用于测试重叠",
+                "长的句子用于测试重叠检测功能",
+            ]
+        )
         # Should detect the overlap and merge cleanly
         assert "长的句子用于测试重叠" in result
         assert len(result) < len("这是一个比较长的句子用于测试重叠") + len("长的句子用于测试重叠检测功能")

@@ -116,4 +116,3 @@ async def clear_secret(name: str) -> bool:
         logger.warning("secret_clear_failed", key_name=name, status_code=proc.returncode)
         return False
     return True
-

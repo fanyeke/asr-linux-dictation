@@ -17,13 +17,16 @@ def _theme_test_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     # Override secret service to avoid keyring interactions
     async def _noop_save(*args, **kwargs) -> bool:
         return False
+
     async def _noop_load(*args, **kwargs) -> str | None:
         return None
+
     monkeypatch.setattr("backend.config_store.save_secret", _noop_save)  # type: ignore[assignment]
     monkeypatch.setattr("backend.config_store.load_secret", _noop_load)  # type: ignore[assignment]
 
     # Initialize database with all migrations (including theme column)
     import asyncio
+
     asyncio.run(init_database())
 
     # Reset global config state for isolation between tests

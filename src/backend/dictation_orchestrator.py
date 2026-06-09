@@ -85,17 +85,15 @@ class DictationOrchestrator:
 
         asr_start = time.monotonic()
         try:
-            raw_text = await self.asr_client.transcribe(
-                audio_bytes, language=self.asr_language
-            )
+            raw_text = await self.asr_client.transcribe(audio_bytes, language=self.asr_language)
             asr_ms = int((time.monotonic() - asr_start) * 1000)
-            logger.info("asr_completed", session_id=session_id,
-                        raw_text_preview=raw_text[:60], duration_ms=asr_ms)
+            logger.info("asr_completed", session_id=session_id, raw_text_preview=raw_text[:60], duration_ms=asr_ms)
             await update_session(session_id, asr_ms=asr_ms)
         except ASRError as e:
             asr_ms = int((time.monotonic() - asr_start) * 1000)
-            logger.error("asr_failed", session_id=session_id, error=str(e),
-                         category=e.error_category, duration_ms=asr_ms)
+            logger.error(
+                "asr_failed", session_id=session_id, error=str(e), category=e.error_category, duration_ms=asr_ms
+            )
             return await update_session(
                 session_id,
                 status="failed",
@@ -115,7 +113,8 @@ class DictationOrchestrator:
             )
             await execute_command(cmd)
             await self._broadcast(
-                session_id, "completed",
+                session_id,
+                "completed",
                 raw_text=raw_text,
                 command=keyword,
             )
@@ -129,23 +128,19 @@ class DictationOrchestrator:
 
         # ---- Language Detection -------------------------------------------
         from backend.language_detector import detect_language
+
         detected_lang = detect_language(raw_text)
         logger.info("language_detected", session_id=session_id, language=detected_lang)
 
         if self.polish_enabled:
             # ---- Prompt + Dictionary -------------------------------------------
             active_profile = await get_active_profile()
-            prompt_template = (
-                active_profile["prompt_template"] if active_profile
-                else DEFAULT_PROMPT_TEMPLATE
-            )
+            prompt_template = active_profile["prompt_template"] if active_profile else DEFAULT_PROMPT_TEMPLATE
 
             # Filter dictionary entries if profile specifies ids
             entries = await list_entries()
             if active_profile and active_profile.get("dictionary_ids"):
-                allowed_ids = {
-                    int(x) for x in active_profile["dictionary_ids"].split(",") if x.strip().isdigit()
-                }
+                allowed_ids = {int(x) for x in active_profile["dictionary_ids"].split(",") if x.strip().isdigit()}
                 if allowed_ids:
                     entries = [e for e in entries if e["id"] in allowed_ids]
 
@@ -168,13 +163,15 @@ class DictationOrchestrator:
             try:
                 polish_start = time.monotonic()
                 polished = await self.polish_client.polish(
-                    raw_text, prompt_template,
+                    raw_text,
+                    prompt_template,
                     dictionary_entries=mapped,
                     detected_language=detected_lang,
                 )
                 polish_ms = int((time.monotonic() - polish_start) * 1000)
-                logger.info("polish_completed", session_id=session_id,
-                            polished_preview=polished[:60], duration_ms=polish_ms)
+                logger.info(
+                    "polish_completed", session_id=session_id, polished_preview=polished[:60], duration_ms=polish_ms
+                )
                 await update_session(session_id, polish_ms=polish_ms)
             except Exception as e:
                 logger.error("polish_failed", session_id=session_id, error=str(e))
@@ -198,8 +195,7 @@ class DictationOrchestrator:
             match_counts = count_matches_in_text(entries, polished)
             if match_counts:
                 await record_dictionary_stats(session_id, match_counts)
-                logger.info("dict_stats_recorded", session_id=session_id,
-                            matches=len(match_counts))
+                logger.info("dict_stats_recorded", session_id=session_id, matches=len(match_counts))
 
         # ---- Inject --------------------------------------------------------
         injection_method = "paste"
@@ -238,7 +234,8 @@ class DictationOrchestrator:
         session = await update_session(session_id, status="completed", timing_ms=total_ms)
         logger.info("pipeline_completed", session_id=session_id, duration_ms=total_ms)
         await self._broadcast(
-            session_id, "completed",
+            session_id,
+            "completed",
             raw_text=raw_text,
             polished_text=polished,
             injection_method=injection_method,
@@ -271,22 +268,18 @@ class DictationOrchestrator:
 
         # ---- Language Detection -------------------------------------------
         from backend.language_detector import detect_language
+
         detected_lang = detect_language(raw_text)
         logger.info("language_detected", session_id=session_id, language=detected_lang)
 
         if self.polish_enabled:
             # ---- Prompt + Dictionary -------------------------------------------
             active_profile = await get_active_profile()
-            prompt_template = (
-                active_profile["prompt_template"] if active_profile
-                else DEFAULT_PROMPT_TEMPLATE
-            )
+            prompt_template = active_profile["prompt_template"] if active_profile else DEFAULT_PROMPT_TEMPLATE
 
             entries = await list_entries()
             if active_profile and active_profile.get("dictionary_ids"):
-                allowed_ids = {
-                    int(x) for x in active_profile["dictionary_ids"].split(",") if x.strip().isdigit()
-                }
+                allowed_ids = {int(x) for x in active_profile["dictionary_ids"].split(",") if x.strip().isdigit()}
                 if allowed_ids:
                     entries = [e for e in entries if e["id"] in allowed_ids]
 
@@ -309,7 +302,8 @@ class DictationOrchestrator:
             try:
                 polish_start = time.monotonic()
                 polished = await self.polish_client.polish(
-                    raw_text, prompt_template,
+                    raw_text,
+                    prompt_template,
                     dictionary_entries=mapped,
                     detected_language=detected_lang,
                 )

@@ -147,7 +147,7 @@ def match_command(text: str, commands: list[dict] | None = None) -> tuple[str | 
 
     if best_match is not None:
         keyword, cmd = best_match
-        remaining = text[len(keyword):].strip()
+        remaining = text[len(keyword) :].strip()
         return keyword, cmd, remaining
 
     return None, None, text
@@ -222,19 +222,24 @@ async def _run_xdotool(*args: str) -> subprocess.CompletedProcess:
     """
     try:
         proc = await asyncio.create_subprocess_exec(
-            "xdotool", *args,
+            "xdotool",
+            *args,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
         stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=5.0)
         return subprocess.CompletedProcess(
-            ("xdotool", *args), proc.returncode or 0, stdout, stderr,
+            ("xdotool", *args),
+            proc.returncode or 0,
+            stdout,
+            stderr,
         )
     except FileNotFoundError as exc:
-        raise RuntimeError(
-            "xdotool is not installed. Install with: sudo apt-get install xdotool"
-        ) from exc
+        raise RuntimeError("xdotool is not installed. Install with: sudo apt-get install xdotool") from exc
     except TimeoutError:
         return subprocess.CompletedProcess(
-            ("xdotool", *args), 124, b"", b"xdotool timed out",
+            ("xdotool", *args),
+            124,
+            b"",
+            b"xdotool timed out",
         )

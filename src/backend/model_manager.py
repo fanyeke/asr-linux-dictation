@@ -110,13 +110,15 @@ def list_downloaded_models(data_dir: str | Path) -> list[ModelInfo]:
     models_path = models_dir(data_dir)
     for name, entry in _MODEL_REGISTRY.items():
         model_path = models_path / entry["file"]
-        result.append(ModelInfo(
-            name=name,
-            path=str(model_path) if model_path.exists() else None,
-            size_mb=entry["size_mb"],
-            downloaded=model_path.exists(),
-            description=entry["description"],
-        ))
+        result.append(
+            ModelInfo(
+                name=name,
+                path=str(model_path) if model_path.exists() else None,
+                size_mb=entry["size_mb"],
+                downloaded=model_path.exists(),
+                description=entry["description"],
+            )
+        )
     return result
 
 
@@ -154,21 +156,19 @@ async def download_model(
             httpx.AsyncClient(timeout=httpx.Timeout(300.0)) as client,
             client.stream("GET", url) as response,
         ):
-                if response.status_code != 200:
-                    raise RuntimeError(
-                        f"Failed to download {name}: HTTP {response.status_code}"
-                    )
+            if response.status_code != 200:
+                raise RuntimeError(f"Failed to download {name}: HTTP {response.status_code}")
 
-                total = int(response.headers.get("content-length", 0))
+            total = int(response.headers.get("content-length", 0))
 
-                # Write to temp file first
-                downloaded = 0
-                with open(temp_path, "wb") as f:
-                    async for chunk in response.aiter_bytes():
-                        f.write(chunk)
-                        downloaded += len(chunk)
-                        if progress_callback and total > 0:
-                            progress_callback(downloaded, total)
+            # Write to temp file first
+            downloaded = 0
+            with open(temp_path, "wb") as f:
+                async for chunk in response.aiter_bytes():
+                    f.write(chunk)
+                    downloaded += len(chunk)
+                    if progress_callback and total > 0:
+                        progress_callback(downloaded, total)
 
         # Rename temp to final
         temp_path.rename(dest_path)

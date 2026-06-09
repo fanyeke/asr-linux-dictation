@@ -136,4 +136,3 @@ class TestWebSocketConnection:
         await task
 
         assert websocket.sent_json[1] == {"type": "pong"}
-

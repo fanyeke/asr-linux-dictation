@@ -27,6 +27,7 @@ def _row_to_dict(row: sqlite_async.Row) -> dict:
 # Pinyin helpers for pronunciation matching
 # ---------------------------------------------------------------------------
 
+
 def _get_pinyin(text: str) -> list[str]:
     """Convert Chinese text to a list of pinyin syllables.
 
@@ -75,6 +76,7 @@ def _pinyin_sequence_match(
 # CRUD
 # ---------------------------------------------------------------------------
 
+
 async def create_entry(
     canonical_term: str,
     aliases: str | None = None,
@@ -110,9 +112,7 @@ async def create_entry(
         )
         await db.commit()
         entry_id = cursor.lastrowid
-        cursor = await db.execute(
-            "SELECT * FROM dictionary WHERE id = ?", (entry_id,)
-        )
+        cursor = await db.execute("SELECT * FROM dictionary WHERE id = ?", (entry_id,))
         row = await cursor.fetchone()
         assert row is not None
         return _row_to_dict(row)
@@ -130,9 +130,7 @@ async def get_entry(entry_id: int) -> dict | None:
     db_path = get_db_path()
     async with sqlite_async.connect(db_path) as db:
         db.row_factory = sqlite_async.Row
-        cursor = await db.execute(
-            "SELECT * FROM dictionary WHERE id = ?", (entry_id,)
-        )
+        cursor = await db.execute("SELECT * FROM dictionary WHERE id = ?", (entry_id,))
         row = await cursor.fetchone()
         if row is None:
             return None
@@ -208,9 +206,7 @@ async def update_entry(entry_id: int, **kwargs) -> dict:
             )
             await db.commit()
 
-        cursor = await db.execute(
-            "SELECT * FROM dictionary WHERE id = ?", (entry_id,)
-        )
+        cursor = await db.execute("SELECT * FROM dictionary WHERE id = ?", (entry_id,))
         row = await cursor.fetchone()
         assert row is not None
         return _row_to_dict(row)
@@ -227,9 +223,7 @@ async def delete_entry(entry_id: int) -> bool:
     """
     db_path = get_db_path()
     async with sqlite_async.connect(db_path) as db:
-        cursor = await db.execute(
-            "DELETE FROM dictionary WHERE id = ?", (entry_id,)
-        )
+        cursor = await db.execute("DELETE FROM dictionary WHERE id = ?", (entry_id,))
         await db.commit()
         return cursor.rowcount > 0
 
@@ -237,6 +231,7 @@ async def delete_entry(entry_id: int) -> bool:
 # ---------------------------------------------------------------------------
 # Relevance selection (text + pronunciation fuzzy match)
 # ---------------------------------------------------------------------------
+
 
 async def find_relevant_entries(transcript: str) -> list[dict]:
     """Find dictionary entries relevant to a given transcript.
@@ -302,6 +297,7 @@ async def find_relevant_entries(transcript: str) -> list[dict]:
 # Match frequency tracking
 # ---------------------------------------------------------------------------
 
+
 def count_matches_in_text(
     dictionary_entries: list[dict],
     text: str,
@@ -326,11 +322,13 @@ def count_matches_in_text(
         term = entry.get("canonical_term", "")
         if term and term.lower() in text_lower:
             count = text_lower.count(term.lower())
-            results.append({
-                "entry_id": entry["id"],
-                "canonical_term": term,
-                "count": count,
-            })
+            results.append(
+                {
+                    "entry_id": entry["id"],
+                    "canonical_term": term,
+                    "count": count,
+                }
+            )
     return results
 
 

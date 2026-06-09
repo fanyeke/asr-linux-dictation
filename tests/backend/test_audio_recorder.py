@@ -426,7 +426,6 @@ class TestAudioRecorderSilence:
         # Cleanup
         await recorder.stop()
 
-
     @pytest.mark.asyncio
     async def test_vad_disabled_stops_silence_detection(
         self,
@@ -470,9 +469,7 @@ class TestAudioRecorderConfig:
         assert settings.silence_threshold == 0.005
         assert settings.silence_duration_ms == 2000
 
-    def test_audio_settings_from_env(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_audio_settings_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Audio settings can be set via environment variables."""
         monkeypatch.setenv("ASR_LINUX_AUDIO_SAMPLE_RATE", "44100")
         monkeypatch.setenv("ASR_LINUX_AUDIO_CHANNELS", "2")

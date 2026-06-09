@@ -97,8 +97,7 @@ async def _run_clipboard(
                 return subprocess.CompletedProcess(args, 0, b"", b"")
         except FileNotFoundError as exc:
             raise RuntimeError(
-                f"Required tool '{tool}' is not installed. "
-                f"Install it with: sudo apt-get install -y {tool}"
+                f"Required tool '{tool}' is not installed. Install it with: sudo apt-get install -y {tool}"
             ) from exc
 
         return subprocess.CompletedProcess(
@@ -118,8 +117,7 @@ async def _run_clipboard(
         )
     except FileNotFoundError as exc:
         raise RuntimeError(
-            f"Required tool '{tool}' is not installed. "
-            f"Install it with: sudo apt-get install -y {tool}"
+            f"Required tool '{tool}' is not installed. Install it with: sudo apt-get install -y {tool}"
         ) from exc
     except subprocess.TimeoutExpired as exc:
         return subprocess.CompletedProcess(
@@ -155,9 +153,7 @@ class ClipboardManager:
         self._saved_content: str | None = None
         self._tool: str | None = _detect_clipboard_tool()
         if self._tool is None:
-            logger.warning(
-                "Neither xsel nor xclip found — clipboard save/restore disabled"
-            )
+            logger.warning("Neither xsel nor xclip found — clipboard save/restore disabled")
 
     # ------------------------------------------------------------------
     # Public API
@@ -193,7 +189,9 @@ class ClipboardManager:
 
         try:
             await _run_clipboard(
-                self._tool, "write", input_data=self._saved_content.encode(),
+                self._tool,
+                "write",
+                input_data=self._saved_content.encode(),
             )
         except RuntimeError:
             logger.warning("Failed to restore clipboard")
@@ -286,8 +284,7 @@ class ClipboardManager:
         except FocusLostError:
             await self.set_clipboard(text)
             logger.info(
-                "Focus lost during injection — text copied "
-                "to clipboard as fallback",
+                "Focus lost during injection — text copied to clipboard as fallback",
             )
             return {
                 "success": False,

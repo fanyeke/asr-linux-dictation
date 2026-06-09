@@ -74,9 +74,7 @@ class TestHistoryRetry:
         assert data["status"] == "completed"
         assert data["raw_text"] == "hello world this is a test"
         assert data["polished_text"] == "Hello, world. This is a test."
-        self.mock_orchestrator.retry_from_text.assert_awaited_once_with(
-            "hello world this is a test"
-        )
+        self.mock_orchestrator.retry_from_text.assert_awaited_once_with("hello world this is a test")
 
     @pytest.mark.asyncio
     async def test_retry_missing_raw_text(self, client: AsyncClient) -> None:
@@ -93,18 +91,14 @@ class TestHistoryRetry:
         assert response.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_retry_with_token(
-        self, client: AsyncClient, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_retry_with_token(self, client: AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:
         """Retry endpoint respects token auth."""
         monkeypatch.setenv("ASR_LINUX_SECRET_TOKEN", "test-secret-123")
         response = await client.post("/history/failed-has-raw/retry")
         assert response.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_retry_persists_new_session(
-        self, client: AsyncClient, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_retry_persists_new_session(self, client: AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:
         """The orchestrator creates a new session record during retry."""
         # Use a retry_from_text that actually creates a DB session
 

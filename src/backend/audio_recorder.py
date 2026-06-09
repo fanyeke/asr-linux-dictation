@@ -99,9 +99,7 @@ class AudioRecorder:
             self._level_task = asyncio.create_task(self._monitor_levels())
             if self._vad_enabled and self.settings.silence_duration_ms > 0:
                 self._silence_task = asyncio.create_task(self._detect_silence())
-            self._max_duration_task = asyncio.create_task(
-                self._enforce_max_duration()
-            )
+            self._max_duration_task = asyncio.create_task(self._enforce_max_duration())
 
             return self._session_id
 
@@ -198,7 +196,8 @@ class AudioRecorder:
         """
         cmd = [
             "arecord",
-            "-t", "raw",  # raw PCM output (no WAV header in stream)
+            "-t",
+            "raw",  # raw PCM output (no WAV header in stream)
             "-f",
             self.settings.audio_format,
             "-r",
@@ -348,9 +347,7 @@ class AudioRecorder:
                     if silence_start is None:
                         silence_start = asyncio.get_event_loop().time()
                     else:
-                        elapsed = (
-                            asyncio.get_event_loop().time() - silence_start
-                        ) * 1000
+                        elapsed = (asyncio.get_event_loop().time() - silence_start) * 1000
                         if elapsed >= self.settings.silence_duration_ms:
                             with contextlib.suppress(RuntimeError):
                                 await self.stop()

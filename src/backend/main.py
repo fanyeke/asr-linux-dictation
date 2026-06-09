@@ -171,13 +171,9 @@ def get_orchestrator() -> DictationOrchestrator:
     # Recreate if this is the first call or any config changed
     if _orchestrator is None or config_fingerprint != old_fingerprint:
         if cfg.asr_engine == "local":
-            model_path = model_manager.get_model_path(
-                cfg.local_model_size, Settings().data_dir
-            )
+            model_path = model_manager.get_model_path(cfg.local_model_size, Settings().data_dir)
             if model_path is None:
-                model_path = str(
-                    Settings().data_dir / "models" / f"ggml-{cfg.local_model_size}.bin"
-            )
+                model_path = str(Settings().data_dir / "models" / f"ggml-{cfg.local_model_size}.bin")
             asr: ASRClient | LocalASRClient = LocalASRClient(
                 model_path=model_path,
                 model_size=cfg.local_model_size,
@@ -214,7 +210,10 @@ def get_orchestrator() -> DictationOrchestrator:
                     _ws_connections.remove(ws)
 
         _orchestrator = DictationOrchestrator(
-            asr, polish, injector=injector.inject, polish_enabled=cfg.llm_enabled,
+            asr,
+            polish,
+            injector=injector.inject,
+            polish_enabled=cfg.llm_enabled,
             asr_language=cfg.asr_language,
             on_status_change=_broadcast_status,
         )
@@ -258,6 +257,7 @@ async def lifespan(app: FastAPI):
     configure_logging(log_level=settings.log_level, log_file=log_file)
     await init_database()
     from backend.profile_manager import seed_profiles
+
     await seed_profiles()
     _user_config = await load_user_config()
     yield
@@ -426,6 +426,7 @@ async def list_voice_commands(
 ) -> dict:
     """List available voice commands."""
     from backend.voice_command import BUILTIN_COMMANDS
+
     return {"commands": BUILTIN_COMMANDS}
 
 
@@ -631,18 +632,12 @@ async def test_asr_key(
     except httpx.TimeoutException as exc:
         raise HTTPException(status_code=504, detail="ASR service timed out") from exc
     except Exception as exc:
-        raise HTTPException(
-            status_code=502, detail=f"ASR connection error: {exc}"
-        ) from exc
+        raise HTTPException(status_code=502, detail=f"ASR connection error: {exc}") from exc
 
     if response.status_code == 401:
-        raise HTTPException(
-            status_code=401, detail="Authentication failed — API key rejected by ASR service"
-        )
+        raise HTTPException(status_code=401, detail="Authentication failed — API key rejected by ASR service")
     if response.status_code >= 500:
-        raise HTTPException(
-            status_code=502, detail=f"ASR service error: HTTP {response.status_code}"
-        )
+        raise HTTPException(status_code=502, detail=f"ASR service error: HTTP {response.status_code}")
 
     # 4xx other than 401 usually means the audio was too short / malformed,
     # which proves the key is valid (auth passed).
@@ -711,9 +706,7 @@ async def test_llm_key(
             error_type="network_error",
             duration_ms=duration_ms,
         )
-        raise HTTPException(
-            status_code=502, detail=f"LLM connection error: {exc}"
-        ) from exc
+        raise HTTPException(status_code=502, detail=f"LLM connection error: {exc}") from exc
 
     duration_ms = int((time.perf_counter() - started_at) * 1000)
     if response.status_code in (401, 403):
@@ -734,9 +727,7 @@ async def test_llm_key(
             status_code=response.status_code,
             duration_ms=duration_ms,
         )
-        raise HTTPException(
-            status_code=502, detail=f"LLM service error: HTTP {response.status_code}"
-        )
+        raise HTTPException(status_code=502, detail=f"LLM service error: HTTP {response.status_code}")
     if response.status_code >= 400:
         logger.warning(
             "llm_probe_failed",
@@ -1196,6 +1187,7 @@ async def dictation_level(
 ) -> dict:
     """Get current microphone audio level."""
     import time as time_module
+
     start = time_module.time()
     recorder = get_recorder()
     level = await recorder.get_level()

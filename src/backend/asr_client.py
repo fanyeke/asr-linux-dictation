@@ -135,9 +135,7 @@ class ASRClient:
                     timeout=timeout,
                 )
             except httpx.TimeoutException:
-                raise ASRError(
-                    "ASR request timed out", error_category="timeout"
-                ) from None
+                raise ASRError("ASR request timed out", error_category="timeout") from None
 
             if response.status_code == 401:
                 raise ASRError(
@@ -151,14 +149,12 @@ class ASRClient:
                 )
             if 500 <= response.status_code < 600:
                 raise ASRError(
-                    f"ASR server error: HTTP {response.status_code} "
-                    f"{response.text[:200]}",
+                    f"ASR server error: HTTP {response.status_code} {response.text[:200]}",
                     error_category="server_error",
                 )
             if response.status_code >= 400:
                 raise ASRError(
-                    f"ASR API error: HTTP {response.status_code} "
-                    f"{response.text[:200]}",
+                    f"ASR API error: HTTP {response.status_code} {response.text[:200]}",
                     error_category="unknown",
                 )
 
@@ -174,9 +170,7 @@ class ASRClient:
             return text
 
         try:
-            return await self._retry_policy.execute(
-                _do_request, is_retryable=_asr_is_retryable
-            )
+            return await self._retry_policy.execute(_do_request, is_retryable=_asr_is_retryable)
         except RetryExhaustedError as exc:
             if exc.last_exception is not None:
                 raise exc.last_exception from exc  # type: ignore[misc]

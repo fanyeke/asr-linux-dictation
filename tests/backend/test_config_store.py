@@ -87,9 +87,7 @@ async def test_secret_service_success_keeps_api_keys_out_of_database(
     )
 
     async with sqlite_async.connect(get_db_path()) as db:
-        cursor = await db.execute(
-            "SELECT asr_api_key, llm_api_key FROM user_config WHERE id = 1"
-        )
+        cursor = await db.execute("SELECT asr_api_key, llm_api_key FROM user_config WHERE id = 1")
         row = await cursor.fetchone()
 
     assert row == (None, None)

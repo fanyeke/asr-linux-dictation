@@ -18,6 +18,7 @@ BASE_URL = "https://api.openai.com/v1"
 # Layer 1 tests: strip_fillers regex
 # ---------------------------------------------------------------------------
 
+
 class TestStripFillers:
     """Tests for the regex filler removal pre-processing."""
 
@@ -153,9 +154,7 @@ async def test_polish_includes_dictionary_entries(client: PolishClient) -> None:
 async def test_polish_raises_on_server_error(client: PolishClient) -> None:
     """Polish raises PolishError with server_error category on 5xx."""
     with respx.mock:
-        respx.post(f"{BASE_URL}/chat/completions").mock(
-            return_value=httpx.Response(500, text="Internal Server Error")
-        )
+        respx.post(f"{BASE_URL}/chat/completions").mock(return_value=httpx.Response(500, text="Internal Server Error"))
 
         with (
             patch("asyncio.sleep", AsyncMock()),
@@ -173,9 +172,7 @@ async def test_polish_raises_on_server_error(client: PolishClient) -> None:
 async def test_polish_raises_on_auth_failure(client: PolishClient) -> None:
     """Polish raises PolishError with auth category on 401."""
     with respx.mock:
-        respx.post(f"{BASE_URL}/chat/completions").mock(
-            return_value=httpx.Response(401, text="Unauthorized")
-        )
+        respx.post(f"{BASE_URL}/chat/completions").mock(return_value=httpx.Response(401, text="Unauthorized"))
 
         with pytest.raises(PolishError) as exc_info:
             await client.polish(
@@ -190,9 +187,7 @@ async def test_polish_raises_on_auth_failure(client: PolishClient) -> None:
 async def test_polish_raises_on_timeout(client: PolishClient) -> None:
     """Polish raises PolishError with timeout category on httpx.TimeoutException."""
     with respx.mock:
-        respx.post(f"{BASE_URL}/chat/completions").mock(
-            side_effect=httpx.TimeoutException("Connection timed out")
-        )
+        respx.post(f"{BASE_URL}/chat/completions").mock(side_effect=httpx.TimeoutException("Connection timed out"))
 
         with (
             patch("asyncio.sleep", AsyncMock()),
@@ -284,9 +279,7 @@ async def test_warmup_timeout_does_not_raise(client: PolishClient) -> None:
 async def test_polish_raises_on_rate_limit(client: PolishClient) -> None:
     """Polish raises PolishError with rate_limit category on 429."""
     with respx.mock:
-        respx.post(f"{BASE_URL}/chat/completions").mock(
-            return_value=httpx.Response(429, text="Too Many Requests")
-        )
+        respx.post(f"{BASE_URL}/chat/completions").mock(return_value=httpx.Response(429, text="Too Many Requests"))
 
         with (
             patch("asyncio.sleep", AsyncMock()),

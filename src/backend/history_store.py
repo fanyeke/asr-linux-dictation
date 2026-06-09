@@ -42,9 +42,7 @@ async def create_session(session_id: str, prompt_id: int | None = None) -> dict:
             (session_id, "recording", prompt_id),
         )
         await db.commit()
-        row = await db.execute(
-            "SELECT * FROM history WHERE id = ?", (cursor.lastrowid,)
-        )
+        row = await db.execute("SELECT * FROM history WHERE id = ?", (cursor.lastrowid,))
         return _row_to_dict(await row.fetchone())
 
 
@@ -60,9 +58,7 @@ async def get_session(session_id: str) -> dict | None:
     db_path = get_db_path()
     async with sqlite_async.connect(db_path) as db:
         db.row_factory = sqlite_async.Row
-        cursor = await db.execute(
-            "SELECT * FROM history WHERE session_id = ?", (session_id,)
-        )
+        cursor = await db.execute("SELECT * FROM history WHERE session_id = ?", (session_id,))
         row = await cursor.fetchone()
         if row is None:
             return None
@@ -123,10 +119,7 @@ async def update_session(session_id: str, **kwargs) -> dict:
     updates = {k: v for k, v in kwargs.items() if k in valid_columns}
 
     if "status" in updates and updates["status"] not in VALID_STATUSES:
-        raise ValueError(
-            f"Invalid status '{updates['status']}'. "
-            f"Must be one of: {', '.join(sorted(VALID_STATUSES))}"
-        )
+        raise ValueError(f"Invalid status '{updates['status']}'. Must be one of: {', '.join(sorted(VALID_STATUSES))}")
 
     if not updates:
         return await get_session(session_id)  # type: ignore[return-value]
@@ -147,9 +140,7 @@ async def update_session(session_id: str, **kwargs) -> dict:
         if cursor.rowcount == 0:
             raise ValueError(f"Session with session_id '{session_id}' not found")
 
-        row = await db.execute(
-            "SELECT * FROM history WHERE session_id = ?", (session_id,)
-        )
+        row = await db.execute("SELECT * FROM history WHERE session_id = ?", (session_id,))
         return _row_to_dict(await row.fetchone())
 
 
@@ -236,9 +227,7 @@ async def mark_retry(session_id: str, new_session_id: str) -> dict:
         db.row_factory = sqlite_async.Row
 
         # Fetch existing error_type
-        cursor = await db.execute(
-            "SELECT * FROM history WHERE session_id = ?", (session_id,)
-        )
+        cursor = await db.execute("SELECT * FROM history WHERE session_id = ?", (session_id,))
         row = await cursor.fetchone()
         if row is None:
             raise ValueError(f"Session with session_id '{session_id}' not found")
@@ -253,7 +242,5 @@ async def mark_retry(session_id: str, new_session_id: str) -> dict:
         )
         await db.commit()
 
-        updated = await db.execute(
-            "SELECT * FROM history WHERE session_id = ?", (session_id,)
-        )
+        updated = await db.execute("SELECT * FROM history WHERE session_id = ?", (session_id,))
         return _row_to_dict(await updated.fetchone())

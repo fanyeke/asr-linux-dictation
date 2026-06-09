@@ -117,9 +117,7 @@ class TestDiagnosticsExport:
         assert "ERROR" in log_content
 
     @pytest.mark.asyncio
-    async def test_diagnostics_with_token(
-        self, client: AsyncClient, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_diagnostics_with_token(self, client: AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:
         """Diagnostics endpoint respects token auth."""
         monkeypatch.setenv("ASR_LINUX_SECRET_TOKEN", "test-secret-123")
         response = await client.get("/diagnostics/export")

@@ -110,10 +110,14 @@ class TestClipboardManager:
         """
         calls: list[dict[str, Any]] = []
 
-        async def mock_run(tool: str, mode: str,  # type: ignore[func-returns-value]
-                           input_data: bytes | None = None) -> Any:
+        async def mock_run(
+            tool: str,
+            mode: str,  # type: ignore[func-returns-value]
+            input_data: bytes | None = None,
+        ) -> Any:
             calls.append({"tool": tool, "mode": mode, "input_data": input_data})
             from subprocess import CompletedProcess
+
             return CompletedProcess((tool, mode), returncode, output, b"")
 
         monkeypatch.setattr("backend.clipboard_manager._run_clipboard", mock_run)
@@ -125,7 +129,9 @@ class TestClipboardManager:
 
     @pytest.mark.asyncio
     async def test_save_returns_clipboard_content(
-        self, manager: ClipboardManager, monkeypatch: pytest.MonkeyPatch,
+        self,
+        manager: ClipboardManager,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """``save()`` stores and returns the current clipboard content."""
         self._enable_tool(manager, monkeypatch)
@@ -138,7 +144,9 @@ class TestClipboardManager:
 
     @pytest.mark.asyncio
     async def test_save_empty_clipboard_returns_none(
-        self, manager: ClipboardManager, monkeypatch: pytest.MonkeyPatch,
+        self,
+        manager: ClipboardManager,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """``save()`` returns ``None`` when the clipboard is empty."""
         self._enable_tool(manager, monkeypatch)
@@ -151,7 +159,9 @@ class TestClipboardManager:
 
     @pytest.mark.asyncio
     async def test_save_failed_command_returns_none(
-        self, manager: ClipboardManager, monkeypatch: pytest.MonkeyPatch,
+        self,
+        manager: ClipboardManager,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """``save()`` returns ``None`` when the clipboard command fails."""
         self._enable_tool(manager, monkeypatch)
@@ -167,7 +177,9 @@ class TestClipboardManager:
 
     @pytest.mark.asyncio
     async def test_restore_pushes_saved_content(
-        self, manager: ClipboardManager, monkeypatch: pytest.MonkeyPatch,
+        self,
+        manager: ClipboardManager,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """``restore()`` writes the saved content back to the clipboard."""
         self._enable_tool(manager, monkeypatch)
@@ -183,7 +195,9 @@ class TestClipboardManager:
 
     @pytest.mark.asyncio
     async def test_restore_noop_when_no_saved_content(
-        self, manager: ClipboardManager, monkeypatch: pytest.MonkeyPatch,
+        self,
+        manager: ClipboardManager,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """``restore()`` is a no-op when no content was saved."""
         self._enable_tool(manager, monkeypatch)
@@ -201,7 +215,9 @@ class TestClipboardManager:
 
     @pytest.mark.asyncio
     async def test_set_clipboard(
-        self, manager: ClipboardManager, monkeypatch: pytest.MonkeyPatch,
+        self,
+        manager: ClipboardManager,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """``set_clipboard()`` writes text to the X11 clipboard."""
         self._enable_tool(manager, monkeypatch)
@@ -216,7 +232,9 @@ class TestClipboardManager:
 
     @pytest.mark.asyncio
     async def test_set_clipboard_for_paste_waits_until_text_is_visible(
-        self, manager: ClipboardManager, monkeypatch: pytest.MonkeyPatch,
+        self,
+        manager: ClipboardManager,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Clipboard paste setup waits out stale reads from async clipboard owners."""
         self._enable_tool(manager, monkeypatch)
@@ -250,7 +268,9 @@ class TestClipboardManager:
 
     @pytest.mark.asyncio
     async def test_set_clipboard_for_paste_reports_timeout_for_stale_clipboard(
-        self, manager: ClipboardManager, monkeypatch: pytest.MonkeyPatch,
+        self,
+        manager: ClipboardManager,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """A stale clipboard read returns False so callers do not paste old text."""
         self._enable_tool(manager, monkeypatch)
@@ -285,7 +305,9 @@ class TestClipboardManager:
 
     @pytest.mark.asyncio
     async def test_inject_with_fallback_success(
-        self, manager: ClipboardManager, monkeypatch: pytest.MonkeyPatch,
+        self,
+        manager: ClipboardManager,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """When *inject_func* succeeds, text stays in clipboard (no restore)."""
         ops: dict[str, list[Any]] = {"save": [], "restore": [], "set": []}
@@ -324,7 +346,9 @@ class TestClipboardManager:
 
     @pytest.mark.asyncio
     async def test_inject_with_fallback_runtime_error(
-        self, manager: ClipboardManager, monkeypatch: pytest.MonkeyPatch,
+        self,
+        manager: ClipboardManager,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """On RuntimeError, clipboard is NOT restored — text stays as fallback."""
         ops: dict[str, list[Any]] = {"save": [], "restore": [], "set": []}
@@ -361,7 +385,9 @@ class TestClipboardManager:
 
     @pytest.mark.asyncio
     async def test_inject_with_fallback_focus_lost(
-        self, manager: ClipboardManager, monkeypatch: pytest.MonkeyPatch,
+        self,
+        manager: ClipboardManager,
+        monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """On :class:`FocusLostError`, text is copied to clipboard as fallback."""
@@ -402,9 +428,12 @@ class TestClipboardManager:
 
     @pytest.mark.asyncio
     async def test_inject_with_fallback_empty_clipboard(
-        self, manager: ClipboardManager, monkeypatch: pytest.MonkeyPatch,
+        self,
+        manager: ClipboardManager,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """When clipboard is empty, ``clipboard_saved`` is ``False``."""
+
         async def mock_save() -> None:
             return None
 
@@ -428,7 +457,8 @@ class TestClipboardManager:
 
     @pytest.mark.asyncio
     async def test_no_tool_logs_warning(
-        self, caplog: pytest.LogCaptureFixture,
+        self,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """When neither xsel nor xclip is installed, a warning is logged."""
         import backend.clipboard_manager as cm
@@ -442,7 +472,8 @@ class TestClipboardManager:
 
     @pytest.mark.asyncio
     async def test_no_tool_save_returns_none(
-        self, manager: ClipboardManager,
+        self,
+        manager: ClipboardManager,
     ) -> None:
         """``save()`` returns ``None`` when no tool is available."""
         manager._tool = None  # noqa: SLF001
@@ -451,7 +482,8 @@ class TestClipboardManager:
 
     @pytest.mark.asyncio
     async def test_no_tool_restore_noop(
-        self, manager: ClipboardManager,
+        self,
+        manager: ClipboardManager,
     ) -> None:
         """``restore()`` is a no-op when no tool is available."""
         manager._tool = None  # noqa: SLF001
@@ -460,7 +492,8 @@ class TestClipboardManager:
 
     @pytest.mark.asyncio
     async def test_no_tool_set_clipboard_noop(
-        self, manager: ClipboardManager,
+        self,
+        manager: ClipboardManager,
     ) -> None:
         """``set_clipboard()`` is a no-op when no tool is available."""
         manager._tool = None  # noqa: SLF001
@@ -468,7 +501,8 @@ class TestClipboardManager:
 
     @pytest.mark.asyncio
     async def test_no_tool_inject_func_still_called(
-        self, manager: ClipboardManager,
+        self,
+        manager: ClipboardManager,
     ) -> None:
         """``inject_with_fallback`` still calls *inject_func* when no tool is available."""
         manager._tool = None  # noqa: SLF001

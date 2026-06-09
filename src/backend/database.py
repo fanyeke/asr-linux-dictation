@@ -108,49 +108,34 @@ async def init_database() -> None:
             """
         )
         # Ensure the single row exists
-        await db.execute(
-            "INSERT OR IGNORE INTO user_config (id) VALUES (1)"
-        )
+        await db.execute("INSERT OR IGNORE INTO user_config (id) VALUES (1)")
 
         # Migration 1: add hotkey column to existing user_config tables
         # (CREATE TABLE IF NOT EXISTS does not alter existing schemas)
         cursor = await db.execute("PRAGMA table_info(user_config)")
         columns = [row[1] for row in await cursor.fetchall()]
         if "hotkey" not in columns:
-            await db.execute(
-                "ALTER TABLE user_config ADD COLUMN hotkey TEXT DEFAULT 'Alt+='"
-            )
+            await db.execute("ALTER TABLE user_config ADD COLUMN hotkey TEXT DEFAULT 'Alt+='")
         if "asr_api_key" not in columns:
             await db.execute("ALTER TABLE user_config ADD COLUMN asr_api_key TEXT")
             if "api_key" in columns:
                 await db.execute(
-                    "UPDATE user_config SET asr_api_key = api_key "
-                    "WHERE asr_api_key IS NULL AND api_key IS NOT NULL"
+                    "UPDATE user_config SET asr_api_key = api_key WHERE asr_api_key IS NULL AND api_key IS NOT NULL"
                 )
         if "llm_api_key" not in columns:
             await db.execute("ALTER TABLE user_config ADD COLUMN llm_api_key TEXT")
         if "llm_enabled" not in columns:
-            await db.execute(
-                "ALTER TABLE user_config ADD COLUMN llm_enabled INTEGER DEFAULT 1"
-            )
+            await db.execute("ALTER TABLE user_config ADD COLUMN llm_enabled INTEGER DEFAULT 1")
         if "llm_base_url" not in columns:
-            await db.execute(
-                "ALTER TABLE user_config ADD COLUMN "
-                "llm_base_url TEXT DEFAULT 'https://api.openai.com/v1'"
-            )
+            await db.execute("ALTER TABLE user_config ADD COLUMN llm_base_url TEXT DEFAULT 'https://api.openai.com/v1'")
         if "llm_model" not in columns:
-            await db.execute(
-                "ALTER TABLE user_config ADD COLUMN "
-                "llm_model TEXT DEFAULT 'gpt-4o-mini'"
-            )
+            await db.execute("ALTER TABLE user_config ADD COLUMN llm_model TEXT DEFAULT 'gpt-4o-mini'")
         await db.execute(
-            "UPDATE user_config SET llm_base_url = ? "
-            "WHERE llm_base_url IS NULL",
+            "UPDATE user_config SET llm_base_url = ? WHERE llm_base_url IS NULL",
             (OPENAI_LLM_BASE_URL,),
         )
         await db.execute(
-            "UPDATE user_config SET llm_model = ? "
-            "WHERE llm_model IS NULL",
+            "UPDATE user_config SET llm_model = ? WHERE llm_model IS NULL",
             (OPENAI_LLM_MODEL,),
         )
 
@@ -158,49 +143,37 @@ async def init_database() -> None:
         cursor = await db.execute("PRAGMA table_info(dictionary)")
         dict_columns = [row[1] for row in await cursor.fetchall()]
         if "pronunciation" not in dict_columns:
-            await db.execute(
-                "ALTER TABLE dictionary ADD COLUMN pronunciation TEXT"
-            )
+            await db.execute("ALTER TABLE dictionary ADD COLUMN pronunciation TEXT")
 
         # Migration: add ui_language column to existing user_config tables
         cursor = await db.execute("PRAGMA table_info(user_config)")
         config_columns = [row[1] for row in await cursor.fetchall()]
         if "ui_language" not in config_columns:
-            await db.execute(
-                "ALTER TABLE user_config ADD COLUMN ui_language TEXT DEFAULT 'zh'"
-            )
+            await db.execute("ALTER TABLE user_config ADD COLUMN ui_language TEXT DEFAULT 'zh'")
 
         # Migration: add asr_language column to existing user_config tables
         cursor = await db.execute("PRAGMA table_info(user_config)")
         config_columns = [row[1] for row in await cursor.fetchall()]
         if "asr_language" not in config_columns:
-            await db.execute(
-                "ALTER TABLE user_config ADD COLUMN asr_language TEXT DEFAULT 'auto'"
-            )
+            await db.execute("ALTER TABLE user_config ADD COLUMN asr_language TEXT DEFAULT 'auto'")
 
         # Migration: add vad_enabled column to existing user_config tables
         cursor = await db.execute("PRAGMA table_info(user_config)")
         config_columns = [row[1] for row in await cursor.fetchall()]
         if "vad_enabled" not in config_columns:
-            await db.execute(
-                "ALTER TABLE user_config ADD COLUMN vad_enabled INTEGER DEFAULT 1"
-            )
+            await db.execute("ALTER TABLE user_config ADD COLUMN vad_enabled INTEGER DEFAULT 1")
 
         # Migration: add theme column to existing user_config tables (Phase 15)
         cursor = await db.execute("PRAGMA table_info(user_config)")
         config_columns = [row[1] for row in await cursor.fetchall()]
         if "theme" not in config_columns:
-            await db.execute(
-                "ALTER TABLE user_config ADD COLUMN theme TEXT DEFAULT 'light'"
-            )
+            await db.execute("ALTER TABLE user_config ADD COLUMN theme TEXT DEFAULT 'light'")
 
         # Migration: add onboarding_completed column to existing user_config tables
         cursor = await db.execute("PRAGMA table_info(user_config)")
         config_columns = [row[1] for row in await cursor.fetchall()]
         if "onboarding_completed" not in config_columns:
-            await db.execute(
-                "ALTER TABLE user_config ADD COLUMN onboarding_completed INTEGER DEFAULT 0"
-            )
+            await db.execute("ALTER TABLE user_config ADD COLUMN onboarding_completed INTEGER DEFAULT 0")
 
         # Phase 7: dictionary_stats table
         await db.execute(
@@ -259,13 +232,9 @@ async def init_database() -> None:
         cursor = await db.execute("PRAGMA table_info(user_config)")
         config_columns = [row[1] for row in await cursor.fetchall()]
         if "asr_engine" not in config_columns:
-            await db.execute(
-                "ALTER TABLE user_config ADD COLUMN asr_engine TEXT DEFAULT 'cloud'"
-            )
+            await db.execute("ALTER TABLE user_config ADD COLUMN asr_engine TEXT DEFAULT 'cloud'")
         if "local_model_size" not in config_columns:
-            await db.execute(
-                "ALTER TABLE user_config ADD COLUMN local_model_size TEXT DEFAULT 'small'"
-            )
+            await db.execute("ALTER TABLE user_config ADD COLUMN local_model_size TEXT DEFAULT 'small'")
 
         # Migration: add voice_commands table
         await db.execute(

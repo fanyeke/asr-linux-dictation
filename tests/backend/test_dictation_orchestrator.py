@@ -205,6 +205,7 @@ class TestDictationOrchestrator:
     @pytest.mark.asyncio
     async def test_injector_failure(self, mock_asr, mock_polish):
         """Injector failure marks session as failed and returns the session."""
+
         def failing_injector(text: str) -> None:
             raise ValueError("Injector failed")
 

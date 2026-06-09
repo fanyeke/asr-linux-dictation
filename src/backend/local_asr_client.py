@@ -90,15 +90,13 @@ class LocalASRClient:
         # Check prerequisites
         if self._cli_path is None:
             raise ASRError(
-                "whisper-cli not found. Install whisper.cpp from "
-                "https://github.com/ggerganov/whisper.cpp",
+                "whisper-cli not found. Install whisper.cpp from https://github.com/ggerganov/whisper.cpp",
                 error_category="server_error",
             )
 
         if not os.path.exists(self._model_path):
             raise ASRError(
-                f"Model not found at {self._model_path}. "
-                f"Download the {self._model_size} model first.",
+                f"Model not found at {self._model_path}. Download the {self._model_size} model first.",
                 error_category="server_error",
             )
 

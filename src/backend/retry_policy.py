@@ -86,8 +86,7 @@ class RetryPolicy:
 
         # All attempts exhausted
         raise RetryExhaustedError(
-            f"All {self.max_attempts} retry attempts exhausted. "
-            f"Last error: {last_exception}",
+            f"All {self.max_attempts} retry attempts exhausted. Last error: {last_exception}",
             last_exception=last_exception,
         )
 

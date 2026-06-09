@@ -105,7 +105,7 @@ def _is_cjk(ch: str) -> bool:
     """Check if a character is in a CJK Unicode range."""
     cp = ord(ch)
     return (
-        (0x4E00 <= cp <= 0x9FFF)   # CJK Unified Ideographs
+        (0x4E00 <= cp <= 0x9FFF)  # CJK Unified Ideographs
         or (0x3400 <= cp <= 0x4DBF)  # CJK Extension A
         or (0x2E80 <= cp <= 0x2EFF)  # CJK Radicals
         or (0x3000 <= cp <= 0x303F)  # CJK Symbols and Punctuation
