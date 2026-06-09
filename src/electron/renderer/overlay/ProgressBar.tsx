@@ -40,7 +40,7 @@ interface ProgressBarProps {
 // ---------------------------------------------------------------------------
 export function ProgressBar({
   phase,
-  partialText: _partialText,
+  partialText,
   micLevel = 0,
 }: ProgressBarProps): JSX.Element {
   const [visible, setVisible] = useState(false);
@@ -135,7 +135,15 @@ export function ProgressBar({
         )}
       </div>
 
-
+      {/* ── Partial transcript text ── */}
+      {partialText && (
+        <div
+          data-testid="partial-text"
+          className="mt-1 text-xs text-white/70 truncate max-w-full"
+        >
+          {partialText}
+        </div>
+      )}
     </div>
   );
 }

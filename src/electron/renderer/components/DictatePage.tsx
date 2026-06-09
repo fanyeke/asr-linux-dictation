@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "../lib/i18n.js";
 import type {
   BackendConfig,
@@ -37,6 +37,22 @@ export function DictatePage({
   onStopRecording,
 }: DictatePageProps): JSX.Element {
   const { t } = useTranslation();
+  const [partialText, setPartialText] = useState("");
+
+  // Subscribe to partial transcript events during recording
+  useEffect(() => {
+    const api = window.voiceAPI;
+    if (!api?.onPartialTranscript) return;
+    return api.onPartialTranscript(setPartialText);
+  }, []);
+
+  // Clear partial text when recording stops
+  useEffect(() => {
+    if (!isRecording) {
+      setPartialText("");
+    }
+  }, [isRecording]);
+
   const handleStart = useCallback(async () => {
     await onStartRecording();
   }, [onStartRecording]);
@@ -83,6 +99,16 @@ export function DictatePage({
           height={64}
           barCount={14}
         />
+
+        {/* Partial transcript text */}
+        {(isRecording && partialText) && (
+          <div
+            data-testid="partial-text"
+            className="w-full text-sm text-gray-400 text-center truncate px-2"
+          >
+            {partialText}
+          </div>
+        )}
 
         {/* Quick Test button */}
         <div className="self-end">
