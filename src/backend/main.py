@@ -643,6 +643,21 @@ async def dashboard_stats(
         }
 
 
+@app.get("/stats/insights")
+async def stats_insights(
+    _: Annotated[None, Depends(verify_token)],
+) -> dict:
+    """Computed usage insights for the dashboard.
+
+    Returns aggregated stats for the last 7 days, comparison with the
+    previous period, streak info, time-saved estimate, and a natural
+    language summary.
+    """
+    from backend.stats_insights import compute_insights
+
+    return await compute_insights()
+
+
 @app.get("/system/deps")
 async def system_deps(
     _: Annotated[None, Depends(verify_token)],

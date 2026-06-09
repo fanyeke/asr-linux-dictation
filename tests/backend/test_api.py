@@ -518,3 +518,50 @@ class TestVoiceShortcutsAPI:
         """DELETE /voice-shortcuts/9999 returns 404."""
         response = await client.delete("/voice-shortcuts/9999")
         assert response.status_code == 404
+
+
+class TestStatsInsightsRoute:
+    """Tests for the /stats/insights API route."""
+
+    @pytest.fixture(autouse=True)
+    async def _setup_db(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Set up a fresh database with no token."""
+        monkeypatch.setenv("ASR_LINUX_SECRET_TOKEN", "")
+        monkeypatch.setenv("ASR_LINUX_DATA_DIR", str(tmp_path))
+        from backend.database import init_database
+
+        await init_database()
+
+    @pytest.mark.asyncio
+    async def test_insights_empty_db(self, client: AsyncClient) -> None:
+        """GET /stats/insights returns default values with no data."""
+        response = await client.get("/stats/insights")
+        assert response.status_code == 200
+        data = response.json()
+        assert "current" in data
+        assert "summary" in data
+        assert "还没有听写数据" in data["summary"]
+
+    @pytest.mark.asyncio
+    async def test_insights_with_data(self, client: AsyncClient) -> None:
+        """GET /stats/insights works after inserting history."""
+        from backend import sqlite_async
+        from backend.database import get_db_path
+
+        db_path = get_db_path()
+        async with sqlite_async.connect(db_path) as db:
+            await db.execute(
+                "INSERT INTO history (session_id, raw_text, polished_text, status, timing_ms) VALUES (?, ?, ?, ?, ?)",
+                ("api-test-1", "hello world", "Hello world.", "completed", 5000),
+            )
+            await db.commit()
+
+        response = await client.get("/stats/insights")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["current"]["sessions"] == 1
+        assert "summary" in data
