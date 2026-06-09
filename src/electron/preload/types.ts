@@ -37,6 +37,13 @@ export interface VoiceAPI {
   onMicrophoneLevel: (callback: (level: number) => void) => () => void;
 
   /**
+   * Subscribes to partial transcript events during recording.
+   * The text is updated in real-time as the ASR produces results.
+   * Returns a cleanup function to unsubscribe.
+   */
+  onPartialTranscript: (callback: (text: string) => void) => () => void;
+
+  /**
    * Subscribes to toggle-dictation hotkey events from the main process.
    * Returns a cleanup function to unsubscribe.
    */

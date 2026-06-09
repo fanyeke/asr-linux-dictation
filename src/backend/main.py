@@ -1091,15 +1091,18 @@ async def _streaming_asr_loop(
     """Background streaming ASR loop during recording.
 
     Every 2.5 seconds reads a slice from the recorder's ring buffer,
-    wraps it in a WAV header, sends it to the ASR API, and broadcasts
-    the partial result to all connected WebSocket clients so the
-    overlay marquee can show real-time recognition text.
+    wraps it in a WAV header, sends it to the ASR API, merges the
+    result with previous partials, and broadcasts the stable merged
+    text to all connected WebSocket clients.
 
     The loop is cancelled when recording stops.
     """
     from backend.ring_buffer import pcm_to_wav
+    from backend.transcript_merger import TranscriptMerger
 
     global _partial_broadcast_task
+    merger = TranscriptMerger(min_overlap_chars=2)
+    partials: list[str] = []
     try:
         while recorder.is_recording:
             await asyncio.sleep(2.5)
@@ -1114,7 +1117,11 @@ async def _streaming_asr_loop(
                 wav_data = pcm_to_wav(slice_data)
                 partial = await asr_client.transcribe(wav_data)
                 if partial and partial.strip():
-                    await _broadcast_partial_transcript(partial.strip())
+                    partials.append(partial.strip())
+                    # Merge all partials so far for a stable display text
+                    merged = merger.merge(partials)
+                    if merged:
+                        await _broadcast_partial_transcript(merged)
             except Exception:
                 logger.warning("Streaming ASR slice failed (non-blocking)", exc_info=True)
     except asyncio.CancelledError:

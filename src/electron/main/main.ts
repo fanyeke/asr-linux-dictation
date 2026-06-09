@@ -239,6 +239,9 @@ function registerIpcHandlers(): void {
           };
           if (data.type === "partial_transcript" && data.text) {
             const partialText = data.text;
+            if (settingsWindow && !settingsWindow.isDestroyed()) {
+              settingsWindow.webContents.send("partial-transcript", partialText);
+            }
             if (overlayWindow && !overlayWindow.isDestroyed()) {
               overlayWindow.webContents.send("partial-transcript", partialText);
               overlayWindow.showInactive();
