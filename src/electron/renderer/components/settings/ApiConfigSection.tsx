@@ -58,6 +58,8 @@ function buildConfigPayload(state: {
   llmEnabled: boolean;
   llmBaseUrl: string;
   llmModel: string;
+  asrEngine: string;
+  localModelSize: string;
 }): Record<string, unknown> {
   const payload: Record<string, unknown> = {
     asr_base_url: state.asrBaseUrl,
@@ -66,6 +68,8 @@ function buildConfigPayload(state: {
     llm_enabled: state.llmEnabled,
     llm_base_url: state.llmBaseUrl,
     llm_model: state.llmModel,
+    asr_engine: state.asrEngine,
+    local_model_size: state.localModelSize,
   };
   // Only include API keys when the user has entered a real (non-placeholder) value.
   // Empty keys are omitted so the server preserves the existing key.
@@ -109,6 +113,10 @@ export function ApiConfigSection({
     useState<ConnectionStatus>("unknown");
   const [showAsrApiKey, setShowAsrApiKey] = useState(false);
   const [showLlmApiKey, setShowLlmApiKey] = useState(false);
+  const [asrEngine, setAsrEngine] = useState("cloud");
+  const [localModelSize, setLocalModelSize] = useState("small");
+  const [models, setModels] = useState<Array<{name: string; path: string | null; size_mb: number; downloaded: boolean; description: string}>>([]);
+  const [modelDownloading, setModelDownloading] = useState(false);
   const loadedRef = useRef(false);
 
   // Load initial config
@@ -134,6 +142,8 @@ export function ApiConfigSection({
         }
         if (cfg.llm_base_url) setLlmBaseUrl(cfg.llm_base_url);
         if (cfg.llm_model) setLlmModel(cfg.llm_model);
+        if (cfg.asr_engine) setAsrEngine(cfg.asr_engine);
+        if (cfg.local_model_size) setLocalModelSize(cfg.local_model_size);
         loadedRef.current = true;
       } catch (err) {
         console.error("Failed to load config:", err);
@@ -145,6 +155,26 @@ export function ApiConfigSection({
     };
   }, [backendConfig]);
 
+  // Load model status when engine is local
+  useEffect(() => {
+    if (!backendConfig || asrEngine !== "local") return;
+    let cancelled = false;
+    async function load() {
+      try {
+        const res = await fetch(`${backendConfig!.url}/models`, {
+          headers: { "x-token": backendConfig!.token },
+        });
+        if (cancelled || !res.ok) return;
+        const data = await res.json();
+        setModels(data.downloaded || []);
+      } catch (err) {
+        console.error("Failed to load models:", err);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [backendConfig, asrEngine]);
+
   const configState = {
     asrApiKey,
     asrBaseUrl,
@@ -154,6 +184,8 @@ export function ApiConfigSection({
     llmEnabled,
     llmBaseUrl,
     llmModel,
+    asrEngine,
+    localModelSize,
   };
 
   const saveConfigToBackend = useCallback(
@@ -265,6 +297,55 @@ export function ApiConfigSection({
     },
     [backendConfig, configState],
   );
+
+  const handleDownloadModel = useCallback(async () => {
+    if (!backendConfig || modelDownloading) return;
+    setModelDownloading(true);
+    try {
+      const res = await fetch(`${backendConfig.url}/models/download`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-token": backendConfig.token },
+        body: JSON.stringify({ name: localModelSize }),
+      });
+      if (res.ok) {
+        onToast(`Model ${localModelSize} downloaded`, 3000);
+        // Reload models
+        const mRes = await fetch(`${backendConfig.url}/models`, {
+          headers: { "x-token": backendConfig.token },
+        });
+        if (mRes.ok) {
+          const data = await mRes.json();
+          setModels(data.downloaded || []);
+        }
+      } else {
+        onToast("Model download failed", 5000);
+      }
+    } catch (err) {
+      onToast(`Download error: ${err}`, 5000);
+    } finally {
+      setModelDownloading(false);
+    }
+  }, [backendConfig, localModelSize, modelDownloading, onToast]);
+
+  const handleDeleteModel = useCallback(async (name: string) => {
+    if (!backendConfig) return;
+    try {
+      await fetch(`${backendConfig.url}/models/delete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-token": backendConfig.token },
+        body: JSON.stringify({ name }),
+      });
+      const mRes = await fetch(`${backendConfig.url}/models`, {
+        headers: { "x-token": backendConfig.token },
+      });
+      if (mRes.ok) {
+        const data = await mRes.json();
+        setModels(data.downloaded || []);
+      }
+    } catch (err) {
+      console.error("Failed to delete model:", err);
+    }
+  }, [backendConfig]);
 
   return (
     <Card padding="md">
@@ -393,6 +474,75 @@ export function ApiConfigSection({
           onChange={(e) => setLlmModel(e.target.value)}
           placeholder="gpt-4o-mini"
         />
+      </div>
+
+      {/* ASR Engine */}
+      <div className="mb-4">
+        <label
+          htmlFor="asr-engine-select"
+          className="block text-sm font-medium text-dark-700 mb-1"
+        >
+          ASR Engine
+        </label>
+        <select
+          id="asr-engine-select"
+          value={asrEngine}
+          onChange={(e) => setAsrEngine(e.target.value)}
+          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+        >
+          <option value="cloud">Cloud API (MiMo)</option>
+          <option value="local">Local (Whisper.cpp)</option>
+        </select>
+
+        {asrEngine === "local" && (
+          <div className="mt-3 p-3 bg-gray-50 rounded-md space-y-3">
+            <p className="text-xs text-gray-500">
+              Download a Whisper model for offline ASR. Requires whisper-cli to be installed.
+            </p>
+            <div className="flex gap-2 items-end">
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-dark-700 mb-1">
+                  Model Size
+                </label>
+                <select
+                  value={localModelSize}
+                  onChange={(e) => setLocalModelSize(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                >
+                  <option value="tiny">Tiny (~75 MB)</option>
+                  <option value="base">Base (~150 MB)</option>
+                  <option value="small">Small (~500 MB) — Recommended</option>
+                  <option value="medium">Medium (~1.5 GB)</option>
+                </select>
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleDownloadModel}
+                disabled={modelDownloading}
+              >
+                {modelDownloading ? "Downloading..." : "Download"}
+              </Button>
+            </div>
+            {/* Downloaded models */}
+            {models.length > 0 && (
+              <div className="text-xs space-y-1">
+                {models.map((m) => (
+                  <div key={m.name} className="flex items-center justify-between">
+                    <span className="text-green-600">✓ {m.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteModel(m.name)}
+                      className="text-red-500 hover:text-red-700 text-xs"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ASR Language */}

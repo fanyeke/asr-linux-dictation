@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "../lib/i18n.js";
 import type {
   BackendConfig,
@@ -38,6 +38,7 @@ export function DictatePage({
 }: DictatePageProps): JSX.Element {
   const { t } = useTranslation();
   const [partialText, setPartialText] = useState("");
+  const partialRef = useRef<HTMLDivElement>(null);
 
   // Subscribe to partial transcript events during recording
   useEffect(() => {
@@ -52,6 +53,13 @@ export function DictatePage({
       setPartialText("");
     }
   }, [isRecording]);
+
+  // Auto-scroll partial text to show latest recognized words
+  useEffect(() => {
+    if (partialRef.current) {
+      partialRef.current.scrollTop = partialRef.current.scrollHeight;
+    }
+  }, [partialText]);
 
   const handleStart = useCallback(async () => {
     await onStartRecording();
@@ -104,7 +112,8 @@ export function DictatePage({
         {(isRecording && partialText) && (
           <div
             data-testid="partial-text"
-            className="w-full text-sm text-gray-400 text-center truncate px-2"
+            ref={partialRef}
+            className="w-full h-14 text-sm text-gray-400 text-left px-2 overflow-y-auto whitespace-normal break-words leading-tight"
           >
             {partialText}
           </div>
