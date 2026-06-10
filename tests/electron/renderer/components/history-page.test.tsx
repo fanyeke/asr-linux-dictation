@@ -78,14 +78,6 @@ describe("HistoryPage", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders the history title", () => {
-    render(
-      <HistoryPage history={[]} backendConfig={mockConfig} onRefresh={vi.fn()} />,
-    );
-
-    expect(screen.getByText("History")).toBeInTheDocument();
-  });
-
   it("shows empty state when no history", () => {
     render(
       <HistoryPage history={[]} backendConfig={mockConfig} onRefresh={vi.fn()} />,

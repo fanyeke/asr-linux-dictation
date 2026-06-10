@@ -11,6 +11,7 @@ import { computeDiff, type DiffSegment } from "../lib/diff.js";
 interface SessionListItemProps {
   session: HistorySession;
   onRetry?: (sessionId: string) => void;
+  onToast?: (msg: string, durationMs?: number) => void;
 }
 
 function statusToBadgeVariant(
@@ -34,6 +35,7 @@ function textPreview(text: string | null, maxLen: number = 30): string {
 export function SessionListItem({
   session,
   onRetry,
+  onToast,
 }: SessionListItemProps): JSX.Element {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
@@ -72,6 +74,7 @@ export function SessionListItem({
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } catch {
+        onToast?.(t("copy_failed"), 3000);
         // ignore
       }
     },
@@ -82,7 +85,7 @@ export function SessionListItem({
     <Card
       padding="md"
       hoverable
-      className={`cursor-pointer ${isFailed ? "bg-red-50/50 border-red-200" : ""}`}
+      className={`cursor-pointer ${isFailed ? "bg-[var(--error-bg)]/50 border-[var(--error-border)]" : ""}`}
     >
       {/* Header - always visible */}
       <button
@@ -101,13 +104,13 @@ export function SessionListItem({
                   : session.status}
             </Badge>
             {formattedTime && (
-              <span className="text-[12px] text-gray-500 whitespace-nowrap">
+              <span className="text-[12px] text-[var(--muted-foreground)] whitespace-nowrap">
                 {formattedTime}
               </span>
             )}
           </div>
           {/* Text preview - always visible */}
-          <span className="text-[13px] text-gray-600 truncate max-w-[250px] sm:max-w-[400px]">
+          <span className="text-[13px] text-[var(--muted-foreground)] truncate max-w-[250px] sm:max-w-[400px]">
             {textPreview(previewText, 40)}
           </span>
         </div>
@@ -118,7 +121,7 @@ export function SessionListItem({
             <button
               type="button"
               onClick={handleCopy}
-              className="p-1.5 rounded-md text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+              className="p-1.5 rounded-md text-[var(--muted-foreground)] hover:text-[var(--brand-600)] hover:bg-[var(--brand-50)] transition-colors"
               data-testid={`copy-btn-${session.id}`}
               title={t("copy")}
             >
@@ -130,15 +133,15 @@ export function SessionListItem({
             </button>
           )}
           {session.timing_ms !== null && (
-            <span className="text-[12px] text-gray-500 tabular-nums">
+            <span className="text-[12px] text-[var(--muted-foreground)] tabular-nums">
               {(timingMs / 1000).toFixed(1)}s
             </span>
           )}
-          <span className="text-[12px] text-gray-400">{charCount}c</span>
+          <span className="text-[12px] text-[var(--text-tertiary)]">{charCount}c</span>
           {expanded ? (
-            <ChevronUp className="w-4 h-4 text-gray-400" />
+            <ChevronUp className="w-4 h-4 text-[var(--text-tertiary)]" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-gray-400" />
+            <ChevronDown className="w-4 h-4 text-[var(--text-tertiary)]" />
           )}
         </div>
       </button>
@@ -161,7 +164,7 @@ export function SessionListItem({
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <Badge variant="info" size="sm">ASR → LLM</Badge>
-                    <span className="text-[11px] text-gray-500">
+                    <span className="text-[11px] text-[var(--muted-foreground)]">
                       <span className="text-red-500">●</span> removed&nbsp;
                       <span className="text-green-500">●</span> added&nbsp;
                       <span className="text-yellow-500">●</span> changed
@@ -170,9 +173,9 @@ export function SessionListItem({
                   <div className="text-sm bg-[var(--card)] p-3 rounded border border-[var(--border)] leading-relaxed whitespace-pre-wrap break-words">
                     {diffSegments.map((seg, i) => {
                       let cls = "";
-                      if (seg.type === "added") cls = "text-green-700 bg-green-50";
-                      else if (seg.type === "removed") cls = "text-red-700 bg-red-50 line-through";
-                      else if (seg.type === "changed") cls = "text-yellow-700 bg-yellow-50";
+                      if (seg.type === "added") cls = "text-[var(--green-700)] bg-[var(--success-bg)]";
+                      else if (seg.type === "removed") cls = "text-[var(--red-700)] bg-[var(--error-bg)] line-through";
+                      else if (seg.type === "changed") cls = "text-[var(--warning-text)] bg-[var(--warning-bg)]";
                       return (
                         <span key={i} className={cls}>
                           {seg.text}{" "}
@@ -188,7 +191,7 @@ export function SessionListItem({
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <Badge variant="info" size="sm">ASR</Badge>
-                        <span className="text-[11px] text-gray-500">{t("result_raw")}</span>
+                        <span className="text-[11px] text-[var(--muted-foreground)]">{t("result_raw")}</span>
                       </div>
                       <pre className="font-mono text-sm bg-[var(--muted)] p-3 rounded whitespace-pre-wrap break-words m-0">
                         {session.raw_text}
@@ -199,9 +202,9 @@ export function SessionListItem({
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <Badge variant="info" size="sm">LLM</Badge>
-                        <span className="text-[11px] text-gray-500">{t("result_polished")}</span>
+                        <span className="text-[11px] text-[var(--muted-foreground)]">{t("result_polished")}</span>
                       </div>
-                      <div className="text-sm bg-white p-3 rounded border border-purple-100">
+                      <div className="text-sm bg-[var(--card)] p-3 rounded border-[var(--border)]">
                         {session.polished_text}
                       </div>
                     </div>
@@ -211,14 +214,14 @@ export function SessionListItem({
 
               {/* Error info */}
               {isFailed && session.error_type && (
-                <div className="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-700">
+                <div className="bg-[var(--error-bg)] border border-[var(--error-border)] rounded p-3 text-sm text-[var(--error-text)]">
                   {t("result_error")}: {session.error_type}
                 </div>
               )}
 
               {/* Session ID + action buttons */}
               <div className="flex items-center justify-between pt-1">
-                <code className="text-[11px] text-gray-400 font-mono">
+                <code className="text-[11px] text-[var(--text-tertiary)] font-mono">
                   {session.session_id}
                 </code>
 

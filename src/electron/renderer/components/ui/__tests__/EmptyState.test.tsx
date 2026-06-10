@@ -89,7 +89,7 @@ describe("EmptyState", () => {
   it("has correct title styling", () => {
     render(<EmptyState title="Title" />);
     const title = screen.getByText("Title");
-    expect(title).toHaveClass("text-dark-900");
+    expect(title).toHaveClass("text-[var(--foreground)]");
     expect(title).toHaveClass("font-semibold");
   });
 
@@ -97,7 +97,7 @@ describe("EmptyState", () => {
   it("has correct description styling", () => {
     render(<EmptyState title="Title" description="Description text" />);
     const description = screen.getByText("Description text");
-    expect(description).toHaveClass("text-gray-500");
+    expect(description).toHaveClass("text-[var(--muted-foreground)]");
     expect(description).toHaveClass("max-w-[280px]");
   });
 
@@ -106,7 +106,7 @@ describe("EmptyState", () => {
     render(<EmptyState title="Title" />);
     const iconContainer = screen.getByTestId("empty-state").firstChild as HTMLElement;
     expect(iconContainer).toHaveClass("rounded-full");
-    expect(iconContainer).toHaveClass("bg-gray-100");
+    expect(iconContainer).toHaveClass("bg-[var(--muted)]");
     expect(iconContainer).toHaveClass("w-12");
     expect(iconContainer).toHaveClass("h-12");
   });

@@ -23,7 +23,7 @@ interface SettingsPageProps {
 }
 
 function ThemeSelector(): JSX.Element {
-  const { setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const { t } = useTranslation();
 
   const themeOptions = [
@@ -45,13 +45,56 @@ function ThemeSelector(): JSX.Element {
             "focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:ring-offset-1",
           )}
           style={{
-            background: "var(--card)",
-            color: "var(--foreground)",
+            background: theme === value ? "var(--primary)" : "var(--card)",
+            color: theme === value ? "var(--primary-foreground)" : "var(--foreground)",
           }}
           data-testid={`theme-option-${value}`}
         >
           <Icon size={16} />
           <span className="text-xs font-medium">{t(label)}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+const ACCENT_COLORS: { value: string; label: string; color: string }[] = [
+  { value: "indigo", label: "accent_indigo", color: "#6366f1" },
+  { value: "rose", label: "accent_rose", color: "#f43f5e" },
+  { value: "emerald", label: "accent_emerald", color: "#10b981" },
+  { value: "amber", label: "accent_amber", color: "#f59e0b" },
+  { value: "violet", label: "accent_violet", color: "#8b5cf6" },
+];
+
+function AccentSelector(): JSX.Element {
+  const { accent, setAccent } = useTheme();
+  const { t } = useTranslation();
+
+  return (
+    <div className="flex gap-2" role="radiogroup" aria-label="Accent Color">
+      {ACCENT_COLORS.map(({ value, label, color }) => (
+        <button
+          key={value}
+          type="button"
+          role="radio"
+          onClick={() => setAccent(value as "indigo" | "rose" | "emerald" | "amber" | "violet")}
+          className={cn(
+            "w-8 h-8 rounded-full transition-all duration-150 flex items-center justify-center",
+            "focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[var(--ring)]",
+            accent === value ? "ring-2 ring-offset-2" : "hover:scale-110",
+          )}
+          style={{
+            background: color,
+            ...(accent === value ? { boxShadow: `0 0 0 2px var(--background), 0 0 0 4px ${color}` } : {}),
+          }}
+          title={t(label)}
+          data-testid={`accent-option-${value}`}
+        >
+          {accent === value && (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          )}
         </button>
       ))}
     </div>
@@ -68,13 +111,9 @@ export function SettingsPage({
 
   return (
     <div className="max-w-3xl mx-auto p-8 flex flex-col gap-6">
-      <h1 className="font-display text-[28px] font-semibold text-dark-900 m-0">
-        {t("settings_title")}
-      </h1>
-
       {/* Language Selector */}
       <div className="flex items-center gap-2 mb-4">
-        <span className="text-sm font-medium text-dark-700">{t("language")}</span>
+        <span className="text-sm font-medium text-[var(--muted-foreground)]">{t("language")}</span>
         <select
           value={language}
           onChange={(e) => {
@@ -88,7 +127,7 @@ export function SettingsPage({
               }).catch(() => {});
             }
           }}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+          className="rounded-md border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] px-3 py-1.5 text-sm"
         >
           <option value="zh">{t("lang_zh")}</option>
           <option value="en">{t("lang_en")}</option>
@@ -97,7 +136,7 @@ export function SettingsPage({
           <button
             type="button"
             onClick={onRerunOnboarding}
-            className="ml-auto text-xs text-brand-600 hover:text-brand-800 transition-colors"
+            className="ml-auto text-xs text-[var(--brand-600)] hover:text-[var(--brand-700)] transition-colors"
           >
             {t("onboarding_rerun")}
           </button>
@@ -109,11 +148,17 @@ export function SettingsPage({
         <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--foreground)" }}>
           {t("appearance")}
         </h2>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
           <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
             {t("theme_pref_hint")}
           </p>
           <ThemeSelector />
+        </div>
+        <div className="flex items-center justify-between">
+          <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+            {t("accent_color")}
+          </p>
+          <AccentSelector />
         </div>
         {/* Theme preview card */}
         <div

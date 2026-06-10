@@ -22,17 +22,17 @@ describe("TabSidebar", () => {
     expect(within(sidebar).getByText("Settings")).toBeInTheDocument();
   });
 
-  it("highlights the active tab with CSS classes in desktop sidebar", () => {
+  it("highlights the active tab with CSS variables in desktop sidebar", () => {
     render(<TabSidebar activeTab="history" onTabChange={vi.fn()} />);
     const sidebar = screen.getByTestId("tab-sidebar");
 
     const historyBtn = within(sidebar).getByTestId("tab-history");
     const dictateBtn = within(sidebar).getByTestId("tab-dictate");
 
-    expect(historyBtn).toHaveClass("bg-brand-500/15");
-    expect(historyBtn).toHaveClass("text-white");
-    expect(dictateBtn).not.toHaveClass("bg-brand-500/15");
-    expect(dictateBtn).toHaveClass("text-gray-500");
+    expect(historyBtn).toHaveClass("text-[var(--sidebar-text-active)]");
+    expect(historyBtn).toHaveAttribute("style", expect.stringContaining("var(--sidebar-bg-active)"));
+    expect(dictateBtn).toHaveClass("text-[var(--sidebar-text)]");
+    expect(dictateBtn).not.toHaveAttribute("style", expect.stringContaining("var(--sidebar-bg-active)"));
   });
 
   it("renders all four tabs in desktop sidebar", () => {

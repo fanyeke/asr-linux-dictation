@@ -102,11 +102,6 @@ afterEach(() => {
 });
 
 describe("DashboardPage", () => {
-  it("renders the dashboard title", async () => {
-    render(<DashboardPage backendConfig={mockBackendConfig} />);
-    expect(await screen.findByText("Dashboard")).toBeInTheDocument();
-  });
-
   it("shows range selector tabs", async () => {
     render(<DashboardPage backendConfig={mockBackendConfig} />);
     expect(await screen.findByText("Today")).toBeInTheDocument();
@@ -155,9 +150,8 @@ describe("DashboardPage", () => {
     vi.spyOn(globalThis, "fetch").mockReturnValue(new Promise(() => {}));
 
     render(<DashboardPage backendConfig={mockBackendConfig} />);
-    // The loading+empty-fallback would show loading text
-    // We just verify it doesn't crash
-    expect(screen.getByText("Dashboard")).toBeInTheDocument();
+    // Loading skeleton should be visible (no crash)
+    expect(screen.getByText("Today")).toBeInTheDocument();
   });
 
   it("fetches with range=7d when 7 Days tab clicked", async () => {
@@ -182,6 +176,7 @@ describe("DashboardPage", () => {
 
   it("handles null backendConfig gracefully", async () => {
     render(<DashboardPage backendConfig={null} />);
-    expect(await screen.findByText("Dashboard")).toBeInTheDocument();
+    // Should still render range selector tabs
+    expect(await screen.findByText("Today")).toBeInTheDocument();
   });
 });

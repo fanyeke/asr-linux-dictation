@@ -99,38 +99,38 @@ export function DiagnosticsSection({
 
   return (
     <Card padding="md">
-      <h2 className="text-[16px] font-semibold text-dark-900 mb-4">
+      <h2 className="text-[16px] font-semibold text-[var(--foreground)] mb-4">
         {t("diagnostics")}
       </h2>
       {backendConfig ? (
         <div className="flex flex-col gap-2 mb-4">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-dark-700 min-w-[100px]">
+            <span className="text-sm font-medium text-[var(--muted-foreground)] min-w-[100px]">
               {t("backend_url")}:
             </span>
-            <span className="text-sm font-mono text-dark-600">
+            <span className="text-sm font-mono text-[var(--muted-foreground)]">
               {backendConfig.url}
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-dark-700 min-w-[100px]">
+            <span className="text-sm font-medium text-[var(--muted-foreground)] min-w-[100px]">
               {t("token")}:
             </span>
-            <span className="text-sm font-mono text-gray-400">
+            <span className="text-sm font-mono text-[var(--text-tertiary)]">
               {maskToken(backendConfig.token)}
             </span>
           </div>
         </div>
       ) : (
-        <p className="text-xs text-gray-400 mb-4">
+        <p className="text-xs text-[var(--text-tertiary)] mb-4">
           No backend configuration available.
         </p>
       )}
       <div className="flex items-center gap-3 mb-4">
-        <span className="text-sm font-medium text-dark-700 min-w-[100px]">
+        <span className="text-sm font-medium text-[var(--muted-foreground)] min-w-[100px]">
           {t("hotkey")}:
         </span>
-        <span className="text-sm text-dark-600">
+        <span className="text-sm text-[var(--muted-foreground)]">
           {registeredHotkey ?? t("not_registered")}
         </span>
       </div>

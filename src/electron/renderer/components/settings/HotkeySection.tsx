@@ -113,7 +113,7 @@ export function HotkeySection({
 
   return (
     <Card padding="md">
-      <h2 className="text-[16px] font-semibold text-dark-900 mb-4">
+      <h2 className="text-[16px] font-semibold text-[var(--foreground)] mb-4">
         {t("global_hotkey")}
       </h2>
       <div className="grid grid-cols-[1fr_auto] gap-4 items-start">

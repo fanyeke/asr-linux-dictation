@@ -59,11 +59,6 @@ const mockSessions: HistorySession[] = [
 const mockConfig = { url: "http://localhost:8000", token: "test-token" };
 
 describe("HistoryPage", () => {
-  it("renders the history title", () => {
-    render(<HistoryPage history={[]} backendConfig={mockConfig} onRefresh={vi.fn()} />);
-    expect(screen.getByText("History")).toBeInTheDocument();
-  });
-
   it("shows empty state when no history", () => {
     render(<HistoryPage history={[]} backendConfig={mockConfig} onRefresh={vi.fn()} />);
     expect(screen.getByText("No sessions yet")).toBeInTheDocument();

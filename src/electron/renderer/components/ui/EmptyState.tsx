@@ -53,7 +53,7 @@ export function EmptyState({
     >
       <div
         className={cn(
-          "rounded-full bg-gray-100 flex items-center justify-center",
+          "rounded-full bg-[var(--muted)] flex items-center justify-center",
           containerSizes[size],
         )}
       >
@@ -66,7 +66,7 @@ export function EmptyState({
       </div>
       <h3
         className={cn(
-          "text-dark-900 font-semibold mt-3",
+          "text-[var(--foreground)] font-semibold mt-3",
           titleSizes[size],
         )}
       >
@@ -75,7 +75,7 @@ export function EmptyState({
       {description && (
         <p
           className={cn(
-            "text-gray-500 max-w-[280px] mt-1",
+            "text-[var(--muted-foreground)] max-w-[280px] mt-1",
             descriptionSizes[size],
           )}
         >

@@ -79,14 +79,6 @@ export function DictatePage({
 
   return (
     <div className="max-w-3xl mx-auto p-8 space-y-6">
-      {/* Page title */}
-      <h1
-        className="text-[28px] font-semibold m-0"
-        style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-      >
-        {t("dictate_title")}
-      </h1>
-
       {/* Phase indicator */}
       <PhaseIndicator phase={phase} />
 
@@ -113,7 +105,7 @@ export function DictatePage({
           <div
             data-testid="partial-text"
             ref={partialRef}
-            className="w-full h-14 text-sm text-gray-400 text-left px-2 overflow-y-auto whitespace-normal break-words leading-tight"
+            className="w-full h-14 text-sm text-[var(--muted-foreground)] text-left px-2 overflow-y-auto whitespace-normal break-words leading-tight"
           >
             {partialText}
           </div>

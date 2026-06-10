@@ -12,30 +12,30 @@
 
 ---
 
-## Phase 15: Theme System
+## Phase 15: Theme System — ✅ Done
 
 **Goal:** Implement warm light theme and deep blue-gray dark theme with CSS variables, persistence, and smooth transitions.
 
 **Requirements:** THEME-01, THEME-02, THEME-03, THEME-04, THEME-05, THEME-06
 
 **Success criteria:**
-1. Light theme renders with `#f6f7f9` background, white cards, subtle shadows — no visual regressions
-2. Dark theme renders with `#0f172a` background, `#1e293b` cards, `#818cf8` primary — complete remapping
-3. Theme switch takes 300ms with all CSS variables transitioning simultaneously + subtle scale breathing
-4. Theme preference persists across app restarts via `UserConfig` backend table
-5. `prefers-reduced-motion` disables all transition animations (instant switch)
-6. All existing shadcn/ui components respect new theme variables without modification
+1. Light theme renders with `#f6f7f9` background, white cards, subtle shadows — ✅
+2. Dark theme renders with `#0f172a` background, `#1e293b` cards, `#818cf8` primary — complete remapping — ✅
+3. Theme switch takes 300ms with all CSS variables transitioning simultaneously + subtle scale breathing — ✅
+4. Theme preference persists across app restarts via `UserConfig` backend table — ✅
+5. `prefers-reduced-motion` disables all transition animations (instant switch) — ✅
+6. All existing shadcn/ui components respect new theme variables without modification — ✅
 
 **Logging instrumentation:**
-- `theme_switch`: log old→new theme, transition duration, source (settings/system/default)
-- `theme_load`: log loaded theme on startup, source (persisted/system-default)
+- `theme_switch`: log old→new theme, transition duration, source (settings/system/default) — ✅
+- `theme_load`: log loaded theme on startup, source (persisted/system-default) — ✅
 
 **TDD plan:**
-1. `test_light_theme_renders` — verify CSS variables match spec colors
-2. `test_dark_theme_renders` — verify dark variable mapping
-3. `test_theme_persistence` — mock `UserConfig`, verify save/load cycle
-4. `test_prefers_reduced_motion` — mock media query, verify instant switch
-5. `test_theme_load_on_startup` — verify correct theme applied before first paint
+1. `test_light_theme_renders` — ✅
+2. `test_dark_theme_renders` — ✅
+3. `test_theme_persistence` — ✅
+4. `test_prefers_reduced_motion` — ✅
+5. `test_theme_load_on_startup` — ✅
 
 ---
 

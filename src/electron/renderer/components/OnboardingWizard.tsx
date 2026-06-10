@@ -62,14 +62,14 @@ function DepCheckStep({ backendConfig }: { backendConfig: BackendConfig | null }
   };
 
   if (loading) {
-    return <div className="text-sm text-gray-500 py-8 text-center">{t("loading")}</div>;
+    return <div className="text-sm text-[var(--muted-foreground)] py-8 text-center">{t("loading")}</div>;
   }
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-dark-700">{t("onboarding_dep_desc")}</p>
+      <p className="text-sm text-[var(--muted-foreground)]">{t("onboarding_dep_desc")}</p>
       {deps?.map((dep) => (
-        <div key={dep.name} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+        <div key={dep.name} className="flex items-center justify-between py-2 px-3 bg-[var(--muted)] rounded-lg">
           <div className="flex items-center gap-2">
             {dep.found ? (
               <CheckCircle2 className="w-4 h-4 text-green-500" />
@@ -77,12 +77,12 @@ function DepCheckStep({ backendConfig }: { backendConfig: BackendConfig | null }
               <XCircle className="w-4 h-4 text-red-500" />
             )}
             <code className="text-sm font-mono">{dep.name}</code>
-            <span className={`text-xs ${dep.found ? "text-green-600" : "text-red-600"}`}>
+            <span className={`text-xs ${dep.found ? "text-[var(--green-600)]" : "text-[var(--red-600)]"}`}>
               {dep.found ? t("onboarding_installed") : t("onboarding_missing")}
             </span>
           </div>
           {!dep.found && installCommands[dep.name] && (
-            <code className="text-xs bg-gray-200 px-2 py-0.5 rounded text-gray-700">
+            <code className="text-xs bg-[var(--border)] px-2 py-0.5 rounded text-[var(--muted-foreground)]">
               {installCommands[dep.name]}
             </code>
           )}
@@ -158,33 +158,33 @@ function ApiConfigStep({
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-dark-700 mb-1">{t("onboarding_url")}</label>
+        <label className="block text-sm font-medium text-[var(--muted-foreground)] mb-1">{t("onboarding_url")}</label>
         <input
           type="text"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="w-full rounded-md border border-[var(--border)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-500)]"
           placeholder={defaultUrl}
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-dark-700 mb-1">{label}</label>
+        <label className="block text-sm font-medium text-[var(--muted-foreground)] mb-1">{label}</label>
         <input
           type="password"
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="w-full rounded-md border border-[var(--border)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-500)]"
           placeholder="sk-..."
         />
       </div>
       {modelField && (
         <div>
-          <label className="block text-sm font-medium text-dark-700 mb-1">{t("onboarding_model")}</label>
+          <label className="block text-sm font-medium text-[var(--muted-foreground)] mb-1">{t("onboarding_model")}</label>
           <input
             type="text"
             value={model}
             onChange={(e) => setModel(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="w-full rounded-md border border-[var(--border)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-500)]"
             placeholder={defaultModel}
           />
         </div>
@@ -199,10 +199,10 @@ function ApiConfigStep({
         {t("onboarding_test_connection")}
       </Button>
       {testResult === "success" && (
-        <p className="text-sm text-green-600">{testMessage}</p>
+        <p className="text-sm text-[var(--green-600)]">{testMessage}</p>
       )}
       {testResult === "failed" && (
-        <p className="text-sm text-red-600">{testMessage}</p>
+        <p className="text-sm text-[var(--red-600)]">{testMessage}</p>
       )}
     </div>
   );
@@ -255,7 +255,7 @@ function TrialStep({ backendConfig }: { backendConfig: BackendConfig | null }): 
 
   return (
     <div className="space-y-4 text-center">
-      <p className="text-sm text-dark-700">{t("onboarding_trial_desc")}</p>
+      <p className="text-sm text-[var(--muted-foreground)]">{t("onboarding_trial_desc")}</p>
 
       {phase === "idle" && (
         <Button variant="primary" size="md" onClick={handleStart}>
@@ -282,13 +282,13 @@ function TrialStep({ backendConfig }: { backendConfig: BackendConfig | null }): 
       )}
 
       {phase === "completed" && result && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-sm text-green-700 text-left">
+        <div className="bg-[var(--success-bg)] border border-[var(--success-border)] rounded-lg p-4 text-sm text-[var(--success-text)] text-left">
           {result}
         </div>
       )}
 
       {phase === "failed" && (
-        <p className="text-sm text-red-600">{t("onboarding_trial_failed")}</p>
+        <p className="text-sm text-[var(--red-600)]">{t("onboarding_trial_failed")}</p>
       )}
     </div>
   );
@@ -327,11 +327,11 @@ export function OnboardingWizard({
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-white rounded-2xl shadow-2xl w-[520px] max-w-[90vw] max-h-[90vh] overflow-y-auto"
+        className="bg-[var(--card)] rounded-2xl shadow-2xl w-[520px] max-w-[90vw] max-h-[90vh] overflow-y-auto"
       >
         {/* Header */}
         <div className="px-6 pt-6 pb-2">
-          <h2 className="text-xl font-semibold text-dark-900">
+          <h2 className="text-xl font-semibold text-[var(--foreground)]">
             {t("onboarding_title")}
           </h2>
 
@@ -341,13 +341,13 @@ export function OnboardingWizard({
               <div
                 key={s}
                 className={`h-1.5 flex-1 rounded-full transition-colors duration-200 ${
-                  s <= step ? "bg-brand-500" : "bg-gray-200"
+                  s <= step ? "bg-brand-500" : "bg-[var(--border)]"
                 }`}
               />
             ))}
           </div>
           {step <= TOTAL_STEPS && (
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-[var(--muted-foreground)]">
               {t("onboarding_step_of")} {step} / {TOTAL_STEPS} — {t(STEP_LABELS[step - 1])}
             </p>
           )}

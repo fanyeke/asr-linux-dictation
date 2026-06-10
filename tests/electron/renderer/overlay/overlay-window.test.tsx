@@ -1,3 +1,4 @@
+import "@testing-library/jest-dom";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, act, waitFor } from "@testing-library/react";
 import { OverlayWindow } from "../../../../src/electron/renderer/overlay/overlay-window.js";
@@ -16,6 +17,7 @@ vi.mock("src/electron/renderer/lib/i18n.js", () => ({
         overlay_polishing: "Polishing...",
         overlay_completed: "Done",
         overlay_failed: "Failed",
+        overlay_network_slow: "Network is slow, please wait",
       };
       return map[key] || key;
     },
@@ -28,21 +30,21 @@ vi.mock("src/electron/renderer/lib/i18n.js", () => ({
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Map of phase → expected Tailwind bg class on the status dot */
+/** Map of phase → expected CSS variable for the status dot background */
 const DOT_COLORS: Record<string, string> = {
-  idle: "bg-gray-500",
-  recording: "bg-red-500",
-  transcribing: "bg-brand-500",
-  polishing: "bg-purple-500",
-  completed: "bg-green-500",
-  failed: "bg-red-500",
+  idle: "var(--muted-foreground)",
+  recording: "var(--status-recording)",
+  transcribing: "var(--primary)",
+  polishing: "var(--purple-500)",
+  completed: "var(--status-success)",
+  failed: "var(--status-error)",
 };
 
-/** Check that a status dot has the expected background class for a phase */
+/** Check that a status dot has the expected background via inline style */
 function expectDotColorForPhase(phase: string): void {
   const dot = screen.getByTestId("status-dot");
   expect(dot).toBeDefined();
-  expect(dot.className).toContain(DOT_COLORS[phase]);
+  expect(dot).toHaveStyle(`background: ${DOT_COLORS[phase]}`);
 }
 
 /** Return the current status label text */
@@ -276,6 +278,96 @@ describe("OverlayWindow", () => {
       onLevelCb!(0.5);
     });
     expect(screen.getByTestId("mic-wave-overlay")).toBeDefined();
+  });
+
+  // ── Slow-network warning ──────────────────────────────────────────────
+
+  it("shows network warning when transcribing exceeds 3s threshold", () => {
+    vi.useFakeTimers();
+    render(<OverlayWindow initialStatus={{ phase: "transcribing" }} />);
+
+    // Initially no warning
+    expect(screen.queryByTestId("slow-warning")).toBeNull();
+
+    // Advance past 3s
+    act(() => {
+      vi.advanceTimersByTime(3200);
+    });
+    expect(screen.getByTestId("slow-warning")).toBeDefined();
+    expect(screen.getByTestId("slow-warning").textContent).toBe(
+      "Network is slow, please wait",
+    );
+
+    vi.useRealTimers();
+  });
+
+  it("shows network warning when polishing exceeds 2.5s threshold", () => {
+    vi.useFakeTimers();
+    render(<OverlayWindow initialStatus={{ phase: "polishing" }} />);
+
+    expect(screen.queryByTestId("slow-warning")).toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(2700);
+    });
+    expect(screen.getByTestId("slow-warning")).toBeDefined();
+
+    vi.useRealTimers();
+  });
+
+  it("does not show warning within threshold for transcribing", () => {
+    vi.useFakeTimers();
+    render(<OverlayWindow initialStatus={{ phase: "transcribing" }} />);
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(screen.queryByTestId("slow-warning")).toBeNull();
+
+    vi.useRealTimers();
+  });
+
+  it("hides network warning when phase changes to completed", () => {
+    vi.useFakeTimers();
+    render(<OverlayWindow />);
+
+    // Trigger warning by going into transcribing and waiting past threshold
+    act(() => {
+      onStatusCb!({ phase: "transcribing" });
+    });
+    act(() => {
+      vi.advanceTimersByTime(3200);
+    });
+    expect(screen.getByTestId("slow-warning")).toBeDefined();
+
+    // Phase changes to completed — warning disappears
+    act(() => {
+      onStatusCb!({ phase: "completed" });
+    });
+    expect(screen.queryByTestId("slow-warning")).toBeNull();
+
+    vi.useRealTimers();
+  });
+
+  it("hides network warning when phase changes to idle", () => {
+    vi.useFakeTimers();
+    render(<OverlayWindow />);
+
+    act(() => {
+      onStatusCb!({ phase: "polishing" });
+    });
+    act(() => {
+      vi.advanceTimersByTime(2700);
+    });
+    expect(screen.getByTestId("slow-warning")).toBeDefined();
+
+    // Back to idle
+    act(() => {
+      onStatusCb!({ phase: "idle" });
+    });
+    expect(screen.queryByTestId("slow-warning")).toBeNull();
+
+    vi.useRealTimers();
   });
 
   // ── Status transitions ──────────────────────────────────────────────

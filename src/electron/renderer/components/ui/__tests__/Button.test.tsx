@@ -16,7 +16,7 @@ describe("Button", () => {
   it("renders with default variant and size", () => {
     render(<Button>Default</Button>);
     const button = screen.getByRole("button");
-    expect(button).toHaveClass("bg-brand-600");
+    expect(button).toHaveClass("bg-[var(--brand-600)]");
     expect(button).toHaveClass("h-9");
   });
 

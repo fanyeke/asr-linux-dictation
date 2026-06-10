@@ -201,7 +201,7 @@ export function PromptManager({
   return (
     <Card padding="md">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-[16px] font-semibold text-dark-900 m-0">
+        <h2 className="text-[16px] font-semibold text-[var(--foreground)] m-0">
           {t("prompt_management")}
         </h2>
         <Button
@@ -215,7 +215,7 @@ export function PromptManager({
       </div>
 
       {formOpen && (
-        <div className="flex flex-col gap-3 mb-4 p-4 bg-gray-50 rounded-lg">
+        <div className="flex flex-col gap-3 mb-4 p-4 bg-[var(--muted)] rounded-lg">
           <Input
             id="prompt-name"
             label={t("prompt_name") + " *"}
@@ -229,13 +229,13 @@ export function PromptManager({
           <div>
             <label
               htmlFor="prompt-template"
-              className="block text-sm font-medium text-dark-700 mb-1.5"
+              className="block text-sm font-medium text-[var(--muted-foreground)] mb-1.5"
             >
               {t("prompt_template") + " *"}
             </label>
             <textarea
               id="prompt-template"
-              className="w-full min-h-[80px] px-3 py-2 text-sm bg-white border border-gray-200 rounded-md text-dark-900 placeholder:text-gray-400 transition-all duration-150 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10"
+              className="w-full min-h-[80px] px-3 py-2 text-sm bg-[var(--card)] border border-[var(--border)] rounded-md text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] transition-all duration-150 focus:outline-none focus:border-[var(--brand-500)] focus:ring-2 focus:ring-[var(--brand-500)]/10"
               value={form.template}
               onChange={(e) =>
                 setForm((f) => ({ ...f, template: e.target.value }))
@@ -264,18 +264,18 @@ export function PromptManager({
           size="sm"
         />
       ) : (
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-[var(--border)]">
           {prompts.map((p) => (
             <div
               key={p.id}
               className="flex items-center justify-between py-2"
             >
               <div className="flex flex-col min-w-0 flex-1 mr-3">
-                <span className="text-sm text-dark-700 truncate">
+                <span className="text-sm text-[var(--muted-foreground)] truncate">
                   {p.name}
                 </span>
                 {p.template && (
-                  <span className="text-xs text-gray-400 truncate">
+                  <span className="text-xs text-[var(--text-tertiary)] truncate">
                     {p.template}
                   </span>
                 )}
@@ -289,7 +289,7 @@ export function PromptManager({
                   <button
                     type="button"
                     onClick={() => handleActivate(p.id)}
-                    className="text-gray-400 hover:text-brand-600 transition-colors p-1"
+                    className="text-[var(--text-tertiary)] hover:text-[var(--brand-600)] transition-colors p-1"
                     aria-label={t("activate")}
                     title={t("activate")}
                   >
@@ -299,7 +299,7 @@ export function PromptManager({
                 <button
                   type="button"
                   onClick={() => openEditForm(p)}
-                  className="text-gray-400 hover:text-brand-600 transition-colors p-1"
+                  className="text-[var(--text-tertiary)] hover:text-[var(--brand-600)] transition-colors p-1"
                   aria-label={t("edit")}
                 >
                   <Pencil size={14} />
@@ -307,7 +307,7 @@ export function PromptManager({
                 <button
                   type="button"
                   onClick={() => handleDelete(p.id)}
-                  className="text-gray-400 hover:text-red-600 transition-colors p-1"
+                  className="text-[var(--text-tertiary)] hover:text-[var(--red-600)] transition-colors p-1"
                   aria-label={t("delete")}
                 >
                   <Trash2 size={14} />

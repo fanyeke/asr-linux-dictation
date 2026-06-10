@@ -71,7 +71,7 @@ export function VadSection({
 
   return (
     <Card padding="md">
-      <h2 className="text-[16px] font-semibold text-dark-900 mb-4">
+      <h2 className="text-[16px] font-semibold text-[var(--foreground)] mb-4">
         {t("vad_title")}
       </h2>
 
@@ -82,11 +82,11 @@ export function VadSection({
           type="checkbox"
           checked={vadEnabled}
           onChange={(e) => handleToggleVad(e.target.checked)}
-          className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+          className="rounded border-[var(--border)] text-[var(--brand-600)] focus:ring-[var(--brand-500)]"
         />
         <label
           htmlFor="vad-enabled-input"
-          className="text-sm text-dark-700 cursor-pointer select-none"
+          className="text-sm text-[var(--muted-foreground)] cursor-pointer select-none"
         >
           {t("vad_enable_label")}
         </label>
@@ -96,9 +96,9 @@ export function VadSection({
       {vadEnabled && (
         <div className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-dark-700 mb-1">
-              {t("vad_threshold_label")}: {vadThreshold.toFixed(3)}
-            </label>
+            <label className="block text-sm font-medium text-[var(--muted-foreground)] mb-1">
+               {t("vad_threshold_label")}: {vadThreshold.toFixed(3)}
+             </label>
             <input
               type="range"
               min="0.001"
@@ -119,14 +119,14 @@ export function VadSection({
                   }).catch(() => {});
                 }
               }}
-              className="w-full accent-brand-600"
+              className="w-full accent-[var(--brand-600)]"
             />
-            <span className="text-xs text-gray-500">{t("vad_threshold_hint")}</span>
+            <span className="text-xs text-[var(--muted-foreground)]">{t("vad_threshold_hint")}</span>
           </div>
 
           {/* VAD Duration */}
           <div>
-            <label className="block text-sm font-medium text-dark-700 mb-1">
+            <label className="block text-sm font-medium text-[var(--muted-foreground)] mb-1">
               {t("vad_duration_label")}: {vadDuration}ms
             </label>
             <input
@@ -149,9 +149,9 @@ export function VadSection({
                   }).catch(() => {});
                 }
               }}
-              className="w-full accent-brand-600"
+              className="w-full accent-[var(--brand-600)]"
             />
-            <span className="text-xs text-gray-500">{t("vad_duration_hint")}</span>
+            <span className="text-xs text-[var(--muted-foreground)]">{t("vad_duration_hint")}</span>
           </div>
         </div>
       )}

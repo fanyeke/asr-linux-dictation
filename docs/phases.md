@@ -347,11 +347,11 @@ Exit criteria met:
 
 - All new code has TDD tests and structured timing logs.
 
-## Phase 13: Pseudo-Streaming ASR — Core Infrastructure Ready
+## Phase 13: Pseudo-Streaming ASR — ✅ Done
 
 Goal:
 
-- Ring buffer for PCM capture during recording, slice-based ASR, transcript merge.
+- Ring buffer for PCM capture during recording, slice-based ASR, transcript merge, partial preview in overlay.
 
 Deliverables:
 
@@ -359,12 +359,10 @@ Deliverables:
 - pcm_to_wav() helper wrapping raw PCM in RIFF/WAV header.
 - TranscriptMerger with longest-suffix overlap detection (CJK-aware).
 - Streaming orchestrator tests for slice scheduling and merge.
-
-Remaining work:
-
 - Integration into DictationOrchestrator (background slice scheduling during recording).
 - WebSocket broadcast of `partial_transcript` events.
 - Overlay partial text preview area.
+- Engine selector supports streaming mode; only shows partial text when streaming is supported by the ASR engine.
 
 ## Phase 14: Connection Warmup — ✅ Done
 
@@ -378,6 +376,21 @@ Deliverables:
 - `PolishClient.warmup()` — minimal probe to LLM endpoint.
 - Both called fire-and-forget after `recorder.start()` in `/dictation/start`.
 - Failures logged but never block the pipeline.
+
+## Phase 15: Theme System — ✅ Done
+
+Goal:
+
+- Warm light theme and deep blue-gray dark theme with CSS variables, persistence, and smooth transitions.
+
+Deliverables:
+
+- Light theme: `#f6f7f9` background, white cards, subtle shadows.
+- Dark theme: `#0f172a` background, `#1e293b` cards, `#818cf8` primary accent.
+- 300ms smooth transitions between themes with `prefers-reduced-motion` support.
+- Theme persistence via `UserConfig` backend table (`/config` API stores `theme` field).
+- Theme applied before first paint via startup load.
+- All existing components respect theme CSS variables without modification.
 
 Exit criteria met:
 

@@ -26,7 +26,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         <div className="relative">
           {leftIcon && (
             <span
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] pointer-events-none"
               data-testid="input-left-icon"
             >
               {leftIcon}
@@ -67,7 +67,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           </p>
         )}
         {helperText && !error && (
-          <p id={`${inputId}-helper`} className="mt-1 text-xs text-gray-500" data-testid="input-helper">
+          <p id={`${inputId}-helper`} className="mt-1 text-xs text-[var(--muted-foreground)]" data-testid="input-helper">
             {helperText}
           </p>
         )}

@@ -292,6 +292,7 @@ export function ApiConfigSection({
           body: JSON.stringify(payload),
         });
       } catch (err) {
+        onToast(t("llm_toggle_failed"), 3000);
         console.error("Failed to toggle LLM:", err);
       }
     },
@@ -343,13 +344,14 @@ export function ApiConfigSection({
         setModels(data.downloaded || []);
       }
     } catch (err) {
+      onToast(t("model_delete_failed"), 3000);
       console.error("Failed to delete model:", err);
     }
   }, [backendConfig]);
 
   return (
     <Card padding="md">
-      <h2 className="text-[16px] font-semibold text-dark-900 mb-4">
+      <h2 className="text-[16px] font-semibold text-[var(--foreground)] mb-4">
         {t("api_config")}
       </h2>
 
@@ -368,7 +370,7 @@ export function ApiConfigSection({
                 type="button"
                 aria-label={showAsrApiKey ? t("hide") : t("show")}
                 onClick={() => setShowAsrApiKey((v) => !v)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
               >
                 {showAsrApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -400,7 +402,7 @@ export function ApiConfigSection({
                 type="button"
                 aria-label={showLlmApiKey ? t("hide") : t("show")}
                 onClick={() => setShowLlmApiKey((v) => !v)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
               >
                 {showLlmApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -429,9 +431,9 @@ export function ApiConfigSection({
           type="checkbox"
           checked={llmEnabled}
           onChange={handleLlmEnabledToggle}
-          className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+          className="rounded border-[var(--border)] text-brand-600 focus:ring-[var(--brand-500)]"
         />
-        <label htmlFor="llm-enabled-input" className="text-sm text-dark-700 cursor-pointer select-none">
+        <label htmlFor="llm-enabled-input" className="text-sm text-[var(--muted-foreground)] cursor-pointer select-none">
           {t("enable_llm")}
         </label>
       </div>
@@ -480,7 +482,7 @@ export function ApiConfigSection({
       <div className="mb-4">
         <label
           htmlFor="asr-engine-select"
-          className="block text-sm font-medium text-dark-700 mb-1"
+          className="block text-sm font-medium text-[var(--muted-foreground)] mb-1"
         >
           ASR Engine
         </label>
@@ -488,26 +490,26 @@ export function ApiConfigSection({
           id="asr-engine-select"
           value={asrEngine}
           onChange={(e) => setAsrEngine(e.target.value)}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-500)]"
         >
           <option value="cloud">Cloud API (MiMo)</option>
           <option value="local">Local (Whisper.cpp)</option>
         </select>
 
         {asrEngine === "local" && (
-          <div className="mt-3 p-3 bg-gray-50 rounded-md space-y-3">
-            <p className="text-xs text-gray-500">
+          <div className="mt-3 p-3 bg-[var(--muted)] rounded-md space-y-3">
+            <p className="text-xs text-[var(--muted-foreground)]">
               Download a Whisper model for offline ASR. Requires whisper-cli to be installed.
             </p>
             <div className="flex gap-2 items-end">
               <div className="flex-1">
-                <label className="block text-xs font-medium text-dark-700 mb-1">
+                <label className="block text-xs font-medium text-[var(--muted-foreground)] mb-1">
                   Model Size
                 </label>
                 <select
                   value={localModelSize}
                   onChange={(e) => setLocalModelSize(e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                  className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] px-2 py-1.5 text-sm"
                 >
                   <option value="tiny">Tiny (~75 MB)</option>
                   <option value="base">Base (~150 MB)</option>
@@ -529,11 +531,11 @@ export function ApiConfigSection({
               <div className="text-xs space-y-1">
                 {models.map((m) => (
                   <div key={m.name} className="flex items-center justify-between">
-                    <span className="text-green-600">✓ {m.name}</span>
+                    <span className="text-[var(--green-600)]">✓ {m.name}</span>
                     <button
                       type="button"
                       onClick={() => handleDeleteModel(m.name)}
-                      className="text-red-500 hover:text-red-700 text-xs"
+                      className="text-[var(--red-500)] hover:text-[var(--red-700)] text-xs"
                     >
                       Delete
                     </button>
@@ -549,7 +551,7 @@ export function ApiConfigSection({
       <div className="mb-4">
         <label
           htmlFor="asr-language-select"
-          className="block text-sm font-medium text-dark-700 mb-1"
+          className="block text-sm font-medium text-[var(--muted-foreground)] mb-1"
         >
           {t("asr_language_label")}
         </label>
@@ -557,7 +559,7 @@ export function ApiConfigSection({
           id="asr-language-select"
           value={asrLanguage}
           onChange={(e) => setAsrLanguage(e.target.value)}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-500)]"
         >
           <option value="auto">{t("asr_lang_auto")}</option>
           <option value="zh">{t("asr_lang_zh")}</option>

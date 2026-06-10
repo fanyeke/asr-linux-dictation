@@ -11,6 +11,7 @@ interface HistoryPageProps {
   history: HistorySession[];
   backendConfig: BackendConfig | null;
   onRefresh: () => Promise<void>;
+  onToast?: (msg: string, durationMs?: number) => void;
 }
 
 const staggerContainer = {
@@ -34,6 +35,7 @@ export function HistoryPage({
   history,
   backendConfig,
   onRefresh,
+  onToast,
 }: HistoryPageProps): JSX.Element {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
@@ -60,6 +62,7 @@ export function HistoryPage({
         a.click();
         URL.revokeObjectURL(url);
       } catch (err) {
+        onToast?.(t("export_failed"), 3000);
         console.error("Export failed:", err);
       }
     },
@@ -93,6 +96,7 @@ export function HistoryPage({
           await onRefresh();
         }
       } catch (err) {
+        onToast?.(t("retry_failed"), 3000);
         console.error("Failed to retry session:", err);
       }
     },
@@ -102,13 +106,7 @@ export function HistoryPage({
   return (
     <div className="max-w-3xl mx-auto p-8 pb-20 sm:pb-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1
-          className="text-[28px] font-semibold m-0"
-          style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-        >
-          {t("history_title")}
-        </h1>
+      <div className="flex items-center justify-end mb-6">
         <div className="flex items-center gap-2">
           <Button
             variant="icon"
@@ -142,21 +140,21 @@ export function HistoryPage({
           }}
         >
           <div className="bg-[var(--card)] rounded-xl shadow-xl p-6 min-w-[300px]">
-            <h3 className="text-lg font-semibold text-dark-900 mb-4">
+            <h3 className="text-lg font-semibold text-[var(--foreground)] mb-4">
               {t("export_title")}
             </h3>
             <div className="flex flex-col gap-3">
               <button
                 type="button"
                 onClick={() => handleExport("txt")}
-                className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 hover:border-brand-400 hover:bg-brand-50 transition-colors text-sm font-medium"
+                className="w-full text-left px-4 py-3 rounded-lg border border-[var(--border)] hover:border-[var(--brand-500)] hover:bg-[var(--brand-50)] transition-colors text-sm font-medium"
               >
                 {t("export_format_txt")}
               </button>
               <button
                 type="button"
                 onClick={() => handleExport("md")}
-                className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 hover:border-brand-400 hover:bg-brand-50 transition-colors text-sm font-medium"
+                className="w-full text-left px-4 py-3 rounded-lg border border-[var(--border)] hover:border-[var(--brand-500)] hover:bg-[var(--brand-50)] transition-colors text-sm font-medium"
               >
                 {t("export_format_md")}
               </button>
@@ -164,7 +162,7 @@ export function HistoryPage({
             <button
               type="button"
               onClick={() => setShowExportDialog(false)}
-              className="mt-4 w-full text-center text-sm text-gray-500 hover:text-gray-700"
+              className="mt-4 w-full text-center text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
             >
               {t("cancel")}
             </button>
@@ -196,6 +194,7 @@ export function HistoryPage({
               <SessionListItem
                 session={session}
                 onRetry={handleRetry}
+                onToast={onToast}
               />
             </motion.div>
           ))}

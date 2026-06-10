@@ -54,8 +54,8 @@ class ASRClient:
         self.api_key = api_key or ""
         self.base_url = base_url.rstrip("/")
         self.model = model
-        self._client = httpx.AsyncClient(timeout=httpx.Timeout(30.0))
-        self._retry_policy = retry_policy or RetryPolicy()
+        self._client = httpx.AsyncClient(timeout=httpx.Timeout(15.0))
+        self._retry_policy = retry_policy or RetryPolicy(max_attempts=2)
         self.supports_streaming: bool = False
 
     async def warmup(self) -> None:
@@ -73,7 +73,7 @@ class ASRClient:
         self,
         audio_bytes: bytes,
         audio_format: str = "wav",
-        timeout: float = 30.0,
+        timeout: float = 15.0,
         language: str | None = None,
     ) -> str:
         """Transcribe audio bytes to text using the cloud ASR API.

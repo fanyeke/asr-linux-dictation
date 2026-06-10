@@ -185,7 +185,7 @@ export function ProfileManager({
   return (
     <Card padding="md">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-[16px] font-semibold text-dark-900 m-0">
+        <h2 className="text-[16px] font-semibold text-[var(--foreground)] m-0">
           {t("profiles_title")}
         </h2>
       </div>
@@ -198,21 +198,21 @@ export function ProfileManager({
           size="sm"
         />
       ) : (
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-[var(--border)]">
           {profiles.map((profile) => (
             <div key={profile.id} className="py-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-dark-700">
+                  <span className="text-sm font-medium text-[var(--muted-foreground)]">
                     {profile.name}
                   </span>
                   {profile.builtin && (
-                    <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] text-[var(--text-tertiary)] bg-[var(--muted)] px-1.5 py-0.5 rounded">
                       built-in
                     </span>
                   )}
                   {profile.is_active && (
-                    <span className="text-[10px] text-green-600 bg-green-50 px-1.5 py-0.5 rounded font-medium">
+                    <span className="text-[10px] text-[var(--green-600)] bg-[var(--success-bg)] px-1.5 py-0.5 rounded font-medium">
                       {t("profile_active")}
                     </span>
                   )}
@@ -222,7 +222,7 @@ export function ProfileManager({
                     <button
                       type="button"
                       onClick={() => handleActivate(profile.id)}
-                      className="p-1 text-gray-400 hover:text-green-600 transition-colors"
+                      className="p-1 text-[var(--text-tertiary)] hover:text-[var(--green-600)] transition-colors"
                       title={t("profile_activate")}
                     >
                       <Check size={14} />
@@ -235,7 +235,7 @@ export function ProfileManager({
                       setEditName(profile.name);
                       setEditPrompt(profile.prompt_template);
                     }}
-                    className="p-1 text-gray-400 hover:text-brand-600 transition-colors"
+                    className="p-1 text-[var(--text-tertiary)] hover:text-[var(--brand-600)] transition-colors"
                     title={t("profile_edit")}
                   >
                     <Pencil size={14} />
@@ -243,7 +243,7 @@ export function ProfileManager({
                   <button
                     type="button"
                     onClick={() => handleDuplicate(profile)}
-                    className="p-1 text-gray-400 hover:text-brand-600 transition-colors"
+                    className="p-1 text-[var(--text-tertiary)] hover:text-[var(--brand-600)] transition-colors"
                     title={t("profile_duplicate")}
                   >
                     <Copy size={14} />
@@ -252,7 +252,7 @@ export function ProfileManager({
                     <button
                       type="button"
                       onClick={() => handleDelete(profile.id)}
-                      className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                      className="p-1 text-[var(--text-tertiary)] hover:text-[var(--red-600)] transition-colors"
                       title={t("profile_delete")}
                     >
                       <Trash2 size={14} />
@@ -263,18 +263,18 @@ export function ProfileManager({
 
               {/* Edit form */}
               {editingId === profile.id && (
-                <div className="mt-3 space-y-2 p-3 bg-gray-50 rounded-lg">
+                <div className="mt-3 space-y-2 p-3 bg-[var(--muted)] rounded-lg">
                   <input
                     type="text"
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                    className="w-full rounded-md border border-[var(--border)] px-3 py-1.5 text-sm"
                     placeholder={t("profile_name")}
                   />
                   <textarea
                     value={editPrompt}
                     onChange={(e) => setEditPrompt(e.target.value)}
-                    className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm font-mono"
+                    className="w-full rounded-md border border-[var(--border)] px-3 py-1.5 text-sm font-mono"
                     rows={3}
                     placeholder={t("profile_prompt")}
                   />

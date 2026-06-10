@@ -30,19 +30,19 @@ export function ResultDisplay({
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-red-50 rounded-md p-3"
+            className="bg-[var(--error-bg)] rounded-md p-3"
             data-testid="result-error"
           >
-            <p className="text-red-700 font-semibold text-sm">
+            <p className="text-[var(--error-text)] font-semibold text-sm">
               {error.errorType
                 ? `${t("result_error")}: ${error.errorType}`
                 : t("result_error")}
             </p>
-            <p className="text-red-600 text-sm mt-1">{error.message}</p>
+            <p className="text-[var(--red-600)] text-sm mt-1">{error.message}</p>
             {error.rawText && (
               <div className="mt-2">
-                <p className="text-xs text-gray-500 mb-1">{t("result_raw")}:</p>
-                <pre className="text-sm font-mono bg-white p-3 rounded border border-red-200 overflow-x-auto whitespace-pre-wrap">
+                <p className="text-xs text-[var(--muted-foreground)] mb-1">{t("result_raw")}:</p>
+                <pre className="text-sm font-mono bg-[var(--card)] p-3 rounded border border-[var(--error-border)] overflow-x-auto whitespace-pre-wrap">
                   {error.rawText}
                 </pre>
               </div>
@@ -61,17 +61,17 @@ export function ResultDisplay({
             <div>
               <div
                 className="border-l-3 pl-3"
-                style={{ borderLeftWidth: "3px", borderColor: "#6366f1" }}
+                style={{ borderLeftWidth: "3px", borderColor: "var(--brand-500)" }}
               >
                 <div className="flex items-center gap-2 mb-2">
                   <Badge variant="info">ASR</Badge>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-[var(--text-tertiary)]">
                     {t("result_raw")}
                   </span>
                 </div>
                 <div
                   data-testid="result-raw-text"
-                  className="font-mono text-sm bg-gray-50 p-3 rounded"
+                  className="font-mono text-sm bg-[var(--muted)] p-3 rounded"
                 >
                   {result.rawText || "(empty)"}
                 </div>
@@ -86,18 +86,18 @@ export function ResultDisplay({
                     className="border-l-3 pl-3"
                     style={{
                       borderLeftWidth: "3px",
-                      borderColor: "#8b5cf6",
+                      borderColor: "var(--purple-500)",
                     }}
                   >
                     <div className="flex items-center gap-2 mb-2">
                       <Badge variant="processing">LLM</Badge>
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-[var(--text-tertiary)]">
                         {t("result_polished")}
                       </span>
                     </div>
                     <div
                       data-testid="result-polished-text"
-                      className="text-sm bg-white p-3 rounded border border-purple-100"
+                      className="text-sm bg-[var(--card)] p-3 rounded border border-[var(--border)]"
                     >
                       {result.polishedText}
                     </div>
@@ -109,7 +109,7 @@ export function ResultDisplay({
             {result.timingMs !== null && (
               <p
                 data-testid="result-timing"
-                className="text-xs text-gray-400 text-right"
+                className="text-xs text-[var(--text-tertiary)] text-right"
               >
                 Total: {result.timingMs}ms
               </p>

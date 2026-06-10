@@ -34,8 +34,8 @@ describe("TabSidebar", () => {
     render(<TabSidebar activeTab="dashboard" onTabChange={vi.fn()} />);
     const sidebar = getDesktopSidebar();
     const dashboardTab = within(sidebar).getByTestId("tab-dashboard");
-    expect(dashboardTab).toHaveClass("bg-brand-500/15");
-    expect(dashboardTab).toHaveClass("text-white");
+    expect(dashboardTab).toHaveClass("text-[var(--sidebar-text-active)]");
+    expect(dashboardTab).toHaveAttribute("style", expect.stringContaining("var(--sidebar-bg-active)"));
   });
 
   // 4. Inactive tabs have default styling on desktop
@@ -43,8 +43,8 @@ describe("TabSidebar", () => {
     render(<TabSidebar activeTab="dashboard" onTabChange={vi.fn()} />);
     const sidebar = getDesktopSidebar();
     const dictateTab = within(sidebar).getByTestId("tab-dictate");
-    expect(dictateTab).toHaveClass("text-gray-500");
-    expect(dictateTab).not.toHaveClass("bg-brand-500/15");
+    expect(dictateTab).toHaveClass("text-[var(--sidebar-text)]");
+    expect(dictateTab).not.toHaveAttribute("style", expect.stringContaining("var(--sidebar-bg-active)"));
   });
 
   // 5. Click event on desktop tab fires with correct tab id
@@ -69,13 +69,14 @@ describe("TabSidebar", () => {
     expect(onTabChange).toHaveBeenCalledWith("settings");
   });
 
-  // 7. Active tab in desktop has border-l-2 class
-  it("active tab has left border class on desktop", () => {
+  // 7. Active tab in desktop has active indicator bar
+  it("active tab has indicator bar on desktop", () => {
     render(<TabSidebar activeTab="history" onTabChange={vi.fn()} />);
     const sidebar = getDesktopSidebar();
     const historyTab = within(sidebar).getByTestId("tab-history");
-    expect(historyTab).toHaveClass("border-l-2");
-    expect(historyTab).toHaveClass("border-brand-500");
+    const indicator = historyTab.querySelector(".opacity-100");
+    expect(indicator).toBeInTheDocument();
+    expect(indicator).toHaveClass("w-[3px]");
   });
 
   // 8. Mobile nav renders all 4 tabs

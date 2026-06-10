@@ -14,10 +14,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantStyles: Record<ButtonVariant, string> = {
-  primary: "bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800",
+  primary: "bg-[var(--brand-600)] text-[var(--primary-foreground)] hover:bg-[var(--brand-700)] active:bg-[var(--brand-800)]",
   secondary: "bg-[var(--card)] text-[var(--secondary-foreground)] border border-[var(--border)] hover:bg-[var(--secondary)]",
   ghost: "bg-transparent text-[var(--muted-foreground)] hover:bg-[var(--muted)]",
-  danger: "bg-red-500 text-white hover:bg-red-600",
+  danger: "bg-[var(--red-500)] text-white hover:bg-[var(--red-600)]",
   icon: "bg-transparent text-[var(--muted-foreground)] hover:bg-[var(--muted)]",
 };
 

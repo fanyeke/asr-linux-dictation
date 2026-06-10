@@ -1,8 +1,8 @@
 /**
  * ThemeProvider — React context provider for the theme system.
  *
- * Manages light/dark/system theme toggling with CSS variable transitions,
- * localStorage persistence, and backend sync (via Electron IPC).
+ * Manages light/dark/system theme toggling + accent color selection
+ * with CSS variable transitions, localStorage persistence, and backend sync.
  *
  * Usage:
  *   <ThemeProvider>
@@ -20,21 +20,29 @@ import {
 import type { VoiceAPI } from "../overlay/types.js";
 
 export type Theme = "light" | "dark" | "system";
+export type Accent = "indigo" | "rose" | "emerald" | "amber" | "violet";
 
 export interface ThemeProviderProps {
   children: ReactNode;
   /** Fallback theme if no stored preference is found. Defaults to "light". */
   defaultTheme?: Theme;
+  /** Fallback accent if no stored preference is found. Defaults to "indigo". */
+  defaultAccent?: Accent;
   /** localStorage key for theme persistence. Defaults to "asr-linux-theme". */
   storageKey?: string;
+  /** localStorage key for accent persistence. Defaults to "asr-linux-accent". */
+  accentStorageKey?: string;
 }
 
 export interface ThemeProviderState {
+  /** The user's raw preference ("light" | "dark" | "system"). */
+  theme: Theme;
   /** The resolved theme (always "light" or "dark", never "system"). */
-  theme: "light" | "dark";
-  /** The user's raw preference. May be "system". */
   resolvedTheme: "light" | "dark";
+  /** The accent color. */
+  accent: Accent;
   setTheme: (theme: Theme) => void;
+  setAccent: (accent: Accent) => void;
 }
 
 const ThemeProviderContext = createContext<ThemeProviderState | undefined>(
@@ -46,16 +54,16 @@ function getThemeAPI() {
   return (window as unknown as { voiceAPI?: VoiceAPI }).voiceAPI?.theme ?? null;
 }
 
-function getThemeFromStorage(storageKey: string, defaultTheme: Theme): Theme {
+function getFromStorage<T>(key: string, fallback: T, validValues: readonly T[]): T {
   try {
-    const stored = localStorage.getItem(storageKey);
-    if (stored === "light" || stored === "dark" || stored === "system") {
-      return stored;
+    const stored = localStorage.getItem(key);
+    if (stored && validValues.includes(stored as T)) {
+      return stored as T;
     }
   } catch {
     // localStorage may not be available
   }
-  return defaultTheme;
+  return fallback;
 }
 
 function resolveTheme(theme: Theme): "light" | "dark" {
@@ -76,17 +84,25 @@ function applyThemeClass(resolved: "light" | "dark") {
   }
 }
 
+function applyAccent(accent: Accent) {
+  document.documentElement.setAttribute("data-accent", accent);
+}
+
 export function ThemeProvider({
   children,
   defaultTheme = "light",
+  defaultAccent = "indigo",
   storageKey = "asr-linux-theme",
+  accentStorageKey = "asr-linux-accent",
 }: ThemeProviderProps): JSX.Element {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    // First try localStorage for instant paint
-    return getThemeFromStorage(storageKey, defaultTheme);
-  });
+  const [theme, setThemeState] = useState<Theme>(() =>
+    getFromStorage(storageKey, defaultTheme, ["light", "dark", "system"] as const),
+  );
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(() =>
     resolveTheme(theme),
+  );
+  const [accent, setAccentState] = useState<Accent>(() =>
+    getFromStorage(accentStorageKey, defaultAccent, ["indigo", "rose", "emerald", "amber", "violet"] as const),
   );
 
   // On mount, load theme from backend via IPC (overrides localStorage)
@@ -138,6 +154,11 @@ export function ThemeProvider({
     applyThemeClass(resolvedTheme);
   }, [resolvedTheme]);
 
+  // Apply accent whenever it changes
+  useEffect(() => {
+    applyAccent(accent);
+  }, [accent]);
+
   // Re-resolve when system preference changes (only when theme === "system")
   useEffect(() => {
     if (theme !== "system") return;
@@ -187,9 +208,21 @@ export function ThemeProvider({
     [storageKey],
   );
 
+  const setAccent = useCallback(
+    (newAccent: Accent) => {
+      setAccentState(newAccent);
+      try {
+        localStorage.setItem(accentStorageKey, newAccent);
+      } catch {
+        // ignore storage errors
+      }
+    },
+    [accentStorageKey],
+  );
+
   return (
     <ThemeProviderContext.Provider
-      value={{ theme: resolvedTheme, resolvedTheme, setTheme }}
+      value={{ theme, resolvedTheme, accent, setTheme, setAccent }}
     >
       {children}
     </ThemeProviderContext.Provider>

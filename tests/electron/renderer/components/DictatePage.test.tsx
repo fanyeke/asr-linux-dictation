@@ -51,12 +51,6 @@ describe("DictatePage", () => {
     onRefreshHistory: vi.fn(),
   };
 
-  it("renders the page title", () => {
-    render(<DictatePage {...defaultProps} />);
-
-    expect(screen.getByText("Dictate")).toBeInTheDocument();
-  });
-
   it("renders PhaseIndicator", () => {
     render(<DictatePage {...defaultProps} />);
 

@@ -207,7 +207,7 @@ export function DictionaryManager({
   return (
     <Card padding="md">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-[16px] font-semibold text-dark-900 m-0">
+        <h2 className="text-[16px] font-semibold text-[var(--foreground)] m-0">
           {t("dictionary_management")}
         </h2>
         <Button
@@ -224,7 +224,7 @@ export function DictionaryManager({
       </div>
 
       {dictFormOpen && (
-        <div className="flex flex-col gap-3 mb-4 p-4 bg-gray-50 rounded-lg">
+        <div className="flex flex-col gap-3 mb-4 p-4 bg-[var(--muted)] rounded-lg">
           <Input
             id="dict-term"
             label={t("canonical_term") + " *"}
@@ -277,7 +277,7 @@ export function DictionaryManager({
               placeholder="tech, business..."
             />
             <div>
-              <label className="block text-sm font-medium text-dark-700 mb-1">
+              <label className="block text-sm font-medium text-[var(--muted-foreground)] mb-1">
                 {t("enforcement")}
               </label>
               <select
@@ -288,7 +288,7 @@ export function DictionaryManager({
                     enforcement_level: e.target.value,
                   }))
                 }
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-500)]"
               >
                 <option value="suggested">{t("suggested")}</option>
                 <option value="forced">{t("forced")}</option>
@@ -315,33 +315,33 @@ export function DictionaryManager({
           size="sm"
         />
       ) : (
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-[var(--border)]">
           {dictionary.map((e) => (
             <div
               key={e.id}
               className="flex items-center justify-between py-2"
             >
               <div className="flex flex-col">
-                <span className="text-sm text-dark-700">
+                <span className="text-sm text-[var(--muted-foreground)]">
                   {e.canonical_term}
                 </span>
                 {e.pronunciation && (
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-[var(--text-tertiary)]">
                     {e.pronunciation}
                   </span>
                 )}
               </div>
               <div className="flex items-center gap-2">
                 {e.category && (
-                  <span className="text-xs text-gray-400">{e.category}</span>
+                  <span className="text-xs text-[var(--text-tertiary)]">{e.category}</span>
                 )}
                 {/* Match stats badge */}
                 {statsMap[e.id] && (
                   <span
                     className={`text-xs px-1.5 py-0.5 rounded ${
                       statsMap[e.id].total_matches > 0
-                        ? "bg-green-50 text-green-700"
-                        : "bg-gray-50 text-gray-400"
+                        ? "bg-[var(--success-bg)] text-[var(--success-text)]"
+                        : "bg-[var(--muted)] text-[var(--text-tertiary)]"
                     }`}
                     title={`Last 10 sessions: ${statsMap[e.id].total_matches} matches in ${statsMap[e.id].session_count} sessions`}
                   >
@@ -353,7 +353,7 @@ export function DictionaryManager({
                 <button
                   type="button"
                   onClick={() => openEditForm(e)}
-                  className="text-gray-400 hover:text-brand-600 transition-colors p-1"
+                  className="text-[var(--text-tertiary)] hover:text-[var(--brand-600)] transition-colors p-1"
                   aria-label="Edit entry"
                 >
                   <Pencil size={14} />
@@ -361,7 +361,7 @@ export function DictionaryManager({
                 <button
                   type="button"
                   onClick={() => handleDeleteEntry(e.id)}
-                  className="text-gray-400 hover:text-red-600 transition-colors p-1"
+                  className="text-[var(--text-tertiary)] hover:text-[var(--red-600)] transition-colors p-1"
                   aria-label="Delete entry"
                 >
                   <Trash2 size={14} />

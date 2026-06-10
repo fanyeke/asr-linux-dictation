@@ -73,7 +73,9 @@ async def test_polish_sends_correct_request(client: PolishClient) -> None:
         )
 
         result = await client.polish(
-            raw_text="我吃过了",
+            # Include fillers so the fast path (skip LLM when text is clean)
+            # is NOT triggered and the actual LLM request is made.
+            raw_text="嗯我吃过了",
             prompt_template="请修正以下文本：{text}",
         )
 
@@ -84,33 +86,36 @@ async def test_polish_sends_correct_request(client: PolishClient) -> None:
         request_body = route.calls[0].request.content
         body = json.loads(request_body)
         assert body["model"] == "gpt-4o-mini"
+        assert body["max_tokens"] == 128  # short text (<30 chars after strip_fillers)
+        assert body["temperature"] == 0.0
         last_msg = body["messages"][-1]
         assert last_msg["role"] == "user"
         assert "原文：我吃过了" in last_msg["content"]
         assert "修正：" in last_msg["content"]
-        assert "示例" in last_msg["content"]
+        # Short-text tier skips few-shot examples — "示例" is NOT in the prompt.
 
 
 @pytest.mark.asyncio
-async def test_polish_returns_parsed_text(client: PolishClient) -> None:
-    """Polish returns sanitized content from the API response."""
+async def test_polish_skips_llm_when_text_already_clean(client: PolishClient) -> None:
+    """When raw_text has no fillers, skip the LLM call entirely."""
     with respx.mock:
-        respx.post(f"{BASE_URL}/chat/completions").mock(
+        route = respx.post(f"{BASE_URL}/chat/completions").mock(
             return_value=httpx.Response(
                 200,
                 json={
-                    "choices": [{"message": {"content": " polished output "}}],
+                    "choices": [{"message": {"content": "should not be called"}}],
                 },
             )
         )
 
         result = await client.polish(
-            raw_text="hello world",
-            prompt_template="correct: {text}",
+            raw_text="对当前新项目进行一个全面的了解",
+            prompt_template="请修正以下文本：{text}",
         )
 
-        # Sanitizer strips leading/trailing whitespace
-        assert result == "polished output"
+        # Returns raw_text directly, no LLM call made
+        assert result == "对当前新项目进行一个全面的了解"
+        assert not route.called
 
 
 @pytest.mark.asyncio
@@ -132,12 +137,15 @@ async def test_polish_includes_dictionary_entries(client: PolishClient) -> None:
         ]
 
         await client.polish(
-            raw_text="ASR 和 NLP",
+            # Long enough text (>30 chars) to trigger the full prompt tier
+            # which includes few-shot examples.
+            raw_text="呃我今天检查一下ASR 和 NLP 这两个工具的最新版本号是多少",
             prompt_template="修正：{text}",
             dictionary_entries=entries,
         )
 
         body = json.loads(route.calls[0].request.content)
+        assert body["max_tokens"] == 256  # full prompt tier
         assert len(body["messages"]) == 1
         # User message contains both dictionary context and the polish prompt
         assert body["messages"][0]["role"] == "user"
@@ -145,7 +153,7 @@ async def test_polish_includes_dictionary_entries(client: PolishClient) -> None:
         assert "自动语音识别" in body["messages"][0]["content"]
         assert "NLP" in body["messages"][0]["content"]
         assert "自然语言处理" in body["messages"][0]["content"]
-        assert "原文：ASR 和 NLP" in body["messages"][0]["content"]
+        assert "原文：我今天检查一下ASR" in body["messages"][0]["content"]
         assert "修正：" in body["messages"][0]["content"]
         assert "示例" in body["messages"][0]["content"]
 
@@ -161,7 +169,7 @@ async def test_polish_raises_on_server_error(client: PolishClient) -> None:
             pytest.raises(PolishError) as exc_info,
         ):
             await client.polish(
-                raw_text="keep me",
+                raw_text="嗯keep me",
                 prompt_template="template: {text}",
             )
 
@@ -176,7 +184,7 @@ async def test_polish_raises_on_auth_failure(client: PolishClient) -> None:
 
         with pytest.raises(PolishError) as exc_info:
             await client.polish(
-                raw_text="test",
+                raw_text="嗯test",
                 prompt_template="template: {text}",
             )
 
@@ -194,7 +202,7 @@ async def test_polish_raises_on_timeout(client: PolishClient) -> None:
             pytest.raises(PolishError) as exc_info,
         ):
             await client.polish(
-                raw_text="test",
+                raw_text="嗯test",
                 prompt_template="template: {text}",
             )
 
@@ -215,7 +223,7 @@ async def test_polish_fallback_on_empty_content(client: PolishClient) -> None:
         )
 
         result = await client.polish(
-            raw_text="fallback please",
+            raw_text="嗯fallback please",
             prompt_template="template: {text}",
         )
 
@@ -234,7 +242,7 @@ async def test_polish_fallback_on_malformed_response(client: PolishClient) -> No
         )
 
         result = await client.polish(
-            raw_text="malformed fallback",
+            raw_text="嗯malformed fallback",
             prompt_template="template: {text}",
         )
 
@@ -286,7 +294,7 @@ async def test_polish_raises_on_rate_limit(client: PolishClient) -> None:
             pytest.raises(PolishError) as exc_info,
         ):
             await client.polish(
-                raw_text="test",
+                raw_text="嗯test",
                 prompt_template="template: {text}",
             )
 

@@ -7,6 +7,7 @@ export type Language = "zh" | "en";
 const translations: Record<Language, Record<string, string>> = {
   zh: {
     // App / Common
+    app_name: "语音助手",
     loading: "加载配置中...",
     error_unknown: "发生未知错误",
     error_backend_config: "加载后端配置失败",
@@ -177,10 +178,16 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Theme
     appearance: "外观",
+    accent_color: "主题色",
     theme_light: "浅色",
     theme_dark: "深色",
     theme_system: "跟随系统",
     theme_pref_hint: "选择你偏好的主题",
+    accent_indigo: "靛蓝",
+    accent_rose: "玫瑰",
+    accent_emerald: "翠绿",
+    accent_amber: "琥珀",
+    accent_violet: "紫罗兰",
 
     profiles_title: "场景管理",
     profiles_empty: "暂无场景",
@@ -200,6 +207,12 @@ const translations: Record<Language, Record<string, string>> = {
     export_format_txt: "纯文本 (.txt)",
     export_format_md: "Markdown (.md)",
     export_title: "选择导出格式",
+    export_failed: "导出失败",
+    retry_failed: "重试失败",
+    copy_failed: "复制失败",
+    load_failed: "加载失败",
+    llm_toggle_failed: "LLM 切换失败",
+    model_delete_failed: "模型删除失败",
 
     // Session statuses
     status_completed: "完成",
@@ -214,9 +227,11 @@ const translations: Record<Language, Record<string, string>> = {
     overlay_polishing: "润色中...",
     overlay_completed: "完成",
     overlay_failed: "失败",
+    overlay_network_slow: "当前网络状态不佳，请耐心等待",
   },
   en: {
     // App / Common
+    app_name: "Voice Assistant",
     loading: "Loading configuration...",
     error_unknown: "An unknown error occurred",
     error_backend_config: "Failed to load backend configuration",
@@ -368,6 +383,13 @@ const translations: Record<Language, Record<string, string>> = {
     export_format_txt: "Plain Text (.txt)",
     export_format_md: "Markdown (.md)",
     export_title: "Choose Export Format",
+    export_failed: "Export failed",
+    retry_failed: "Retry failed",
+    copy_failed: "Copy failed",
+    load_failed: "Load failed",
+    llm_toggle_failed: "Failed to toggle LLM",
+    model_delete_failed: "Failed to delete model",
+
     onboarding_title: "Welcome to ASR Linux",
     onboarding_step1: "Environment Check",
     onboarding_step2: "ASR Configuration",
@@ -391,10 +413,16 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Theme
     appearance: "Appearance",
+    accent_color: "Accent Color",
     theme_light: "Light",
     theme_dark: "Dark",
     theme_system: "System",
     theme_pref_hint: "Choose your theme preference",
+    accent_indigo: "Indigo",
+    accent_rose: "Rose",
+    accent_emerald: "Emerald",
+    accent_amber: "Amber",
+    accent_violet: "Violet",
 
     profiles_title: "Scene Profiles",
     profiles_empty: "No profiles yet",
@@ -425,6 +453,7 @@ const translations: Record<Language, Record<string, string>> = {
     overlay_polishing: "Polishing...",
     overlay_completed: "Done",
     overlay_failed: "Failed",
+    overlay_network_slow: "Network is slow, please wait",
   },
 };
 

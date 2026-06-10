@@ -11,7 +11,7 @@ import type {
 } from "./settings/types.js";
 import type { VoiceAPI, DictationResult } from "./overlay/types.js";
 import { I18nProvider, createI18nState, type Language } from "./lib/i18n.js";
-import { TabSidebar } from "./components/TabSidebar.js";
+import { AppLayout } from "./components/AppLayout.js";
 import { Toast } from "./components/Toast.js";
 import { DictatePage } from "./components/DictatePage.js";
 import { HistoryPage } from "./components/HistoryPage.js";
@@ -23,6 +23,15 @@ import { ThemeProvider } from "./components/ThemeProvider.js";
 function getVoiceAPI(): VoiceAPI {
   return window.voiceAPI!;
 }
+
+const TAB_TITLES: Record<TabId, string> = {
+  dashboard: "tab_dashboard",
+  dictate: "tab_dictate",
+  history: "tab_history",
+  settings: "tab_settings",
+};
+
+const ONBOARDING_STORAGE_KEY = "asr-onboarding-completed";
 
 function App(): JSX.Element {
   const [activeTab, setActiveTab] = useState<TabId>("dictate");
@@ -74,6 +83,23 @@ function App(): JSX.Element {
     [],
   );
 
+  // ---- Check if onboarding was completed locally ---------------------------
+  const isOnboardingCompletedLocally = useCallback((): boolean => {
+    try {
+      return localStorage.getItem(ONBOARDING_STORAGE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const markOnboardingCompletedLocally = useCallback(() => {
+    try {
+      localStorage.setItem(ONBOARDING_STORAGE_KEY, "true");
+    } catch {
+      // ignore
+    }
+  }, []);
+
   // ---- Load backend config -------------------------------------------------
   useEffect(() => {
     let cancelled = false;
@@ -98,8 +124,9 @@ function App(): JSX.Element {
             if (cfgData.ui_language === "en" || cfgData.ui_language === "zh") {
               i18n.setLanguage(cfgData.ui_language as Language);
             }
-            // Check if onboarding is needed
-            if (!cfgData.onboarding_completed) {
+            // Check if onboarding is needed (localStorage first, then backend)
+            const locallyCompleted = isOnboardingCompletedLocally();
+            if (!locallyCompleted && !cfgData.onboarding_completed) {
               setShowOnboarding(true);
             }
             setOnboardingChecked(true);
@@ -137,7 +164,7 @@ function App(): JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isOnboardingCompletedLocally]);
 
   // ---- Microphone level subscription ---------------------------------------
   useEffect(() => {
@@ -310,6 +337,7 @@ function App(): JSX.Element {
   // ---- Onboarding handlers -------------------------------------------------
   const handleOnboardingComplete = useCallback(async () => {
     setShowOnboarding(false);
+    markOnboardingCompletedLocally();
     if (!backendConfig) return;
     try {
       await fetch(`${backendConfig.url}/config`, {
@@ -320,11 +348,12 @@ function App(): JSX.Element {
     } catch (err) {
       console.error("Failed to save onboarding status:", err);
     }
-  }, [backendConfig]);
+  }, [backendConfig, markOnboardingCompletedLocally]);
 
   const handleOnboardingSkip = useCallback(() => {
     setShowOnboarding(false);
-  }, []);
+    markOnboardingCompletedLocally();
+  }, [markOnboardingCompletedLocally]);
 
   // ---- Re-run onboarding from settings --------------------------------------
   const handleRerunOnboarding = useCallback(() => {
@@ -334,58 +363,60 @@ function App(): JSX.Element {
   // ---- Render --------------------------------------------------------------
   if (loading) {
     return (
-      <div
-        style={{
-          display: "flex",
-          height: "100vh",
-          fontFamily:
-            "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-          fontSize: "14px",
-          color: "#1a1a1a",
-        }}
-      >
-        <TabSidebar activeTab={activeTab} onTabChange={handleTabChange} />
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#888",
-          }}
-        >
-          {i18n.t("loading")}
-        </div>
-      </div>
+      <ThemeProvider>
+        <I18nProvider value={i18n}>
+          <div
+            style={{
+              display: "flex",
+              height: "100vh",
+              fontFamily:
+                "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+              fontSize: "14px",
+              color: "var(--foreground)",
+              background: "var(--background)",
+            }}
+          >
+            <AppLayout
+              activeTab={activeTab}
+              onTabChange={handleTabChange}
+              pageTitle={i18n.t(TAB_TITLES[activeTab])}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "100%",
+                  color: "var(--muted-foreground)",
+                }}
+              >
+                {i18n.t("loading")}
+              </div>
+            </AppLayout>
+          </div>
+        </I18nProvider>
+      </ThemeProvider>
     );
   }
 
   return (
     <ThemeProvider>
       <I18nProvider value={i18n}>
-      <div
-        style={{
-          display: "flex",
-          height: "100vh",
-          fontFamily:
-            "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-          fontSize: "14px",
-          color: "#1a1a1a",
-        }}
-      >
-        <TabSidebar activeTab={activeTab} onTabChange={handleTabChange} />
-
-        <div className="pb-20 sm:pb-0" style={{ flex: 1, overflow: "auto", background: "#fff" }}>
+        <AppLayout
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          pageTitle={i18n.t(TAB_TITLES[activeTab])}
+        >
           {/* Global error banner */}
           {error && (
             <div
               style={{
-                background: "#fff5f5",
+                background: "var(--error-bg)",
                 padding: "10px 20px",
-                borderBottom: "1px solid #ffcdd2",
+                borderBottom: "1px solid var(--error-border)",
               }}
             >
-              <p style={{ color: "#d32f2f", fontSize: "13px", margin: 0 }}>
+              <p style={{ color: "var(--error-text)", fontSize: "13px", margin: 0 }}>
                 {error}
               </p>
             </div>
@@ -420,6 +451,7 @@ function App(): JSX.Element {
                   history={history}
                   backendConfig={backendConfig}
                   onRefresh={refreshHistory}
+                  onToast={showToast}
                 />
               )}
 
@@ -427,6 +459,7 @@ function App(): JSX.Element {
                 <DashboardPage
                   key={dashboardKey}
                   backendConfig={backendConfig}
+                  onToast={showToast}
                 />
               )}
 
@@ -440,7 +473,7 @@ function App(): JSX.Element {
               )}
             </motion.div>
           </AnimatePresence>
-        </div>
+        </AppLayout>
 
         {/* Onboarding Wizard */}
         {showOnboarding && (
@@ -452,8 +485,6 @@ function App(): JSX.Element {
         )}
 
         <Toast message={toast} />
-
-      </div>
       </I18nProvider>
     </ThemeProvider>
   );

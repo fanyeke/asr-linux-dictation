@@ -38,15 +38,15 @@ export function RecordingButton({
   if (isProcessing) {
     icon = <Loader2 className="h-8 w-8 animate-spin text-white" data-testid="recording-spinner" />;
     label = t("phase_polishing");
-    bgClass = "bg-gray-400";
+    bgClass = "bg-[var(--muted-foreground)]";
   } else if (isRecording) {
     icon = <Square className="h-8 w-8 text-white" data-testid="recording-square" />;
     label = t("stop_recording");
-    bgClass = "bg-red-500";
+    bgClass = "bg-[var(--red-500)]";
   } else {
     icon = <Mic className="h-8 w-8 text-white" data-testid="recording-mic" />;
     label = t("start_recording");
-    bgClass = "bg-gray-400";
+    bgClass = "bg-[var(--muted-foreground)]";
   }
 
   return (
@@ -58,7 +58,7 @@ export function RecordingButton({
             className="absolute inset-0 rounded-full animate-pulse-ring pointer-events-none"
             style={{
               backgroundColor: "transparent",
-              border: "2px solid #f43f5e",
+              border: "2px solid var(--red-500)",
             }}
             data-testid="recording-pulse-ring"
           />
@@ -88,7 +88,7 @@ export function RecordingButton({
 
       {/* Label text */}
       <span
-        className="text-sm font-medium text-dark-700"
+        className="text-sm font-medium text-[var(--muted-foreground)]"
         data-testid="recording-label"
       >
         {label}

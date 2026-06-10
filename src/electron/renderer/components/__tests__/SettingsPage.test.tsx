@@ -79,21 +79,7 @@ describe("SettingsPage", () => {
     vi.clearAllMocks();
   });
 
-  // 1. Renders the title
-  it("renders the settings title", async () => {
-    renderWithTheme(
-      <SettingsPage
-        backendConfig={mockBackendConfig}
-        onToast={vi.fn()}
-        onHotkeyChange={vi.fn()}
-      />,
-    );
-    await waitFor(() => {
-      expect(screen.getByText("Settings")).toBeInTheDocument();
-    });
-  });
-
-  // 2. Renders all section cards
+  // 1. Renders all section cards
   it("renders all section headings", async () => {
     renderWithTheme(
       <SettingsPage
@@ -241,8 +227,8 @@ describe("SettingsPage", () => {
       />,
     );
     await waitFor(() => {
-      // The component should still render the title
-      expect(screen.getByText("Settings")).toBeInTheDocument();
+      // The component should still render section content
+      expect(screen.getByText("API Configuration")).toBeInTheDocument();
     });
   });
 });

@@ -163,6 +163,23 @@ def _build_few_shot(detected_language: str | None = None) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Short-text tier: minimal prompt (no few-shot, short instruction)
+# For dictations under 30 chars — the LLM only needs basic cleanup.
+# ---------------------------------------------------------------------------
+
+
+def _build_short_instruction(detected_language: str | None = None) -> str:
+    """Return a minimal instruction used for short text (<30 chars)."""
+    lang = detected_language or "zh"
+    if lang == "en":
+        return "Remove filler words, add punctuation, fix typos. Return ONLY the corrected text."
+    return "去语气词，加标点，修正错别字。只返回修正后的文本，不要解释。"
+
+
+_SHORT_TEXT_THRESHOLD = 30
+
+
+# ---------------------------------------------------------------------------
 # Layer 2: LLM conservative cleanup prompt
 # ---------------------------------------------------------------------------
 
@@ -199,8 +216,8 @@ class PolishClient:
         self._api_key = api_key or ""
         self._base_url = base_url.rstrip("/")
         self._model = model
-        self._client = httpx.AsyncClient(timeout=httpx.Timeout(30.0))
-        self._retry_policy = retry_policy or RetryPolicy()
+        self._client = httpx.AsyncClient(timeout=httpx.Timeout(15.0))
+        self._retry_policy = retry_policy or RetryPolicy(max_attempts=2)
 
     async def warmup(self) -> None:
         """Pre-warm the HTTP connection pool to the LLM API server.
@@ -218,7 +235,7 @@ class PolishClient:
         raw_text: str,
         prompt_template: str,
         dictionary_entries: list[dict] | None = None,
-        timeout: float = 30.0,
+        timeout: float = 15.0,
         detected_language: str | None = None,
     ) -> str:
         """Send a raw transcript to the LLM and return the polished text.
@@ -244,17 +261,28 @@ class PolishClient:
         if not preprocessed:
             return raw_text
 
+        # Fast path: text already clean (no fillers to remove) — skip the LLM
+        # and avoid the 1.5-4s round-trip for trivial input.
+        if preprocessed == raw_text:
+            return raw_text
+
         # Layer 2: LLM conservative cleanup — minimal intervention only
-        polish_instruction = _build_instruction(detected_language)
+        is_short = len(preprocessed) < _SHORT_TEXT_THRESHOLD
 
-        few_shot = _build_few_shot(detected_language)
-
-        # Build user prompt with dictionary terms inline
-        user_content_parts: list[str] = [
-            polish_instruction,
-            "",
-            few_shot,
-        ]
+        if is_short:
+            # Short text: minimal prompt, no few-shot, lower max_tokens.
+            polish_instruction = _build_short_instruction(detected_language)
+            user_content_parts: list[str] = [polish_instruction]
+            max_tokens = 128
+        else:
+            polish_instruction = _build_instruction(detected_language)
+            few_shot = _build_few_shot(detected_language)
+            user_content_parts = [
+                polish_instruction,
+                "",
+                few_shot,
+            ]
+            max_tokens = 256
 
         if dictionary_entries:
             entries_text = _format_dictionary(dictionary_entries)
@@ -280,7 +308,8 @@ class PolishClient:
         body: dict[str, Any] = {
             "model": self._model,
             "messages": messages,
-            "temperature": 0.1,
+            "temperature": 0.0,
+            "max_tokens": max_tokens,
             "thinking": {"type": "disabled"},
         }
 

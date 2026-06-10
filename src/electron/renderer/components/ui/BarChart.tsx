@@ -3,117 +3,134 @@
  * Dynamically sizes bars to fit the container; all labels always visible.
  */
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 
 interface BarChartProps {
   data: Array<{ label: string; value: number }>;
   height?: number;
   barColor?: string;
-  yLabel?: string;          // Y-axis label (e.g. "调用次数" / "calls")
+  yLabel?: string; // Y-axis label (e.g. "调用次数" / "calls")
 }
 
 export function BarChart({
   data,
-  height = 120,
-  barColor = "bg-brand-500",
+  height = 180,
+  barColor,
   yLabel,
 }: BarChartProps): JSX.Element {
-  const containerRef = useRef<HTMLDivElement>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   const maxValue = Math.max(...data.map((d) => d.value), 1);
 
-  // Label column width accounts for axis text
-  const AXIS_WIDTH = 36;
+  // Y-axis: compute a nice round max
+  const yMax = useMemo(() => {
+    const magnitude = Math.pow(10, Math.floor(Math.log10(maxValue)));
+    const normalized = maxValue / magnitude;
+    if (normalized <= 1) return magnitude;
+    if (normalized <= 2) return 2 * magnitude;
+    if (normalized <= 5) return 5 * magnitude;
+    return 10 * magnitude;
+  }, [maxValue]);
 
-  const { gap, barWidth, labelFontSize } = useMemo(() => {
-    const count = data.length;
-    if (count <= 1) return { gap: 4, barWidth: 30, labelFontSize: 10 };
+  const yLabels = [yMax, Math.round(yMax / 2), 0];
 
-    const chartWidth = 280 - AXIS_WIDTH;
-    const gap = count > 20 ? 1 : count > 12 ? 2 : 4;
-    const totalGaps = gap * (count - 1);
-    const barWidth = Math.min(
-      Math.max(Math.floor((chartWidth - totalGaps) / count), 4),
-      30,
-    );
-    const labelFontSize = count > 20 ? 7 : count > 12 ? 8 : 10;
-    return { gap, barWidth, labelFontSize };
-  }, [data.length]);
+  const AXIS_WIDTH = 40;
+
+  // Gap between bars based on data density
+  const gap = data.length > 30 ? 1 : data.length > 16 ? 2 : data.length > 8 ? 3 : 4;
 
   if (data.length === 0) {
-    return <div className="text-xs text-gray-400">No data</div>;
+    return <div className="text-xs text-[var(--text-tertiary)]">No data</div>;
   }
 
   return (
-    <div className="relative flex" style={{ height }} ref={containerRef}>
-      {/* ── Y-axis label ── */}
-      <div className="flex flex-col justify-between items-end pr-2 text-[10px] text-gray-400 select-none"
-        style={{ width: AXIS_WIDTH, paddingBottom: 16 }}>
-        <span>{maxValue}</span>
-        <span>{Math.round(maxValue / 2)}</span>
-        <span>0</span>
+    <div className="relative flex" style={{ height }}>
+      {/* ── Y-axis ── */}
+      <div
+        className="relative flex flex-col justify-between items-end pr-2.5 text-[10px] text-[var(--muted-foreground)] select-none font-mono"
+        style={{ width: AXIS_WIDTH, paddingBottom: 22 }}
+      >
+        {yLabels.map((v) => (
+          <span key={v}>{v}</span>
+        ))}
         {yLabel && (
-          <span className="text-[9px] text-gray-400 mt-1">{yLabel}</span>
+          <span
+            className="text-[9px] text-[var(--text-tertiary)] absolute bottom-0 left-0 text-center"
+            style={{ width: AXIS_WIDTH }}
+          >
+            {yLabel}
+          </span>
         )}
       </div>
 
       {/* ── Chart area ── */}
-      <div className="relative flex-1">
-        {/* Tooltip */}
-        {hoveredIndex !== null && data[hoveredIndex] && (
-          <div
-            className="absolute bg-dark-900 text-white text-[11px] px-2 py-1 rounded shadow-md z-10 whitespace-nowrap pointer-events-none"
-            style={{
-              bottom: "100%",
-              left: `${(hoveredIndex / data.length) * 100 + 50 / data.length}%`,
-              transform: "translateX(-50%)",
-              marginBottom: "4px",
-            }}
-          >
-            {data[hoveredIndex].label}: {data[hoveredIndex].value}
-          </div>
-        )}
+      <div
+        className="relative flex-1 flex items-end"
+        style={{ gap }}
+      >
+        {data.map((d, i) => {
+          const barHeight = (d.value / yMax) * 100;
+          const isHovered = hoveredIndex === i;
 
-        <div
-          className="flex items-end h-full"
-          style={{ gap, overflowX: "hidden" }}
-        >
-          {data.map((d, i) => (
+          return (
             <div
               key={i}
-              className="flex flex-col items-center h-full flex-shrink-0"
-              style={{
-                width: barWidth,
-                justifyContent: "flex-end",
-              }}
+              className="flex-1 flex flex-col items-center justify-end min-w-[3px] relative"
               onMouseEnter={() => setHoveredIndex(i)}
               onMouseLeave={() => setHoveredIndex(null)}
             >
+              {/* Tooltip */}
+              {isHovered && (
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-[11px] px-2.5 py-1.5 rounded-lg shadow-lg z-10 whitespace-nowrap pointer-events-none">
+                  <div className="font-semibold">{d.label}</div>
+                  <div className="text-[var(--muted-foreground)]">
+                    {d.value}
+                    {yLabel ? ` ${yLabel}` : ""}
+                  </div>
+                </div>
+              )}
+
               <motion.div
-                initial={{ height: 0 }}
-                animate={{ height: `${(d.value / maxValue) * 100}%` }}
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: `${barHeight}%`, opacity: 1 }}
                 transition={{
                   duration: 0.5,
-                  delay: i * 0.02,
-                  ease: "easeOut",
+                  delay: i * 0.015,
+                  ease: [0.25, 0.46, 0.45, 0.94],
                 }}
-                className={`w-full rounded-t ${barColor} min-h-[2px] cursor-pointer hover:opacity-80`}
-              />
+                className={`w-full rounded-t-md cursor-pointer min-h-[2px] relative overflow-hidden ${
+                  barColor || ""
+                }`}
+                style={
+                  !barColor
+                    ? {
+                        background:
+                          "linear-gradient(180deg, var(--brand-500) 0%, var(--brand-600) 100%)",
+                      }
+                    : undefined
+                }
+              >
+                {/* Subtle shine on hover */}
+                <div
+                  className={`absolute inset-0 bg-gradient-to-r from-white/0 via-white/15 to-white/0 transition-opacity duration-300 ${
+                    isHovered ? "opacity-100" : "opacity-0"
+                  }`}
+                />
+              </motion.div>
+
               <span
-                className="text-gray-500 mt-0.5 text-center overflow-hidden"
+                className="text-[var(--muted-foreground)] mt-1.5 text-center overflow-hidden font-mono"
                 style={{
-                  width: barWidth + 8,
-                  fontSize: labelFontSize,
-                  lineHeight: 1.1,
+                  fontSize: data.length > 24 ? 6 : data.length > 16 ? 7 : data.length > 8 ? 9 : 10,
+                  lineHeight: 1.2,
                 }}
               >
                 {d.label}
               </span>
             </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
     </div>
   );

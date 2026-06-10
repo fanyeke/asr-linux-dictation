@@ -4,6 +4,15 @@ import { useTranslation } from "../lib/i18n.js";
 import { ProgressBar } from "./ProgressBar.js";
 
 // ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/** Show network warning when transcribing exceeds this many ms. */
+const WARN_ASR_MS = 3000;
+/** Show network warning when polishing exceeds this many ms. */
+const WARN_POLISH_MS = 2500;
+
+// ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
 interface OverlayWindowProps {
@@ -28,7 +37,9 @@ export function OverlayWindow({
   const [silenceRemainingMs, setSilenceRemainingMs] = useState<number | null>(null);
   const [partialText, setPartialText] = useState("");
   const [elapsed, setElapsed] = useState(0);
+  const [showSlowWarning, setShowSlowWarning] = useState(false);
   const startTimeRef = useRef<number>(0);
+  const phaseStartRef = useRef<number>(0);
 
   const phase = status.phase;
   const showBar = phase !== "idle";
@@ -48,6 +59,27 @@ export function OverlayWindow({
       setElapsed(0);
       // Clear partial text when no longer recording
       setPartialText("");
+    }
+  }, [phase]);
+
+  // -----------------------------------------------------------------------
+  // Timer: per-phase elapsed time for slow-network warning
+  // -----------------------------------------------------------------------
+  useEffect(() => {
+    if (phase === "transcribing" || phase === "polishing") {
+      const threshold = phase === "transcribing" ? WARN_ASR_MS : WARN_POLISH_MS;
+      phaseStartRef.current = Date.now();
+      setShowSlowWarning(false);
+
+      const id = setInterval(() => {
+        const elapsedMs = Date.now() - phaseStartRef.current;
+        if (elapsedMs >= threshold) {
+          setShowSlowWarning(true);
+        }
+      }, 200);
+      return () => clearInterval(id);
+    } else {
+      setShowSlowWarning(false);
     }
   }, [phase]);
 
@@ -86,29 +118,36 @@ export function OverlayWindow({
   // -----------------------------------------------------------------------
   // Render
   // -----------------------------------------------------------------------
+  const getStatusColor = () => {
+    switch (phase) {
+      case "recording": return "var(--status-recording)";
+      case "transcribing": return "var(--primary)";
+      case "polishing": return "var(--purple-500)";
+      case "completed": return "var(--status-success)";
+      case "failed": return "var(--status-error)";
+      default: return "var(--muted-foreground)";
+    }
+  };
+
   return (
     <div
       data-testid="overlay-window"
-      className="bg-dark-900/95 backdrop-blur-md rounded-xl px-4 py-2.5 shadow-lg font-sans text-white select-none min-w-[280px]"
+      className="backdrop-blur-md rounded-xl px-4 py-2.5 shadow-lg font-sans select-none min-w-[280px]"
+      style={{
+        background: "rgba(15, 23, 42, 0.95)",
+        color: "#ffffff",
+      }}
     >
       {/* ── Status dot + label + timer ── */}
       <div className="flex items-center gap-2">
         <div className="relative flex items-center justify-center w-3 h-3">
           <div
             data-testid="status-dot"
-            className={`w-3 h-3 rounded-full transition-all duration-200 ${
-              phase === "recording"
-                ? "bg-red-500 animate-pulse"
-                : phase === "transcribing"
-                  ? "bg-brand-500"
-                  : phase === "polishing"
-                    ? "bg-purple-500"
-                    : phase === "completed"
-                      ? "bg-green-500"
-                      : phase === "failed"
-                        ? "bg-red-500"
-                        : "bg-gray-500"
-            }`}
+            className="w-3 h-3 rounded-full transition-all duration-200"
+            style={{
+              background: getStatusColor(),
+              animation: phase === "recording" ? "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite" : undefined,
+            }}
           />
         </div>
 
@@ -132,12 +171,23 @@ export function OverlayWindow({
         {phase === "recording" && (
           <span
             data-testid="timer"
-            className="text-xs text-gray-400 ml-auto tabular-nums"
+            className="text-xs ml-auto tabular-nums"
+            style={{ color: "var(--muted-foreground)" }}
           >
             {elapsed.toFixed(1)}s
           </span>
         )}
       </div>
+
+      {/* ── Slow-network warning ── */}
+      {showSlowWarning && (
+        <div
+          data-testid="slow-warning"
+          className="text-xs mt-1.5 text-amber-400"
+        >
+          {t("overlay_network_slow")}
+        </div>
+      )}
 
       {/* ── Progress bar ── */}
       {showBar && (

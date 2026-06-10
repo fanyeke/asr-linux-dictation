@@ -132,6 +132,8 @@ sequenceDiagram
 | 1 | ✅ Done | Bug fix sprint (overlay, dictionary) |
 | 2 | ✅ Done | Frontend refactor (SettingsPage split) |
 | 3 | ✅ Done | Polish & hardening (security, error handling, prompt CRUD) |
+| 4 | ✅ Done | Electron GUI MVP (settings, history, overlay, hotkey) |
+| 5 | ✅ Done | Product hardening (error messages, retry, diagnostics) |
 | 6 | ✅ Done | Core config & UX (ASR language, VAD controls, level optimization) |
 | 7 | ✅ Done | History & overlay (copy/export, dict stats, progress bar) |
 | 8 | ✅ Done | Overlay polish + onboarding (continuous progress bar, 4-step wizard) |
@@ -139,8 +141,13 @@ sequenceDiagram
 | 10 | ✅ Done | History redesign (preview, diff view, search API) |
 | 11 | ✅ Done | Dashboard + stats (latency charts, stats API) |
 | 12 | ✅ Done | Clipboard save/restore (save/restore/fallback) |
-| 13 | 🚧 Core infra | Streaming ASR (ring buffer, transcript merge — pipeline integration pending) |
+| 13 | ✅ Done | Streaming ASR (ring buffer, transcript merge, partial preview) |
 | 14 | ✅ Done | Connection warmup (fire-and-forget probe on recording start) |
+| 15 | ✅ Done | Theme system (warm light + dark themes, CSS variables, persistence) |
+| 16 | 🚧 Layout | Top tab bar + dual-pane layout (sidebar removal) |
+| 17 | 📋 Planned | Floating orb overlay (4-state animation) |
+| 18 | 📋 Planned | Animation & polished components |
+| 19 | 📋 Planned | Dashboard polish & animated counters |
 
 > **v0.2.0** — Major Dashboard rework: time range selector (today/7d/30d), server-side stats, Y-axis labels, timezone-corrected timeline, auto-refresh on tab switch, fixed `timing_ms` storage bug.
 
