@@ -112,6 +112,12 @@ function App(): JSX.Element {
           setLoading(false);
           return;
         }
+        if ("error" in config) {
+          const errMsg: string = (config as { error: string }).error;
+          setError(errMsg || i18n.t("error_backend_config"));
+          setLoading(false);
+          return;
+        }
         setBackendConfig(config);
 
         // Load language preference from backend

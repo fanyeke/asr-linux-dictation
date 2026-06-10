@@ -1,6 +1,5 @@
 import crypto from "crypto";
 import { ChildProcess, spawn } from "child_process";
-import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -45,6 +44,9 @@ export class BackendSupervisor {
   private _process: ChildProcess | null = null;
 
   private _info: BackendInfo | null = null;
+
+  /** Stores the last startup error message for diagnostics. */
+  private _lastError: string | null = null;
 
   /**
    * Attempts to install Python dependencies into a local deps folder.
@@ -96,11 +98,9 @@ export class BackendSupervisor {
     }
 
     return new Promise<BackendInfo>(async (resolve, reject) => {
-      // Detect whether we are running from a packaged app or dev.
-      // In dev mode the project root has a .venv directory from `uv sync`.
-      // In a packaged AppImage/tar.gz this .venv does not exist.
-      const devProjectRoot = path.resolve(__dirname, "../../..");
-      const isPackaged = !fs.existsSync(path.join(devProjectRoot, ".venv", "bin", "python"));
+      // Detect whether we are running from a packaged app (ASAR) or dev.
+      const isPackaged =
+        __dirname.includes("app.asar") || __dirname.includes("app.asar.unpacked");
       let projectRoot: string;
       let pythonPath: string;
       let pythonCwd: string;
@@ -180,11 +180,9 @@ export class BackendSupervisor {
       const onError = (err: Error): void => {
         if (!resolved) {
           resolved = true;
-          reject(
-            new Error(
-              `Backend failed to start: ${err.message}\n${stderrBuffer.join("")}`
-            )
-          );
+          const msg = `Backend failed to start: ${err.message}\n${stderrBuffer.join("")}`;
+          this._lastError = msg;
+          reject(new Error(msg));
         }
       };
 
@@ -196,12 +194,11 @@ export class BackendSupervisor {
         if (!resolved) {
           resolved = true;
           const stderrText = stderrBuffer.join("").trim();
-          reject(
-            new Error(
-              `Backend process exited with code ${code} before starting.\n` +
-                (stderrText ? `Stderr:\n${stderrText}` : "No stderr output.")
-            )
-          );
+          const msg =
+            `Backend process exited with code ${code} before starting.\n` +
+            (stderrText ? `Stderr:\n${stderrText}` : "No stderr output.");
+          this._lastError = msg;
+          reject(new Error(msg));
         }
       };
 
@@ -249,5 +246,12 @@ export class BackendSupervisor {
    */
   get info(): BackendInfo | null {
     return this._info;
+  }
+
+  /**
+   * Returns the last startup error message, or null if no error occurred.
+   */
+  get lastError(): string | null {
+    return this._lastError;
   }
 }

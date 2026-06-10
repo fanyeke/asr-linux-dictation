@@ -3,8 +3,8 @@
  * via contextBridge.exposeInMainWorld.
  */
 export interface VoiceAPI {
-  /** Returns the backend URL and auth token, or null if not running. */
-  getBackendConfig: () => Promise<{ url: string; token: string } | null>;
+  /** Returns the backend URL and auth token, or null/error if not running. */
+  getBackendConfig: () => Promise<{ url: string; token: string } | { error: string } | null>;
 
   /** Requests the backend to start dictation. */
   startDictation: () => Promise<void>;

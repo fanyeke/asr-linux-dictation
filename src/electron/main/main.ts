@@ -131,11 +131,21 @@ function registerIpcHandlers(): void {
     return "pong";
   });
 
-  // Return backend connection config to the renderer
+  // Return backend connection config to the renderer.
+  // Retries up to 3 times with 1s delay if the backend hasn't started yet.
   ipcMain.handle("get-backend-config", async () => {
-    const info = supervisor.info;
-    if (!info) return null;
-    return { url: info.url, token: info.token };
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const info = supervisor.info;
+      if (info) {
+        return { url: info.url, token: info.token };
+      }
+      if (attempt < 2) {
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
+    // After retries, propagate the startup error for better diagnostics.
+    const errMsg = supervisor.lastError;
+    return { error: errMsg || "Backend did not start within timeout" };
   });
 
   ipcMain.handle("get-hotkey", async () => {
