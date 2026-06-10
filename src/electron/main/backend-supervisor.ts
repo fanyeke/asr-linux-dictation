@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { ChildProcess, spawn } from "child_process";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -95,9 +96,11 @@ export class BackendSupervisor {
     }
 
     return new Promise<BackendInfo>(async (resolve, reject) => {
-      // Detect whether we are running from a packaged app (ASAR) or dev
-      const isPackaged =
-        process.env.NODE_ENV === "production" || __dirname.includes("app.asar");
+      // Detect whether we are running from a packaged app or dev.
+      // In dev mode the project root has a .venv directory from `uv sync`.
+      // In a packaged AppImage/tar.gz this .venv does not exist.
+      const devProjectRoot = path.resolve(__dirname, "../../..");
+      const isPackaged = !fs.existsSync(path.join(devProjectRoot, ".venv", "bin", "python"));
       let projectRoot: string;
       let pythonPath: string;
       let pythonCwd: string;
